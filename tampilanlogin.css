@@ -158,7 +158,7 @@ input:focus {
 input::placeholder {
      color: rgba(255,255,255,.25); 
 }
- 
+
 .btn-wrap {
      display: flex;
      justify-content: center;
