@@ -1,0 +1,259 @@
+/* =========================================
+   1. RESET & BASE STYLES (Gaya Dasar)
+   ========================================= */
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+    color: #333; 
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 20px; 
+}
+
+/* =========================================
+   2. HEADER & NAVIGATION
+   ========================================= */
+.header { 
+    background: rgba(255,255,255,0.95); 
+    backdrop-filter: blur(10px); 
+    padding: 1rem 0; 
+    position: sticky; 
+    top: 0; 
+    z-index: 100; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.nav { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.logo { 
+    font-size: 2rem; 
+    font-weight: bold; 
+    
+    /* 1. Atur Gradasinya */
+    background: linear-gradient(45deg, #2563eb, #1d4ed8); 
+    
+    /* 2. Clip ke teks (Wajib pakai prefix -webkit untuk Chrome/Safari/Edge) */
+    -webkit-background-clip: text;
+    background-clip: text; /* Versi standar untuk masa depan */
+    
+    /* 3. Buat teks asli jadi transparan agar gradasi terlihat */
+    -webkit-text-fill-color: transparent; /* Khusus browser engine webkit */
+    color: transparent; /* Fallback standar */
+    
+    /* 4. Tambahan: Pastikan elemen bukan 'inline' murni jika ada masalah layout */
+    display: inline-block; 
+}
+.user-info { 
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+}
+
+/* =========================================
+   3. BUTTONS & UI ELEMENTS
+   ========================================= */
+.btn {
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-login, .btn-primary { 
+    background: linear-gradient(45deg, #2563eb, #1d4ed8); 
+    color: white; 
+}
+
+.btn-login:hover, .btn-primary:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 10px 25px rgba(37,99,235,0.4); 
+}
+
+.btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+/* =========================================
+   4. HOME & PRODUCT GRID
+   ========================================= */
+.hero { text-align: center; color: white; padding: 4rem 0 3rem; }
+.hero h1 { font-size: 3rem; margin-bottom: 1rem; text-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+.products-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    gap: 2rem; 
+}
+
+.product-card {
+    background: rgba(255,255,255,0.95); 
+    backdrop-filter: blur(10px); 
+    border-radius: 20px; 
+    padding: 2rem; 
+    transition: all 0.4s; 
+    border: 1px solid rgba(255,255,255,0.2);
+    position: relative; 
+    overflow: hidden; 
+}
+
+.product-card:hover { 
+    transform: translateY(-10px); 
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2); 
+}
+
+.product-image {
+    width: 100%; 
+    height: 180px; 
+    background-size: cover; 
+    background-position: center; 
+    border-radius: 15px; 
+    margin-bottom: 1.5rem; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 3.5rem; 
+    position: relative;
+    z-index: 1;
+}
+
+.product-image::before { 
+    content: ''; 
+    position: absolute; 
+    top: 0; left: 0; right: 0; bottom: 0; 
+    background: rgba(0,0,0,0.4); 
+    border-radius: 15px; 
+    z-index: -1; 
+}
+
+.product-card h3 { font-size: 1.4rem; color: #1e40af; margin-bottom: 0.5rem; }
+
+.meta { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 1rem; 
+}
+
+.rating { color: #fbbf24; font-weight: bold; }
+.sold { color: #10b981; font-weight: bold; }
+
+.price { 
+    font-size: 1.3rem; 
+    font-weight: bold; 
+    color: #059669; 
+}
+
+/* =========================================
+   5. DETAIL, CART, & PAYMENT BOXES
+   ========================================= */
+.detail-box, .cart-box, .payment-box {
+    background: white;
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+.promo-box {
+    background: #fef3c7;
+    border: 1px dashed #f59e0b;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+input[type="text"], textarea, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-top: 5px;
+}
+
+/* =========================================
+   6. STATUS TRACKER & CHAT
+   ========================================= */
+.status-tracker {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 15px;
+    border: 1px solid #e2e8f0;
+}
+
+.step { 
+    font-size: 0.8rem; 
+    color: #cbd5e1; 
+    font-weight: bold; 
+    text-align: center;
+    flex: 1;
+}
+
+.step.active { color: #2563eb; }
+
+.chat-window {
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    padding: 15px;
+    background: #fff;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.msg-admin { 
+    background: #e0e7ff; 
+    padding: 10px; 
+    border-radius: 15px 15px 15px 0; 
+    margin-bottom: 10px; 
+    max-width: 80%;
+    align-self: flex-start;
+}
+
+.msg-user { 
+    background: #dcfce7; 
+    padding: 10px; 
+    border-radius: 15px 15px 0 15px; 
+    margin-bottom: 10px; 
+    max-width: 80%;
+    align-self: flex-end;
+}
+
+/* =========================================
+   7. RESPONSIVE MEDIA QUERIES
+   ========================================= */
+@media (max-width: 768px) { 
+    .hero h1 { font-size: 2rem; } 
+    .products-grid { grid-template-columns: 1fr; gap: 1.5rem; } 
+    .logo { font-size: 1.5rem; }
+    .btn-login { padding: 10px 20px; font-size: 0.9rem; }
+    .status-tracker { flex-direction: column; gap: 10px; }
+}
