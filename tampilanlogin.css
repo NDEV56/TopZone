@@ -158,7 +158,13 @@ input:focus {
 input::placeholder {
      color: rgba(255,255,255,.25); 
 }
- 
+
+.btn-wrap {
+     display: flex;
+     justify-content: center;
+     margin-top: 8px;
+}
+
 .btn-login {
      padding: 13px 48px;
      background: linear-gradient(160deg, rgba(13,36,128,.7) 0%, rgba(5,14,46,.9) 100%);
