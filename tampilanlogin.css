@@ -159,26 +159,32 @@ input::placeholder {
      color: rgba(255,255,255,.25); 
 }
  
-.btn-login {
+.btn-wrap {
+     display: flex;
+     justify-content: center;
      margin-top: 8px;
-     width: 100%;
-     padding: 13px;
-     background: linear-gradient(90deg, #a07415, var(--gold), var(--gold2), var(--gold), #a07415);
-     background-size: 200% 100%;
-     border: none; border-radius: 8px;
+}
+
+.btn-login {
+     padding: 13px 48px;
+     background: linear-gradient(160deg, rgba(13,36,128,.7) 0%, rgba(5,14,46,.9) 100%);
+     border: 1px solid var(--border);
+     border-radius: 8px;
      font-family: 'Orbitron', sans-serif;
      font-weight: 700;
      font-size: 13px;
      letter-spacing: 3px;
-     color: var(--navy);
+     color: #ffffff;
      cursor: pointer;
-     transition: background-position .4s, transform .15s, box-shadow .3s;
-     box-shadow: 0 4px 20px rgba(201,162,39,.3);
+     backdrop-filter: blur(10px);
+     box-shadow: 0 4px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(201,162,39,.2);
+     transition: background .3s, transform .15s, box-shadow .3s, border-color .3s;
 }
 
 .btn-login:hover {
-     background-position: 100% 0;
-     box-shadow: 0 4px 30px rgba(201,162,39,.55);
+     background: linear-gradient(160deg, rgba(13,36,128,.9) 0%, rgba(5,14,46,1) 100%);
+     border-color: var(--gold);
+     box-shadow: 0 4px 28px rgba(201,162,39,.3), inset 0 1px 0 rgba(201,162,39,.35);
      transform: translateY(-1px);
 }
 
