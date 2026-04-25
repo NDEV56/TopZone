@@ -200,7 +200,7 @@ input::placeholder {
 .footer-link a {
      color: var(--gold2);
      text-decoration: none;
-     transition: color .2s;
+     transition: color .3s;
 }
 
 .footer-link a:hover { 
