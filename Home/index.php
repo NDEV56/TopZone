@@ -1,86 +1,142 @@
+<?php 
+include 'koneksi.php';
+
+$search = $_GET['search'] ?? '';
+$search = mysqli_real_escape_string($conn, $search);
+
+if ($search) {
+    $query = "SELECT * FROM games WHERE nama_game LIKE '%$search%'";
+} else {
+    $query = "SELECT * FROM games";
+}
+
+$result = mysqli_query($conn, $query);
+?>
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameTopUp - Top Up Games</title>
+    <title>TOPZONE</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <div class="logo">🎮 TOPZONE</div>
-                <div class="user-info">
-                    <span id="userStatus">Selamat Datang!</span>
-                    <a href="admin.php" class="btn" style="background: #64748b; color: white; font-size: 12px; padding: 5px 10px;">Admin Panel</a>
-                </div>
-            </nav>
-        </div>
-    </header>
 
-    <section class="hero">
-        <div class="container">
-            <h1>🔥 Top Up Games Termurah</h1>
-            <p>Robux • ML • FF • Genshin - Instant Delivery</p>
-        </div>
-    </section>
+<!-- HEADER -->
+<header class="tp-header">
+    <div class="container tp-nav">
+        <div class="tp-logo">TOPZONE</div>
 
-    <section class="products-section">
-        <div class="container">
-            <div class="products-grid">
-                
-                <div class="product-card" onclick="location.href='game_detail.php?game=roblox'">
-                    <div class="product-image" style="background-image: url('Roblox.jpg')">
-                        </div>
-                    <h3>Roblox</h3>
-                    <div class="meta">
-                        <div class="rating">4.9 ⭐</div>
-                        <div class="sold">100K+ terjual</div>
-                    </div>
-                    <div class="price">Rp 15.000 <span>mulai</span></div>
-                </div>
-
-                <div class="product-card" onclick="location.href='game_detail.php?game=mlbb'">
-                    <div class="product-image" style="background-image: url('https://images.unsplash.com/photo-1570549717069-33bed2ebafec?w=400&h=200')">
-                        <span>⚔️</span>
-                    </div>
-                    <h3>Mobile Legends</h3>
-                    <div class="meta">
-                        <div class="rating">4.8 ⭐</div>
-                        <div class="sold">85K+ terjual</div>
-                    </div>
-                    <div class="price">Rp 45.000 <span>mulai</span></div>
-                </div>
-
-                <div class="product-card" onclick="location.href='game_detail.php?game=freefire'">
-                    <div class="product-image" style="background-image: url('https://images.unsplash.com/photo-1611606066920-63f3939b7b9e?w=400&h=200')">
-                        <span>🔥</span>
-                    </div>
-                    <h3>Free Fire</h3>
-                    <div class="meta">
-                        <div class="rating">4.9 ⭐</div>
-                        <div class="sold">45K+ terjual</div>
-                    </div>
-                    <div class="price">Rp 16.000 <span>mulai</span></div>
-                </div>
-
-                <div class="product-card" onclick="location.href='game_detail.php?game=genshin'">
-                    <div class="product-image" style="background-image: url('https://images.unsplash.com/photo-1624565881807-406d72c312af?w=400&h=200')">
-                        <span>⭐</span>
-                    </div>
-                    <h3>Genshin Impact</h3>
-                    <div class="meta">
-                        <div class="rating">4.7 ⭐</div>
-                        <div class="sold">23K+ terjual</div>
-                    </div>
-                    <div class="price">Rp 20.000 <span>mulai</span></div>
-                </div>
-
+        <div class="tp-center">
+            <div class="search-box">
+                <span class="search-icon"></span>
+                <input type="text" id="searchInput" onkeyup="searchRealtime()" placeholder="Cari game di TOPZONE...">
             </div>
         </div>
-    </section>
 
-    <script src="javascript.js"></script>
+        <div class="tp-user">🛒</div>
+    </div>
+</header>
+
+<!-- 🔥 LAYOUT (FULL WIDTH, BUKAN CONTAINER) -->
+<div class="tp-layout">
+
+    <!-- SIDEBAR KIRI -->
+    <aside class="tp-sidebar">
+        <h3>Kategori</h3>
+        <ul>
+            <li onclick="filterKategori('')">🎮 Semua</li>
+            <li onclick="filterKategori('MOBA')">⚔️ MOBA</li>
+            <li onclick="filterKategori('FPS')">🔫 FPS</li>
+            <li onclick="filterKategori('Open World')">🌍 Open World</li>
+        </ul>
+    </aside>
+
+    <!-- KANAN (ISI) -->
+    <div class="tp-main">
+        <div class="container"> <!-- container dipindah ke dalam -->
+            
+            <h2 class="tp-title">🔥 Semua Produk</h2>
+
+            <div id="productList" class="tp-grid">
+            <?php if(mysqli_num_rows($result) > 0): ?>
+                <?php while($g = mysqli_fetch_assoc($result)): ?>
+
+                <a href="game_detail.php?game=<?php echo $g['slug']; ?>" class="tp-card">
+                    
+                    <div class="tp-img" style="background-image:url('<?php echo $g['gambar']; ?>')"></div>
+
+                    <div class="tp-info">
+                        <h4><?php echo $g['nama_game']; ?></h4>
+
+                        <div class="tp-meta">
+                            ⭐ <?php echo number_format($g['rating'],1); ?> | <?php echo $g['terjual']; ?> terjual
+                        </div>
+
+                        <div class="tp-price">
+                            Rp <?php echo number_format($g['harga']); ?>
+                        </div>
+                    </div>
+
+                </a>
+
+                <?php endwhile; ?>
+            <?php else: ?>
+                <p style="color:red;">game lau gada mpruyy!</p>
+            <?php endif; ?>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script src="javascript.js"></script>
+<script>
+    loadData();
+</script>
+
+<!-- FOOTER -->
+<footer class="tp-footer">
+
+    <div class="footer-inner">
+        <div class="container footer-grid">
+
+            <div class="footer-brand">
+                <h2>TOPZONE</h2>
+                <p>Top up game cepat, aman, dan terpercaya 24 jam.</p>
+            </div>
+
+            <div>
+                <h4>Menu</h4>
+                <ul>
+                    <li>Home</li>
+                    <li>Semua Game</li>
+                    <li>Promo</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4>Bantuan</h4>
+                <ul>
+                    <li>Kontak</li>
+                    <li>FAQ</li>
+                    <li>Kebijakan</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4>Kontak</h4>
+                <p>Email: support@topzone.com</p>
+                <p>WA: 08xxxxxxxxxx</p>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        © 2026 TOPZONE • All Rights Reserved
+    </div>
+
+</footer>
+
 </body>
 </html>
