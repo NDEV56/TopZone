@@ -1,20 +1,16 @@
 <?php 
 include 'koneksi.php';
 
-$search = $_GET['search'] ?? '';
-$search = mysqli_real_escape_string($conn, $search);
-
-if ($search) {
-    $query = "SELECT * FROM games WHERE nama_game LIKE '%$search%'";
-} else {
-    $query = "SELECT * FROM games";
-}
+// Ambil data awal agar halaman tidak kosong saat pertama kali dibuka
+$query = "SELECT * FROM games";
 $result = mysqli_query($conn, $query);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>TOPZONE</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOPZONE - Pusat Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -45,7 +41,7 @@ $result = mysqli_query($conn, $query);
         </ul>
     </aside>
 
-    <main class="tp-main">
+   <main class="tp-main">
         <div class="slider-wrap" id="sliderWrap">
             <div class="tp-slider">
                 <div class="tp-slides" id="sliderTrack">
@@ -56,7 +52,7 @@ $result = mysqli_query($conn, $query);
             </div>
         </div>
 
-        <h2 class="tp-title">🔥 Semua Produk</h2>
+        <h2 class="tp-title" id="mainTitle">🔥 Semua Produk</h2>
 
         <div id="productList" class="tp-grid">
             <?php if(mysqli_num_rows($result) > 0): ?>
@@ -71,14 +67,15 @@ $result = mysqli_query($conn, $query);
                 </a>
                 <?php endwhile; ?>
             <?php endif; ?>
-            
-
-            <div id="productList" class="tp-grid">
+        </div>
+        
+        <div id="notFound" style="display:none; width:100%; padding: 50px 0;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+                <div style="background:#fff3f3; border:2px dashed #ff0000; padding:20px 40px; border-radius:10px; text-align:center; min-width: 300px;">
+                    <h3 style="color:#ff0000; margin:0; font-size: 18px;">⚠️ GAME LAU GADA MPRUYY!</h3>
+                    <p style="color:#666; margin-top:5px; font-size: 13px;">Coba kata kunci lain mprruy...</p>
+                </div>
             </div>
-            
-            <<div id="notFound" style="display:none; text-align:center; color:#888; font-size:13px; padding:100px 0; font-style:italic;">
-                  game lau gada mpruyy!
-              </div>
         </div>
     </main>
 </div>
@@ -109,5 +106,6 @@ $result = mysqli_query($conn, $query);
 </footer>
 
 <script src="javascript.js"></script>
+
 </body>
 </html>

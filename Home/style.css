@@ -472,15 +472,17 @@ body {
 }
 
 #notFound {
-    display: none; /* Sembunyi awal */
-    text-align: center;
-    color: #888; /* Abu-abu */
-    font-size: 13px; /* Kecil */
-    padding: 100px 0;
+    display: none; 
     width: 100%;
-    font-style: italic;
+    text-align: center;
+    padding: 50px 0;
+    color: #ff0000 !important; /* KASIH WARNA MERAH BIAR KELIHATAN */
+    font-weight: bold;
+    font-size: 20px; /* GEDEIN DIKIT */
+    background: #f0f0f0; /* KASIH BG ABU MUDA BIAR KELIHATAN DI BG PUTIH */
+    border: 2px dashed red; /* BIAR KELIATAN KOTAKNYA */
+    margin-top: 20px;
 }
-
 .tp-title {
     margin: 20px 0;
     font-size: 22px;
@@ -493,3 +495,375 @@ body {
     gap: 20px;
     min-height: 100px;
 }
+
+/* Container utama untuk judul */
+.tp-content-header {
+    display: flex;
+    justify-content: space-between; /* Judul kiri, search kanan (kalau search dipindah) */
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee; /* Garis tipis biar cakep */
+    margin-bottom: 20px;
+}
+
+/* Biar tulisan "game lau gada" bener-bener di tengah layar */
+#notFound {
+    display: none;
+    grid-column: 1 / -1; /* Kalau di dalam grid, dia makan semua kolom */
+    text-align: center;
+    width: 100%;
+    padding: 100px 0;
+}
+
+/* Layout Dasar */
+.product-container {
+    display: flex;
+    gap: 30px;
+    padding: 20px;
+    align-items: flex-start;
+}
+
+#mainLogo {
+    width: 200px;
+    border-radius: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.product-right h1 {
+    margin-top: 0;
+    font-size: 32px;
+}
+
+/* Tombol biar Gede & Keren */
+.btn-buy, .btn-cart {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-right: 10px;
+    transition: 0.3s;
+}
+
+.btn-buy { background: #ff4d4d; color: white; }
+.btn-buy:hover { background: #cc0000; }
+
+.btn-cart { background: #f0f0f0; color: #333; }
+.btn-cart:hover { background: #ddd; }
+.tp-container { max-width: 1200px; margin: 20px auto; padding: 0 20px; font-family: 'Segoe UI', sans-serif; }
+.product-header { display: flex; gap: 40px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+
+/* Gambar */
+.product-img-box img { width: 300px; border-radius: 15px; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+
+/* Info */
+.breadcrumb { font-size: 12px; color: #888; margin-bottom: 10px; }
+.product-info-box h1 { margin: 0; font-size: 32px; color: #333; }
+.product-meta { margin: 10px 0; color: #666; font-size: 14px; }
+.price { color: #ff4d4d; font-size: 36px; margin: 20px 0; }
+.description { color: #555; line-height: 1.6; margin-bottom: 30px; }
+
+/* Buttons */
+.action-buttons { display: flex; gap: 15px; }
+.btn-buy { background: #ff4d4d; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 1; }
+.btn-cart { background: #fff1f1; color: #ff4d4d; border: 2px solid #ff4d4d; padding: 15px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+
+/* Ulasan */
+.ulasan-container { margin-top: 40px; background: white; padding: 30px; border-radius: 20px; }
+.star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 5px; margin-bottom: 15px; }
+.star-rating label { font-size: 24px; color: #ddd; cursor: pointer; }
+.star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: #ffc107; }
+.ulasan-form textarea { width: 100%; height: 100px; padding: 15px; border: 1px solid #ddd; border-radius: 10px; resize: none; }
+/* Tombol Beli Gaya Premium */
+/* Container Utama */
+/* --- DETAIL GAME RESET --- */
+.detail-container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Biar semua konten utama rata kiri */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.game-header-section h1 { margin: 10px 0; font-size: 32px; color: #1a1a1a; }
+.breadcrumb { font-size: 13px; color: #777; }
+.price-detail { color: #ff4d4d; font-size: 28px; font-weight: bold; margin: 15px 0; }
+.section-divider { width: 100%; border: none; border-top: 1px solid #eee; margin: 30px 0; }
+
+/* --- ACTION BAR (TOMBOL) --- */
+.action-bar {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 450px; /* JAGA BIAR GAK MELAR JADI RAKSASA */
+    margin-top: 20px;
+}
+
+.btn-buy-primary {
+    flex: 4; /* Gede */
+    background: linear-gradient(135deg, #ff4d4d 0%, #cc0000 100%);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: 0.2s;
+    box-shadow: 0 4px 10px rgba(204, 0, 0, 0.2);
+}
+
+.btn-buy-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(204, 0, 0, 0.4); }
+.btn-buy-primary .t-main { font-weight: bold; font-size: 17px; }
+.btn-buy-primary .t-sub { font-size: 11px; opacity: 0.9; margin-top: 2px; }
+
+.btn-cart-secondary {
+    flex: 1; /* Kecil */
+    background: #fff;
+    border: 2px solid #ff4d4d;
+    color: #ff4d4d;
+    border-radius: 12px;
+    font-size: 22px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-cart-secondary:hover { background: #fff1f1; }
+
+/* --- ULASAN SECTION (RATA KIRI) --- */
+.ulasan-main-section {
+    width: 100%;
+    max-width: 600px; /* Biar ulasan gak kepanjangan kayak koran */
+    text-align: left;
+}
+
+.ulasan-main-section h3 { margin: 0; font-size: 20px; }
+.sub-h { color: #888; font-size: 14px; margin: 5px 0 20px 0; }
+
+.review-input-card {
+    background: white;
+    border: 1px solid #eee;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+}
+
+.rev-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;}
+.input-name-user { background: #000; color: #fff; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 13px; width: 150px;}
+
+
+.review-input-card textarea {
+    width: 100%; height: 90px; border: 1px solid #ddd; border-radius: 10px; padding: 12px; resize: none; font-size: 14px; color: #333; margin-bottom: 15px; box-sizing: border-box;
+}
+
+.rev-footer-action { display: flex; justify-content: space-between; align-items: center; }
+.custom-file-upload-v2 { background: #f5f5f5; color: #666; padding: 8px 15px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid #e0e0e0; }
+.btn-send-testi { background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.btn-send-testi:hover { opacity: 0.9; }
+.detail-wrapper {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* INI KUNCINYA BIAR SEMUA KE KIRI */
+}
+
+.game-main-info { display: flex; gap: 30px; align-items: center; width: 100%; }
+.game-logo-box img { width: 180px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+.price-tag { font-size: 32px; font-weight: bold; color: #ff4d4d; margin: 10px 0; }
+.action-bar-v2 { display: flex; gap: 15px; width: 100%; max-width: 400px; }
+
+.btn-buy-now { flex: 4; background: linear-gradient(135deg, #ff4d4d, #cc0000); color: white; border: none; padding: 10px; border-radius: 12px; cursor: pointer; }
+.btn-cart-add { flex: 1; background: white; border: 2px solid #ff4d4d; border-radius: 12px; font-size: 20px; cursor: pointer; }
+
+.line-break { width: 100%; border: 0; border-top: 1px solid #eee; margin: 40px 0; }
+
+.ulasan-section-left { width: 100%; max-width: 600px; }
+.ulasan-card-box { background: #f9f9f9; padding: 20px; border-radius: 15px; border: 1px solid #eee; }
+.user-input-name { background: #000; color: #fff; border: none; padding: 5px 15px; border-radius: 20px; font-size: 12px; }
+
+.stars-interact { display: flex; flex-direction: row-reverse; gap: 2px; }
+.stars-interact label { font-size: 20px; color: #ddd; cursor: pointer; }
+.stars-interact input:checked ~ label { color: #ffc107; }
+
+textarea { width: 100%; height: 80px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; padding: 10px; box-sizing: border-box; }
+.ulasan-footer { display: flex; justify-content: space-between; }
+.btn-kirim-ulasan { background: #00c6ff; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+/* Styling List Ulasan */
+.ulasan-list {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.comment-card {
+    background: #fff;
+    border-left: 5px solid #ffca08; /* Biar ada aksen kuning bintang */
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.comment-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.user-name { font-weight: bold; color: #333; }
+.comment-date { color: #999; }
+
+.comment-stars { margin-bottom: 8px; font-size: 12px; }
+
+.comment-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #444;
+    word-wrap: break-word; /* Biar teks panjang gak luber */
+}.ulasan-list {
+    width: 100%;
+    max-width: 700px; /* Batasi lebar biar gak melar */
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Paksa konten ke kiri */
+}
+
+.comment-card {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-left: 5px solid #ffca08; /* Aksen kuning rating */
+    box-sizing: border-box;
+}
+
+.comment-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.user-name { font-weight: bold; font-size: 15px; color: #222; }
+.comment-date { font-size: 12px; color: #aaa; }
+
+.comment-text {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.6;
+    margin-top: 10px;
+    word-wrap: break-word;
+}
+/* --- RESET & LAYOUT DASAR --- */
+body.detail-page { background-color: #f4f6f9; font-family: 'Inter', system-ui, sans-serif; }
+
+/* Container Utama 3 Kolom */
+.tp-detail-wrapper {
+    max-width: 1260px;
+    margin: 30px auto;
+    padding: 0 20px;
+    display: flex; /* Pake Flexbox buat 3 Kolom */
+    gap: 30px;
+    align-items: flex-start;
+}
+
+/* Gabungan Kiri & Tengah */
+.tp-main-content {
+    flex: 3; /* Ambil 3/4 lebar */
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    display: flex;
+    gap: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+
+/* --- KOLOM 1: GAMBAR (KIRI) --- */
+.tp-product-image { flex: 1; max-width: 280px; }
+.tp-product-image img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    position: sticky; /* Biar nempel pas di-scroll */
+    top: 100px;
+}
+
+/* --- KOLOM 2: INFO (TENGAH) --- */
+.tp-product-info { flex: 2; }
+.breadcrumb { font-size: 13px; color: #888; margin-bottom: 10px; }
+.tp-product-info h1 { margin: 0; font-size: 28px; color: #1a1a1a; font-weight: 800; }
+.product-meta { margin: 15px 0; color: #666; font-size: 14px; display: flex; gap: 10px; }
+
+/* Varian Konsep */
+.tp-variants-section { margin-top: 30px; }
+.tp-variant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+.tp-variant-grid button {
+    background: white; border: 1px solid #ddd; padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 14px;
+}
+.tp-variant-grid button:hover { border-color: #007bff; color: #007bff; background: #f0f7ff; }
+.tp-variant-grid button.active { border-color: #007bff; color: #007bff; background: #e0efff; font-weight: bold; }
+
+/* --- KOLOM 3: SIDEBAR BELI (KANAN) --- */
+.tp-buy-sidebar {
+    flex: 1; /* Ambil 1/4 lebar */
+}
+
+/* Kotak Melayang yang Ikut Di-scroll (Sticky) */
+.tp-sticky-card {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 100px; /* Nempel setelah header */
+}
+
+.tp-sticky-card h3 { margin-top: 0; color: #333; }
+.input-group { margin-bottom: 20px; }
+.input-group label { display: block; font-size: 13px; color: #666; margin-bottom: 8px; font-weight: 600; }
+.input-group input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+
+/* Qty Control */
+.qty-control { display: flex; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; width: fit-content;}
+.qty-control button { background: #f8f9fa; border: none; padding: 10px 15px; cursor: pointer; }
+.qty-control input { border: none; width: 50px; text-align: center; font-weight: bold;}
+
+/* Harga Gede Merah */
+.total-section { display: flex; justify-content: space-between; align-items: flex-end; margin: 25px 0; border-top: 1px solid #eee; padding-top: 15px;}
+.total-section span { color: #888; font-size: 14px;}
+.price { color: #ff4d4d; margin: 0; font-size: 32px; font-weight: 900; }
+
+/* --- TOMBOL YANG 'GLOW UP' --- */
+.btn-primary-buy {
+    width: 100%; background: linear-gradient(135deg, #ff6b6b 0%, #ff4d4d 100%); color: white; border: none; padding: 18px; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 10px;
+    box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
+}
+.btn-primary-buy:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255, 77, 77, 0.5); }
+
+.btn-secondary-cart {
+    width: 100%; background: #fff1f1; color: #ff4d4d; border: 2px solid #ff4d4d; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;
+}
+.btn-secondary-cart:hover { background: #ffe4e4; }
+
+.safe-text { text-align: center; color: #aaa; font-size: 11px; margin-top: 15px; }
+
+/* --- BAGIAN ULASAN (FULL WIDTH) --- */
+.tp-review-full-width {
+    max-width: 1260px;
+    margin: 20px auto 50px auto;
+    padding: 0 20px;
+}
+.section-divider { border: 0; border-top: 1px solid #eee; margin: 0; }

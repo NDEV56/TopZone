@@ -2,60 +2,69 @@
 let kategoriAktif = "";
 let sliderIndex = 0; // Pakai nama berbeda biar gak bentrok
 
+
 /* ===== CORE FUNCTIONS ===== */
-
 function loadData() {
-    let search = document.getElementById("searchInput").value;
-    let productList = document.getElementById("productList");
-    let notFound = document.getElementById("notFound");
-    let mainTitle = document.getElementById("mainTitle");
+    // Ambil semua elemen
+    const searchInput = document.getElementById("searchInput");
+    const slider = document.getElementById("sliderWrap");
+    const productList = document.getElementById("productList");
+    const notFound = document.getElementById("notFound"); // <-- Pastikan ini ketemu!
+    const mainTitle = document.getElementById("mainTitle");
 
-    // Kirim request ke search.php
+    const search = searchInput ? searchInput.value.trim() : ""; 
+
+    // 1. LOGIKA JUDUL & SLIDER
+    if (search.length > 0 || kategoriAktif !== "") {
+        if (slider) slider.style.display = "none";
+        if (mainTitle) mainTitle.innerText = search.length > 0 ? `🔍 Hasil: "${search}"` : `📂 Kategori: ${kategoriAktif}`;
+    } else {
+        if (slider) slider.style.display = "flex";
+        if (mainTitle) mainTitle.innerText = "🔥 Semua Produk";
+    }
+
+    // 2. FETCH DATA
     fetch(`search.php?search=${encodeURIComponent(search)}&kategori=${encodeURIComponent(kategoriAktif)}`)
     .then(res => res.text())
+    // ... baris fetch lu ...
     .then(data => {
-        // .trim() akan menghapus spasi/enter yang nggak sengaja terkirim dari PHP
-        let cleanData = data.trim(); 
+        // ... baris sebelumnya ...
+        const cleanData = data.trim();
+        const productList = document.getElementById("productList");
+        const notFound = document.getElementById("notFound");
 
         if (cleanData === "") {
-            // JIKA KOSONG: Kosongkan grid dan munculkan tulisan abu-abu
-            productList.innerHTML = "";
-            if (notFound) notFound.style.display = "block";
-            
-            // Opsional: ganti judul kalau lagi nyari tapi gada
-            if (search.length > 0) {
-                mainTitle.innerText = `🔍 Hasil Pencarian: "${search}" (Gada)`;
+            // JIKA KOSONG
+            if (productList) {
+                productList.innerHTML = ""; // Bersihin sisa card
+                productList.style.display = "none"; // MATIIN GRIDNYA
+            }
+            if (notFound) {
+                notFound.style.display = "block"; // MUNCULIN PESAN TENGAH
             }
         } else {
-            // JIKA ADA DATA: Isi grid dan sembunyikan tulisan abu-abu
-            productList.innerHTML = cleanData;
-            if (notFound) notFound.style.display = "none";
-            
-            // Update judul normal
-            if (search.length > 0) {
-                mainTitle.innerText = `🔍 Hasil Pencarian: "${search}"`;
-            } else if (kategoriAktif !== "") {
-                mainTitle.innerText = `📂 Kategori: ${kategoriAktif}`;
-            } else {
-                mainTitle.innerText = "🔥 Semua Produk";
+            // JIKA ADA DATA
+            if (productList) {
+                productList.innerHTML = cleanData;
+                productList.style.display = "grid"; // HIDUPIN GRID LAGI
+            }
+            if (notFound) {
+                notFound.style.display = "none";
             }
         }
-    });
+    })
+    .catch(err => console.error("Error:", err));
 }
-// Trigger saat ngetik
-function searchRealtime() {
-    loadData();
-}
+function searchRealtime() { loadData(); }
 
-// Trigger saat klik kategori
 function filterKategori(kat, el) {
-    kategoriAktif = kat;
-    document.querySelectorAll(".tp-sidebar li").forEach(li => {
-        li.classList.remove("active");
-    });
+    kategoriAktif = kat; // Ini yang bikin judul berubah jadi 'MOBA', 'FPS', dll
+    document.querySelectorAll(".tp-sidebar li").forEach(li => li.classList.remove("active"));
     if(el) el.classList.add("active");
     loadData();
 }
+
+document.addEventListener("DOMContentLoaded", loadData);
 
 /* ===== SLIDER LOGIC ===== */
 function initSlider() {
@@ -104,3 +113,20 @@ document.addEventListener("DOMContentLoaded", () => {
     // Load data awal biar grid gak kosong pas baru buka
     loadData(); 
 });
+
+function beliSekarang(id) {
+    // Langsung lempar ke halaman pembayaran
+    window.location.href = "pembayaran.php?id=" + id;
+}
+
+function tambahKeranjang(id) {
+    // Pake fetch biar gak pindah halaman (AJAX)
+    fetch("tambah_keranjang.php?id=" + id)
+    .then(res => res.text())
+    .then(data => {
+        alert("Berhasil masuk keranjang mprruy!");
+        // Update angka di icon keranjang header
+        let count = document.getElementById("cartCount");
+        count.innerText = parseInt(count.innerText) + 1;
+    });
+}

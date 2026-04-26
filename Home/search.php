@@ -30,7 +30,14 @@ if(mysqli_num_rows($result) > 0){
             </div>
         </a>";
     }
+}
+// ... bagian query ...
+if(mysqli_num_rows($result) > 0){
+    while($g = mysqli_fetch_assoc($result)){
+        // tampilkan produk
+    }
 } else {
-    // KOSONGIN AJA, biar JS yang nampilin tulisan notFound
+    // Kosongkan total, jangan ada spasi satupun!
+    exit; 
 }
 ?>
