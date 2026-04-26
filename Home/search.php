@@ -22,16 +22,15 @@ if(mysqli_num_rows($result) > 0){
     while($g = mysqli_fetch_assoc($result)){
         echo "
         <a href='game_detail.php?game=".$g['slug']."' class='tp-card'>
-            <div class='tp-img' style='background-image:url(".$g['gambar'].")'></div>
+            <div class='tp-img' style='background-image:url(\"".$g['gambar']."\")'></div>
             <div class='tp-info'>
                 <h4>".$g['nama_game']."</h4>
                 <div class='tp-meta'>⭐ ".number_format($g['rating'],1)." | ".$g['terjual']." terjual</div>
                 <div class='tp-price'>Rp ".number_format($g['harga'])."</div>
             </div>
-        </a>
-        ";
+        </a>";
     }
 } else {
-    echo "<p style='color:red;'>game lau gada mpruyy!</p>";
+    // KOSONGIN AJA, biar JS yang nampilin tulisan notFound
 }
 ?>
