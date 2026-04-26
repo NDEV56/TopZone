@@ -1,10 +1,16 @@
 <?php 
 include 'koneksi.php';
 
-// Ambil data awal agar halaman tidak kosong saat pertama kali dibuka
+// Ambil data game
 $query = "SELECT * FROM games";
 $result = mysqli_query($conn, $query);
+
+// COBA TEST INI: Kalau di layar muncul angka, berarti database aman.
+// $test = mysqli_query($conn, "SELECT AVG(rating) as rata FROM reviews WHERE id_game = 1");
+// $data_test = mysqli_fetch_assoc($test);
+// echo "DEBUG RATING GAME ID 1: " . $data_test['rata']; 
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -14,7 +20,9 @@ $result = mysqli_query($conn, $query);
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
+    <div id="toastSuccess" class="toast-success">
+    ✅ Mantap mprruy! Berhasil masuk keranjang!
+    </div>
 <header class="tp-header">
     <div class="container tp-nav">
         <div class="tp-left"><div class="tp-logo">TOPZONE</div></div>
@@ -24,8 +32,25 @@ $result = mysqli_query($conn, $query);
             </div>
         </div>
         <div class="tp-right">
-            <div class="tp-cart">🛒 <span id="cartCount">0</span></div>
-            <div class="tp-user">👤 <span id="userName">Guest</span></div>
+        <div class="tp-cart" onclick="toggleCartModal()" style="cursor:pointer; position:relative; z-index: 9999;">
+            🛒 <span id="cartCount">0</span>
+            
+            <div id="cartDropdown" style="display:none; position:absolute; top:40px; right:0; width:260px; background:white; color:black; padding:15px; border-radius:10px; box-shadow:0 10px 20px rgba(0,0,0,0.2); border:1px solid #ddd;">
+                <h4 style="margin:0 0 10px 0; color:#333;">Keranjang Lu 🔥</h4>
+                <div id="cartItemsList" style="max-height:200px; overflow-y:auto; color:#555; font-size:13px;">
+                    </div>
+                <button onclick="localStorage.removeItem('topzone_cart'); location.reload();" style="width:100%; margin-top:10px; background:#eee; border:none; padding:5px; cursor:pointer;">Kosongkan</button>
+            </div>
+        </div>
+                    <div class="tp-user">
+                <?php if(isset($_SESSION['nama_user'])): ?>
+                    <span id="userName">👤 <?php echo $_SESSION['nama_user']; ?></span>
+                    <a href="logout.php" style="font-size: 10px; color: red; text-decoration: none;">Logout</a>
+                <?php else: ?>
+                    <a href="login.html" class="btn-login-nav" style="text-decoration: none; color: #333;">👤 Login / Daftar</a>
+                <?php endif; ?>
+            </div>
+        </div>
         </div>
     </div>
 </header>
@@ -53,20 +78,32 @@ $result = mysqli_query($conn, $query);
         </div>
 
         <h2 class="tp-title" id="mainTitle">🔥 Semua Produk</h2>
-
         <div id="productList" class="tp-grid">
-            <?php if(mysqli_num_rows($result) > 0): ?>
-                <?php while($g = mysqli_fetch_assoc($result)): ?>
-                <a href="game_detail.php?game=<?php echo $g['slug']; ?>" class="tp-card">
-                    <div class="tp-img" style="background-image:url('<?php echo $g['gambar']; ?>')"></div>
+        <?php if(mysqli_num_rows($result) > 0): ?>
+            <?php while($row_game = mysqli_fetch_assoc($result)): ?>
+                
+                <?php 
+                    // HITUNG MANUAL (PERSIS DETAIL GAME)
+                    $id_ini = $row_game['id'];
+                    $ambil_ulasan = mysqli_query($conn, "SELECT AVG(rating) as hasil_rata FROM reviews WHERE id_game = '$id_ini'");
+                    $data_ulasan = mysqli_fetch_assoc($ambil_ulasan);
+                    
+                    // Variabel baru biar gak ketuker
+                    $angka_bintang = ($data_ulasan['hasil_rata'] > 0) ? round($data_ulasan['hasil_rata'], 1) : 0;
+                ?>
+
+                <a href="game_detail.php?game=<?php echo $row_game['slug']; ?>" class="tp-card">
+                    <div class="tp-img" style="background-image:url('<?php echo $row_game['gambar']; ?>')"></div>
                     <div class="tp-info">
-                        <h4><?php echo $g['nama_game']; ?></h4>
-                        <div class="tp-meta">⭐ <?php echo number_format($g['rating'],1); ?> | <?php echo $g['terjual']; ?> terjual</div>
-                        <div class="tp-price">Rp <?php echo number_format($g['harga']); ?></div>
+                        <h4><?php echo $row_game['nama_game']; ?></h4>
+                        <div class="tp-meta">
+                            ⭐ <?php echo number_format($angka_bintang, 1); ?> | <?php echo $row_game['terjual']; ?> terjual
+                        </div>
                     </div>
                 </a>
-                <?php endwhile; ?>
-            <?php endif; ?>
+
+            <?php endwhile; ?>
+        <?php endif; ?>
         </div>
         
         <div id="notFound" style="display:none; width:100%; padding: 50px 0;">
@@ -106,6 +143,50 @@ $result = mysqli_query($conn, $query);
 </footer>
 
 <script src="javascript.js"></script>
+<script>
+function toggleCartModal() {
+    const dropdown = document.getElementById("cartDropdown");
+    const list = document.getElementById("cartItemsList");
+    
+    // Cek apakah dropdown-nya ada
+    if(!dropdown) {
+        alert("ID cartDropdown gak ketemu paok!");
+        return;
+    }
 
+    // Toggle manual
+    if (dropdown.style.display === "none") {
+        dropdown.style.display = "block";
+        
+        // Ambil data
+        let keranjang = JSON.parse(localStorage.getItem("topzone_cart")) || [];
+        console.log("Isi Keranjang:", keranjang); // Cek di F12 Console
+
+        if (keranjang.length === 0) {
+            list.innerHTML = "Belum ada belanjaan mprruy!";
+        } else {
+            list.innerHTML = keranjang.map(item => `
+                <div style="border-bottom:1px solid #eee; padding:5px 0;">
+                    <b>${item.produk}</b><br>
+                    ID: ${item.id_game}<br>
+                    <span style="color:red">Rp ${item.harga.toLocaleString('id-ID')}</span>
+                </div>
+            `).join('');
+        }
+    } else {
+        dropdown.style.display = "none";
+    }
+}
+
+// Update angka merah di icon keranjang
+function updateCartCount() {
+    let keranjang = JSON.parse(localStorage.getItem("topzone_cart")) || [];
+    let countEl = document.getElementById("cartCount");
+    if(countEl) countEl.innerText = keranjang.length;
+}
+
+// Jalankan otomatis pas page load
+document.addEventListener("DOMContentLoaded", updateCartCount);
+</script>
 </body>
 </html>

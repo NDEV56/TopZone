@@ -221,7 +221,7 @@ body {
 ========================================= */
 .tp-footer {
     width: 100%;
-    background: #0f172a;
+    background: #141d33;
     color: #e2e8f0;
     margin-top: auto;
 }
@@ -237,7 +237,7 @@ body {
 }
 
 .footer-brand h2 {
-    color: #22c55e;
+    color: #121ded;
 }
 
 .footer-bottom {
@@ -867,3 +867,230 @@ body.detail-page { background-color: #f4f6f9; font-family: 'Inter', system-ui, s
     padding: 0 20px;
 }
 .section-divider { border: 0; border-top: 1px solid #eee; margin: 0; }
+
+/*ROBLOX*/
+.tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
+.tab-btn { 
+    padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; 
+    cursor: pointer; background: white; font-weight: bold;
+}
+.tab-btn.active { background: #007bff; color: white; border-color: #007bff; }
+
+.item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.item-card { 
+    border: 1px solid #eee; padding: 15px; border-radius: 12px; 
+    cursor: pointer; text-align: center; transition: 0.2s; background: #fff;
+}
+.item-card:hover { border-color: #007bff; transform: translateY(-2px); }
+.item-card.selected { border: 2px solid #007bff; background: #f0f7ff; }
+
+.qty-control { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 8px; width: fit-content; }
+.qty-btn { width: 35px; height: 35px; border: none; background: #f8f9fa; cursor: pointer; font-size: 20px; }
+.qty-input { width: 50px; text-align: center; border: none; font-weight: bold; }
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    margin: 5px 0 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+.btn-beli {
+    width: 100%;
+    background: #ff4d4d; /* Warna Oranye-Merah ala Itemku */
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.btn-beli:hover { background: #e64545; }
+/* Label kecil di atas input */
+.label-sm { 
+    font-size: 12px; 
+    font-weight: 700; 
+    color: #444; 
+    display: block; 
+    margin-bottom: 5px; 
+}
+
+/* Input & Select */
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid #eee;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+    margin-bottom: 12px;
+    transition: 0.3s;
+}
+.form-input:focus {
+    border-color: #ff4d4d;
+    outline: none;
+    background: #fffafa;
+}
+
+/* Kotak Total */
+.total-box {
+    border-top: 1px dashed #ddd;
+    padding-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Button Styling */
+.btn-buy {
+    flex: 1;
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-buy:hover { background: #e64545; transform: translateY(-2px); }
+
+.btn-cart {
+    width: 55px;
+    background: white;
+    color: #ff4d4d;
+    border: 2px solid #ff4d4d;
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+}
+.tp-sidebar {
+    width: 250px; /* Pastikan sidebar punya lebar tetap */
+    padding: 20px;
+}
+
+.tp-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column; /* Susun ke bawah */
+    gap: 8px; /* Jarak antar kotak putih */
+}
+
+.tp-sidebar li {
+    /* KUNCI UTAMA DI SINI */
+    display: block; 
+    width: 100%; 
+    box-sizing: border-box; /* Padding gak nambah lebar luar */
+    
+    padding: 12px 15px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    color: #444;
+    background: transparent;
+    border: 1px solid transparent; /* Biar gak goyang pas aktif */
+}
+
+/* Kotak Putih Pas Aktif */
+.tp-sidebar li.active {
+    background-color: #ffffff !important;
+    color: #ff4d4d !important;
+    font-weight: bold;
+    /* Efek bayangan biar kelihatan beda sama background body */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+}
+
+.tp-sidebar li:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/*KERANJANG*/
+
+.cart-dropdown {
+    position: absolute;
+    top: 40px;
+    right: 0;
+    width: 250px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    padding: 15px;
+    z-index: 1000;
+    color: #333;
+}
+.cart-item-row {
+    font-size: 13px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.cart-dropdown {
+    position: absolute;
+    top: 45px;
+    right: 0;
+    width: 280px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    padding: 15px;
+    z-index: 9999;
+    color: #333;
+    text-align: left;
+    border: 1px solid #eee;
+}
+
+.cart-item-row {
+    font-size: 13px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #f9f9f9;
+    padding-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cart-item-info b { color: #333; }
+.cart-item-info span { color: #ff4d4d; font-weight: bold; }
+
+.toast-success {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    background: #27ae60; /* Hijau yang lebih seger */
+    color: white;
+    padding: 16px 28px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+    z-index: 10000;
+    display: none;
+    font-weight: 600;
+    border-left: 5px solid #1e8449; /* Aksen biar lebih pro */
+    
+    /* Settingan Animasi */
+    animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+/* Efek mantul pas masuk */
+@keyframes bounceIn {
+    0% { transform: translateX(120%); opacity: 0; }
+    60% { transform: translateX(-10%); opacity: 1; }
+    100% { transform: translateX(0); }
+}
+
+/* Efek memudar pas hilang */
+.toast-fade-out {
+    animation: fadeOut 0.5s forwards !important;
+}
+
+@keyframes fadeOut {
+    to { opacity: 0; transform: translateY(-20px); }
+}
+

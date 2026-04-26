@@ -4,40 +4,34 @@ include 'koneksi.php';
 $search = $_GET['search'] ?? '';
 $kategori = $_GET['kategori'] ?? '';
 
-$query = "SELECT * FROM games WHERE 1=1";
+// Query Sakti: Gabungin tabel games dan reviews
+$sql = "SELECT g.*, 
+               IFNULL(AVG(r.rating), 0) as rating_rata, 
+               COUNT(r.id) as total_ulasan
+        FROM games g
+        LEFT JOIN reviews r ON g.id = r.id_game
+        WHERE (g.nama_game LIKE '%$search%') 
+        AND (g.kategori LIKE '%$kategori%')
+        GROUP BY g.id";
 
-if(!empty($search)){
-    $search = mysqli_real_escape_string($conn, $search);
-    $query .= " AND nama_game LIKE '%$search%'";
-}
+$result = mysqli_query($conn, $sql);
 
-if(!empty($kategori)){
-    $kategori = mysqli_real_escape_string($conn, $kategori);
-    $query .= " AND kategori='$kategori'";
-}
-
-$result = mysqli_query($conn, $query);
-
-if(mysqli_num_rows($result) > 0){
-    while($g = mysqli_fetch_assoc($result)){
-        echo "
-        <a href='game_detail.php?game=".$g['slug']."' class='tp-card'>
-            <div class='tp-img' style='background-image:url(\"".$g['gambar']."\")'></div>
-            <div class='tp-info'>
-                <h4>".$g['nama_game']."</h4>
-                <div class='tp-meta'>⭐ ".number_format($g['rating'],1)." | ".$g['terjual']." terjual</div>
-                <div class='tp-price'>Rp ".number_format($g['harga'])."</div>
+if (mysqli_num_rows($result) > 0) {
+    while ($g = mysqli_fetch_assoc($result)) {
+        // Render kartu game persis format index.php
+        echo '
+        <a href="game_detail.php?game='.$g['slug'].'" class="tp-card">
+            <div class="tp-img" style="background-image:url(\''.$g['gambar'].'\')"></div>
+            <div class="tp-info">
+                <h4>'.$g['nama_game'].'</h4>
+                <div class="tp-meta">
+                    ⭐ '.number_format($g['rating_rata'], 1).' | '.$g['terjual'].' terjual
+                </div>
             </div>
-        </a>";
-    }
-}
-// ... bagian query ...
-if(mysqli_num_rows($result) > 0){
-    while($g = mysqli_fetch_assoc($result)){
-        // tampilkan produk
+        </a>';
     }
 } else {
-    // Kosongkan total, jangan ada spasi satupun!
-    exit; 
+    // Kirim kosong biar di JS muncul "NOT FOUND"
+    echo ""; 
 }
 ?>
