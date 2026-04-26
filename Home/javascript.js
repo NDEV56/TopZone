@@ -178,3 +178,78 @@ window.onclick = function(event) {
         dropdown.style.display = "none";
     }
 }
+
+// --- LOGIKA GANTI FOTO PROFIL INSTAN mprruy ---
+
+const input_foto = document.getElementById('input_ganti_foto');
+
+if (input_foto) {
+    input_foto.addEventListener('change', function() {
+        const file = this.files[0]; // Ambil file pertama yang dipilih
+
+        if (file) {
+            // 1. Tampilkan Pratinjau (Preview) Instan
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Ganti foto di lingkaran besar sidebar
+                document.getElementById('prev_foto_besar').src = e.target.result;
+                // Ganti foto di navbar (buletan kecil) biar sinkron
+                document.getElementById('prev_foto_navbar').src = e.target.result;
+            }
+            reader.readAsDataURL(file); // Baca file sebagai data URL
+
+            // 2. Kirim File ke Server (MySQL) pake AJAX (Kerja Beneran)
+            const formData = new FormData();
+            formData.append('foto_profil', file); // 'foto_profil' ini nama field buat PHP
+
+            fetch('update_foto_profil_ajax.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json()) // PHP harus balikin JSON
+            .then(data => {
+                if (data.status === 'sukses') {
+                    console.log('✅ Foto berhasil diupdate ke MySQL mprruy!');
+                    // Tampilkan toast success jika perlu
+                } else {
+                    alert('⚠️ Gagal update foto gara-gara: ' + data.pesan);
+                    // Kembalikan ke foto lama jika gagal
+                }
+            })
+            .catch(err => {
+                console.error('Error AJAX mprruy:', err);
+                alert('⚠️ Terjadi error koneksi ke server.');
+            });
+        }
+    });
+}
+
+document.getElementById('input_ganti_foto').addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('foto_profil', file);
+
+        // Kirim ke server tanpa reload
+        fetch('update_foto_profil_ajax.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Ganti foto di semua tempat secara instan
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('prev_foto_navbar').src = e.target.result;
+                    document.getElementById('prev_foto_besar').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+                alert("Foto profil berhasil diganti mprruy! 🔥");
+            } else {
+                alert(data.pesan);
+            }
+        })
+        .catch(err => console.error("Error mprruy:", err));
+    }
+});

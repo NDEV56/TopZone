@@ -2,37 +2,47 @@
 session_start();
 include 'koneksi.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $id = $_SESSION['id_user'];
-    $nama = mysqli_real_escape_string($conn, $_POST['nama_user']);
-    $user = mysqli_real_escape_string($conn, $_POST['username']);
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
+if (isset($_POST['btn_simpan'])) {
+    $id_user = $_SESSION['id_user']; 
+    $nama_baru = mysqli_real_escape_string($conn, $_POST['nama_user']);
+    $user_baru = mysqli_real_escape_string($conn, $_POST['username']);
+    $email_baru = mysqli_real_escape_string($conn, $_POST['email']);
+    $pass_baru = $_POST['password'];
+    $foto_data = $_POST['foto_base64'];
 
-    // Handle foto yang sudah dipotong (Base64)
-    if (!empty($_POST['foto_base64'])) {
-        $data = $_POST['foto_base64'];
-        list($type, $data) = explode(';', $data);
-        list(, $data)      = explode(',', $data);
-        $data = base64_decode($data);
+    // Ambil foto lama buat jaga-jaga
+    $nama_file = $_SESSION['foto'] ?? 'Default.jpg';
 
-        $nama_file = 'user_' . $id . '_' . time() . '.png';
+    // 1. Cek urusan Foto
+    if (!empty($foto_data)) {
+        list($type, $foto_data) = explode(';', $foto_data);
+        list(, $foto_data)      = explode(',', $foto_data);
+        $data = base64_decode($foto_data);
+        $nama_file = 'pp_' . $id_user . '_' . time() . '.png';
         file_put_contents('uploads/' . $nama_file, $data);
-        
-        // Update database
-        mysqli_query($conn, "UPDATE users SET foto='$nama_file' WHERE id='$id'");
         $_SESSION['foto'] = $nama_file;
     }
 
-    $sql = "UPDATE users SET nama_user='$nama', username='$user', email='$email' WHERE id='$id'";
-    if (mysqli_query($conn, $sql)) {
-        $_SESSION['nama_user'] = $nama;
-        $_SESSION['email'] = $email;
-        echo "<script>alert('Berhasil diupdate mprruy!'); window.location.href='index.php';</script>";
+    // 2. Cek urusan Password (di-hash biar aman mprruy)
+    $sql_update = "UPDATE users SET nama_user = '$nama_baru', username = '$user_baru', email = '$email_baru', foto = '$nama_file'";
+    
+    if (!empty($pass_baru)) {
+        $hashed_pass = password_hash($pass_baru, PASSWORD_DEFAULT);
+        $sql_update .= ", password = '$hashed_pass'";
     }
-    // Di bagian akhir update_profile.php
-    if (mysqli_query($conn, $sql)) {
-        echo "<script>alert('Profil Terupdate mprruy! 🔥'); window.location.href='index.php';</script>";
+
+    // Gunakan 'id' sesuai error database lo sebelumnya
+    $sql_update .= " WHERE id = '$id_user'";
+    
+    if (mysqli_query($conn, $sql_update)) {
+        // Update Session biar di index.php langsung berubah
+        $_SESSION['nama_user'] = $nama_baru;
+        $_SESSION['username'] = $user_baru;
+        $_SESSION['email'] = $email_baru;
+        
+        echo "<script>alert('Profil Lengkap Berhasil Diupdate!'); window.location='index.php';</script>";
+    } else {
+        die("Waduh Error DB mprruy: " . mysqli_error($conn));
     }
 }
-
 ?>

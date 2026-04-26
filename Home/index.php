@@ -1,14 +1,20 @@
 <?php 
-include 'koneksi.php';
+session_start(); // WAJIB NOMOR 1
+include 'koneksi.php'; // Hapus ../ kalau filenya satu folder
 
-// Ambil data game
+// 1. Cek folder uploads
+if (!file_exists('uploads')) { 
+    mkdir('uploads', 0777, true); 
+}
+
+// 2. Ambil data game (Sekarang aman karena $conn udah ada di atas)
 $query = "SELECT * FROM games";
 $result = mysqli_query($conn, $query);
 
-// COBA TEST INI: Kalau di layar muncul angka, berarti database aman.
-// $test = mysqli_query($conn, "SELECT AVG(rating) as rata FROM reviews WHERE id_game = 1");
-// $data_test = mysqli_fetch_assoc($test);
-// echo "DEBUG RATING GAME ID 1: " . $data_test['rata']; 
+// Variabel bantu buat cek login
+$is_logged_in = isset($_SESSION['nama_user']);
+$nama_user = $_SESSION['nama_user'] ?? 'Guest';
+$foto_user = $_SESSION['foto'] ?? 'Default.jpeg';
 ?>
 
 <!DOCTYPE html>
@@ -18,7 +24,7 @@ $result = mysqli_query($conn, $query);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TOPZONE - Pusat Game</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
 
     <style>
@@ -52,14 +58,20 @@ $result = mysqli_query($conn, $query);
                 <button onclick="localStorage.removeItem('topzone_cart'); location.reload();" style="width:100%; margin-top:10px; background:#eee; border:none; padding:5px; cursor:pointer;">Kosongkan</button>
             </div>
         </div>
-                    <div class="tp-user">
-                <?php if(isset($_SESSION['nama_user'])): ?>
-                    <span id="userName">👤 <?php echo $_SESSION['nama_user']; ?></span>
-                    <a href="logout.php" style="font-size: 10px; color: red; text-decoration: none;">Logout</a>
-                <?php else: ?>
-                    <a href="login.html" class="btn-login-nav" style="text-decoration: none; color: #333;">👤 Login / Daftar</a>
-                <?php endif; ?>
-            </div>
+        <div class="tp-user">
+            <?php if($is_logged_in): ?>
+                <div onclick="toggleProfileSidebar()" style="cursor: pointer; display: flex; align-items: center;">
+                    <img src="uploads/<?php echo $foto_user; ?>" 
+                        class="nav-profile-img" 
+                        title="<?php echo $nama_user; ?>" 
+                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #007bff;">
+                </div>
+            <?php else: ?>
+                <a href="../Login/tampilanlogin.php" class="btn-login-nav" style="text-decoration: none; color: #333; font-weight: bold;">
+                    👤 Login
+                </a>
+            <?php endif; ?>
+        </div>
         </div>
         </div>
     </div>
@@ -126,7 +138,54 @@ $result = mysqli_query($conn, $query);
         </div>
     </main>
 </div>
+<div id="profileSidebar" class="profile-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
+        <h3 style="margin:0;">Profil Lu mprruy 🔥</h3>
+        <span onclick="toggleProfileSidebar()" style="cursor:pointer; font-size:28px;">&times;</span>
+    </div>
+    
+    <form action="update_profile.php" method="POST">
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="position: relative; display: inline-block;">
+                <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>" id="prev_foto" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #007bff;">
+                <label for="input_foto" style="position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 25px; height: 25px; border-radius: 50%; cursor: pointer; text-align:center; line-height:25px; font-size:12px;">✎</label>
+            </div>
+            <input type="file" id="input_foto" style="display:none;" accept="image/*">
+            <div id="crop_area" style="display:none; margin-top:10px;"></div>
+            <button type="button" id="btn_crop" style="display:none; background:#28a745; color:white; border:none; padding:5px 10px; border-radius:15px; margin-top:5px; cursor:pointer;">Pas-in Foto!</button>
+            <input type="hidden" name="foto_base64" id="foto_base64">
+        </div>
 
+        <div style="margin-bottom:12px;">
+            <label style="font-size:12px; font-weight:bold;">Nama Lengkap</label>
+            <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user'] ?? ''; ?>" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;" required>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label style="font-size:12px; font-weight:bold;">Username</label>
+            <input type="text" name="username" value="<?php echo $_SESSION['username'] ?? ''; ?>" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;" required>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label style="font-size:12px; font-weight:bold;">Email</label>
+            <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;" required>
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <label style="font-size:12px; font-weight:bold;">Sandi Baru (Kosongkan jika tidak ganti)</label>
+            <input type="password" name="password" placeholder="******" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
+        </div>
+
+        <button type="submit" name="btn_simpan" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">
+            💾 SIMPAN SEMUA
+        </button>
+    </form>
+    
+    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+    <a href="../Login/tampilanlogin.php" style="color:red; text-decoration:none; font-weight:bold; display:block; text-align:center;">🚪 Logout dari TopZone</a>
+</div>
+
+<div id="panelOverlay" class="panel-overlay" onclick="toggleProfileSidebar()"></div>
 <footer class="tp-footer">
     <div class="footer-inner">
         <div class="container footer-grid">
@@ -151,58 +210,28 @@ $result = mysqli_query($conn, $query);
     </div>
     <div class="footer-bottom">© 2026 TOPZONE • All Rights Reserved</div>
 </footer>
-<div id="profileSidebar" class="profile-panel">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
-        <h3 style="margin:0;">Profil Lu mprruy 🔥</h3>
-        <span onclick="toggleProfileSidebar()" style="cursor:pointer; font-size:28px;">&times;</span>
-    </div>
-    
-    <form action="update_profile.php" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="foto_base64" id="foto_base64">
-        <div style="text-align:center; margin-bottom:20px;">
-            <div style="position: relative; display: inline-block;">
-                <img src="uploads/<?php echo $_SESSION['foto'] ?? 'Default.jpeg'; ?>" id="prev_foto" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #007bff;">
-                <label for="input_foto" style="position: absolute; bottom: 5px; right: 5px; background: #000; color: #fff; width: 25px; height: 25px; border-radius: 50%; cursor: pointer; text-align: center; line-height: 25px;">✎</label>
-            </div>
-            <input type="file" id="input_foto" style="display:none;" accept="image/*">
-            <div id="crop_area" style="display:none; margin-top:15px;"></div>
-            <button type="button" id="btn_crop" style="display:none; background:#28a745; color:white; border:none; padding:8px 15px; border-radius:20px; margin-top:10px; cursor:pointer;">Pas-in Foto!</button>
-        </div>
 
-        <div style="margin-bottom:15px;">
-            <label style="font-size:12px; font-weight:bold;">Nama Lengkap</label>
-            <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user'] ?? ''; ?>" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
-        </div>
-        <button type="submit" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">SIMPAN</button>
-    </form>
-    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-    <a href="logout.php" style="color:red; text-decoration:none; font-weight:bold; display:block; text-align:center;">Logout</a>
-</div>
-<div id="panelOverlay" class="panel-overlay" onclick="toggleProfileSidebar()"></div>
 
 <script src="javascript.js"></script>
 <script>
-// --- LOGIC PROFILE SIDEBAR & CROPPIE ---
 let croppie_instance;
 
-// 1. Fungsi Buka/Tutup Sidebar
 function toggleProfileSidebar() {
     const sidebar = document.getElementById("profileSidebar");
     const overlay = document.getElementById("panelOverlay");
-    
     sidebar.classList.toggle("active");
     overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
 
-    // Bersihin croppie kalau sidebar ditutup biar gak berat
+    // Reset croppie kalau sidebar ditutup tanpa simpan
     if (!sidebar.classList.contains("active") && croppie_instance) {
         croppie_instance.destroy();
+        croppie_instance = null;
         document.getElementById('crop_area').style.display = 'none';
         document.getElementById('btn_crop').style.display = 'none';
         document.getElementById('prev_foto').style.display = 'inline-block';
     }
 }
 
-// 2. Logic Pas Pilih File Foto
 document.getElementById('input_foto').addEventListener('change', function() {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -212,7 +241,6 @@ document.getElementById('input_foto').addEventListener('change', function() {
 
         if (croppie_instance) croppie_instance.destroy();
 
-        // Inisialisasi alat potong (lingkaran)
         croppie_instance = new Croppie(document.getElementById('crop_area'), {
             viewport: { width: 150, height: 150, type: 'circle' },
             boundary: { width: 250, height: 250 },
@@ -224,22 +252,16 @@ document.getElementById('input_foto').addEventListener('change', function() {
     reader.readAsDataURL(this.files[0]);
 });
 
-// 3. Pas Klik Tombol "Pas-in Foto"
 document.getElementById('btn_crop').addEventListener('click', function() {
     croppie_instance.result({
         type: 'base64',
         size: 'viewport',
         circle: true
     }).then(function(hasil) {
-        // Tampilkan hasil potong ke preview
         document.getElementById('prev_foto').src = hasil;
         document.getElementById('prev_foto').style.display = 'inline-block';
-        
-        // Sembunyiin area potong
         document.getElementById('crop_area').style.display = 'none';
         document.getElementById('btn_crop').style.display = 'none';
-        
-        // Simpen data base64 ke input hidden buat dikirim ke update_profile.php
         document.getElementById('foto_base64').value = hasil;
     });
 });

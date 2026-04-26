@@ -1,42 +1,37 @@
 <?php
 session_start();
-include '../Home/koneksi.php';
+include '../Home/koneksi.php'; 
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // 1. Ambil data dari form (name="username" di HTML)
-    $user = mysqli_real_escape_string($conn, $_POST['username']);
-    $pass = $_POST['password'];
+    $username = mysqli_real_escape_string($conn, $_POST['username']);
+    $password = $_POST['password'];
 
-    // 2. Query pake variabel $user yang bener!
-    $query = "SELECT * FROM users WHERE username = '$user'";
+    $query = "SELECT * FROM users WHERE username = '$username'";
     $result = mysqli_query($conn, $query);
 
-    if (mysqli_num_rows($result) === 1) {
-        $data = mysqli_fetch_assoc($result);
+    if (mysqli_num_rows($result) > 0) {
+        $user = mysqli_fetch_assoc($result);
         
-        // 3. Verifikasi Password
-        if (password_verify($pass, $data['password'])) {
-            // SIMPAN DATA KE SESSION
-            $_SESSION['id_user'] = $data['id'];
-            $_SESSION['username'] = $data['username']; 
-            $_SESSION['nama_user'] = $data['nama_user'];
-            $_SESSION['email'] = $data['email']; 
-            $_SESSION['foto'] = $data['foto'] ?? 'Default.jpeg';
-
-            // Lempar ke Home
-            header("Location: ../Home/index.php"); 
+        if (password_verify($password, $user['password'])) {
+            // PENTING: Gunakan nama kolom yang bener di DB (biasanya 'id')
+            $_SESSION['id_user']   = $user['id']; 
+            $_SESSION['username']  = $user['username'];
+            $_SESSION['nama_user'] = $user['nama_user'];
+            $_SESSION['email']     = $user['email']; // Tambahin ini biar sidebar sinkron
+            $_SESSION['foto']      = $user['foto'];
+            
+            header("Location: ../Home/index.php");
             exit();
         } else {
             echo "<script>alert('Password salah mprruy!'); window.location='tampilanlogin.php';</script>";
         }
     } else {
-        // Karena variabel tadi bener, sekarang bagian ini gak bakal salah panggil lagi
-        echo "<script>alert('Akun belum terdaftar di database mprruy!'); window.location='tampilandaftar.php';</script>";
+        echo "<script>alert('Username gak terdaftar!'); window.location='tampilanlogin.php';</script>";
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -67,9 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </form>
         
-        <div class="footer-link" style="text-align: center; margin-top: 15px; font-size: 14px; color: #fff;">
-            Belum punya akun? 
-            <a href="tampilandaftar.php" style="color: #ffcc00; text-decoration: none; font-weight: bold;">Daftar di sini</a>
+        <div class="footer-link">
+            Belum punya akun? <a href="tampilandaftar.php">Daftar di sini</a>
         </div>
     </div> 
 </body>
