@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><link rel="stylesheet" href="style.css"></head>
+<body>
+    <div class="container detail-box">
+        <h3>Invoice: <span id="inv"></span></h3>
+        <h2 id="statusText">Menunggu...</h2>
+        <div class="status-tracker">
+            <div id="s1" class="step active">Bayar</div>
+            <div id="s2" class="step">Proses</div>
+            <div id="s3" class="step">Selesai</div>
+        </div>
+        <div class="chat-window">
+            <div class="msg-admin">Admin: Silakan transfer ke Bank Jago 9001xxx. Pesanan diproses otomatis setelah bayar.</div>
+        </div>
+        <div id="ratingPanel" style="display:none;">
+            <button class="btn-login" onclick="location.href='index.html'">Selesai & Belanja Lagi</button>
+        </div>
+    </div>
+    <script src="javascript.js"></script>
+    <script>
+        const id = new URLSearchParams(window.location.search).get('id');
+        document.getElementById('inv').innerText = "#" + id;
+        pantauStatus(id);
+    </script>
+</body>
+</html>
