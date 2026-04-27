@@ -14,6 +14,24 @@ $result = mysqli_query($conn, $query);
 if (!$result) {
     die("Query Error: " . mysqli_error($conn));
 }
+
+// Di bagian atas index.php setelah query games
+$jumlah_keranjang = 0;
+if ($is_real_user) {
+    $id_user_skrg = $_SESSION['id_user'];
+    
+    // Kita pake try-catch atau cek query biar gak Fatal Error kalau kolom 'qty' belum ada
+    $sql_cek_keranjang = "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'";
+    $res_keranjang = mysqli_query($conn, $sql_cek_keranjang);
+    
+    if ($res_keranjang) {
+        $data_keranjang = mysqli_fetch_assoc($res_keranjang);
+        $jumlah_keranjang = $data_keranjang['total'] ?? 0;
+    } else {
+        // Kalau error (misal kolom qty belum ada), set 0 aja biar web tetep jalan
+        $jumlah_keranjang = 0;
+    }
+}
 ?>
 
 
@@ -48,18 +66,13 @@ if (!$result) {
         </div>
         <div class="tp-right">
 
-            <div class="tp-cart" onclick="toggleCartModal()" style="cursor:pointer; position:relative; z-index: 9999;">
-                🛒 <span id="cartCount" style="position:absolute; top:-5px; right:-10px; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:12px; font-weight:bold;">0</span>
-                
-                <div id="cartDropdown" style="display:none; position:absolute; top:40px; right:0; width:280px; background:white; color:black; padding:15px; border-radius:10px; box-shadow:0 10px 20px rgba(0,0,0,0.2); border:1px solid #ddd;">
-                    <h4 style="margin:0 0 10px 0; color:#333; border-bottom:1px solid #eee; padding-bottom:5px;">Keranjang Lu 🔥</h4>
-                    <div id="cartItemsList" style="max-height:250px; overflow-y:auto; color:#555; font-size:13px;">
-                        </div>
-                    <hr>
-                    <button onclick="clearCart()" style="width:100%; background:#eee; border:none; padding:8px; cursor:pointer; border-radius:5px;">Kosongkan</button>
-                    <button onclick="checkout()" style="width:100%; margin-top:5px; background:#007bff; color:white; border:none; padding:10px; cursor:pointer; border-radius:5px; font-weight:bold;">Checkout Sekarang</button>
-                </div>
-            </div>
+        <div class="cart-icon" onclick="toggleCartSidebar()" style="position: relative; cursor: pointer; font-size: 26px;">
+            <span>🛒</span> <?php if ($jumlah_keranjang > 0): ?>
+                <span style="position: absolute; top: -5px; right: -8px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold;">
+                    <?php echo $jumlah_keranjang; ?>
+                </span>
+            <?php endif; ?>
+        </div>
 
             <div class="tp-user">
                 <div onclick="toggleProfileSidebar()" style="cursor: pointer; display: flex; align-items: center;">
@@ -202,6 +215,18 @@ if (!$result) {
     <?php endif; ?>
 </div>
 
+<div id="cartSidebar" class="profile-panel">
+    <div class="sidebar-header">
+        <h3>Keranjang Lu mprruy 🛒</h3>
+        <span onclick="toggleCartSidebar()" style="cursor:pointer;">&times;</span>
+    </div>
+
+    <div id="cartItemsList" class="sidebar-body">
+        <p style="text-align:center; margin-top:50px;">Memuat keranjang...</p>
+    </div>
+</div>
+
+<div id="panelOverlay" onclick="closeAllSidebars()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99;"></div>
 <div id="panelOverlay" class="panel-overlay" onclick="toggleProfileSidebar()"></div>
 <footer class="tp-footer">
     <div class="footer-inner">
@@ -284,6 +309,47 @@ document.getElementById('btn_crop').addEventListener('click', function() {
         document.getElementById('btn_crop').style.display = 'none';
         document.getElementById('foto_base64').value = hasil;
     });
+});
+// Fungsi ini buat nutup SEMUA sidebar pas klik area hitam/luar
+function closeAllSidebars() {
+    const cartSidebar = document.getElementById("cartSidebar");
+    const profileSidebar = document.getElementById("profileSidebar");
+    const overlay = document.getElementById("panelOverlay");
+
+    // Hapus class active dari keranjang
+    if (cartSidebar) cartSidebar.classList.remove("active");
+    
+    // Hapus class active dari profil (biar aman kalau salah satu kebuka)
+    if (profileSidebar) profileSidebar.classList.remove("active");
+
+    // Sembunyikan overlay hitamnya
+    if (overlay) overlay.style.display = "none";
+}
+
+// 2. Fungsi Toggle Keranjang (Pemicu awal)
+function toggleCartSidebar() {
+    const cartSidebar = document.getElementById("cartSidebar");
+    const profileSidebar = document.getElementById("profileSidebar");
+    const overlay = document.getElementById("panelOverlay");
+
+    // Biar gak tabrakan, kalau mau buka keranjang, tutup profil dulu
+    if (profileSidebar) profileSidebar.classList.remove("active");
+
+    cartSidebar.classList.toggle("active");
+
+    // Tampilkan overlay kalau keranjang kebuka
+    if (cartSidebar.classList.contains("active")) {
+        overlay.style.display = "block";
+    } else {
+        overlay.style.display = "none";
+    }
+}
+
+// 3. (Optional) Tambahan biar kalau tekan tombol ESC di keyboard, keranjang tutup
+document.addEventListener('keydown', function(event) {
+    if (event.key === "Escape") {
+        closeAllSidebars();
+    }
 });
 </script>
 </body>

@@ -249,82 +249,107 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
 </div>
 
 <script>
+/** * PROTOKOL JS ANTI-PAOK 
+ * Pastikan semua variabel global dideklarasikan di paling atas
+ */
+let paketTerpilih = null;
 let selectedPrice = 0;
 let currentQty = 1;
-let selectedProductName = "";
 
-function pilihProduk(nama, harga) {
-    selectedPrice = harga;
-    selectedProductName = nama;
-    
-    // Update tulisan Total Bayar di layar
-    document.getElementById('totalBayarDisplay').innerText = "Rp " + harga.toLocaleString('id-ID');
-    
-    // Aktifkan tombol beli/keranjang jika sebelumnya mati
-    document.getElementById('btnKeranjang').disabled = false;
-}
-
-function switchTab(el, type) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('tab-login').style.display = (type === 'login') ? 'grid' : 'none';
-    document.getElementById('tab-5hari').style.display = (type === '5hari') ? 'grid' : 'none';
-    
-    const loginFields = document.getElementById('roblox-login-fields');
-    const limaHariFields = document.getElementById('roblox-5hari-fields');
-    if(loginFields) {
-        loginFields.style.display = (type === 'login') ? 'block' : 'none';
-        limaHariFields.style.display = (type === 'login') ? 'none' : 'block';
-    }
-}
-
+// 1. Fungsi Pilih Produk (Paket)
 function selectProduct(el, price, name) {
-    document.querySelectorAll('.item-card').forEach(card => card.classList.remove('selected'));
+    // Hapus class selected dari semua kartu dulu
+    const allCards = document.querySelectorAll('.item-card');
+    allCards.forEach(card => card.classList.remove('selected'));
+    
+    // Tambah class selected ke yang diklik
     el.classList.add('selected');
+    
+    // Simpan data ke variabel global
     selectedPrice = price;
-    selectedProductName = name;
+    paketTerpilih = { 
+        nama: name, 
+        harga: price 
+    };
+    
+    console.log("Produk dipilih:", paketTerpilih); // Buat cek di F12
     updateTotal();
 }
 
+// 2. Fungsi Update Total Harga (Live)
+function updateTotal() {
+    const display = document.getElementById('total-display');
+    if (display) {
+        let total = selectedPrice * currentQty;
+        display.innerText = "Rp " + total.toLocaleString('id-ID');
+    }
+}
+
+// 3. Fungsi Kontrol Jumlah (Qty)
 function changeQty(val) {
     currentQty += val;
     if (currentQty < 1) currentQty = 1;
-    document.getElementById('qty').value = currentQty;
+    
+    const qtyInput = document.getElementById('qty');
+    if (qtyInput) {
+        qtyInput.value = currentQty;
+    }
     updateTotal();
 }
 
-function updateTotal() {
-    let total = selectedPrice * currentQty;
-    document.getElementById('total-display').innerText = "Rp " + total.toLocaleString('id-ID');
+// 4. Fungsi Cek Login (Koneksi ke PHP Session)
+function checkLogin() {
+    // Kita ambil status login dari PHP
+    const loginStatus = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
+    return loginStatus;
 }
 
-// Fungsi Cek Apakah User itu Guest
-function isUserGuest() {
-    // Kita cek variabel PHP yang sudah lo buat ($nama_tampil)
-    const userName = "<?php echo $nama_tampil; ?>";
-    // Jika nama mengandung "User" (default random guest) atau session kosong
-    return userName.includes("User");
-}
-
+// 5. Fungsi Masukin Keranjang (Core Logic)
 function tambahKeKeranjang() {
-    if (isUserGuest()) {
-        alert("Waduh Paok! Guest dilarang masukin keranjang. Login dulu mprruy!");
+    // Cek Login Dulu
+    if (!checkLogin()) {
+        alert("Woy mprruy, login dulu lah baru bisa belanja! 😅");
         window.location.href = "../Login/tampilanlogin.php";
         return;
     }
-    
-    // ... (sisa logika simpan ke MySQL lo yang tadi) ...
+
+    // Cek Apakah Paket Sudah Dipilih
+    if (!paketTerpilih) {
+        alert("Pilih paketnya dulu mprruy, jangan asal klik! 🔥");
+        return;
+    }
+
+    // Siapkan Data untuk Dikirim ke PHP
+    let fd = new FormData();
+    fd.append('nama_produk', paketTerpilih.nama);
+    fd.append('harga', paketTerpilih.harga);
+    fd.append('qty', currentQty);
+
+    // Kirim Data pakai Fetch API (Biar gak reload halaman)
+    fetch('proses_keranjang.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(response => response.text())
+    .then(hasil => {
+        console.log("Respon Server:", hasil);
+        alert("Mantap! " + paketTerpilih.nama + " sukses masuk keranjang. 🔥");
+        // Redirect ke home biar angka keranjang di header ke-update
+        window.location.href = "index.php"; 
+    })
+    .catch(err => {
+        console.error("Error Fetch:", err);
+        alert("Waduh, koneksi ke database gagal mprruy!");
+    });
 }
 
+// 6. Fungsi Beli Sekarang (Direct Action)
 function prosesBeli() {
-    const isRealUser = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
-    
-    if (!isRealUser) {
-        alert("Mau belanja? Login dulu dong mprruy!");
-        window.location.href = "../Login/tampilanlogin.php";
+    if (!paketTerpilih) {
+        alert("Pilih dulu produknya mprruy!");
         return;
     }
-    // ... proses beli ...
+    alert("Sabar mprruy, fitur Beli Langsung lagi disiapin. Masukin keranjang dulu aja!");
 }
 </script>
 
