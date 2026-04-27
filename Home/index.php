@@ -168,51 +168,70 @@ if ($is_real_user) {
             <a href="../Login/tampilanlogin.php" style="background:#007bff; color:white; padding:10px 20px; border-radius:20px; text-decoration:none;">⚡ LOGIN SEKARANG</a>
         </div>
 
-    <?php else: // JIKA USER ASLI (LOGIN) ?>
-        
-    <form action="update_profile.php" method="POST">
-        <div style="text-align:center; margin-bottom:20px;">
-            <div style="position: relative; display: inline-block;">
-            <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
-                id="prev_foto" 
-                style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #007bff;">
-                <label for="input_foto" style="position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 25px; height: 25px; border-radius: 50%; cursor: pointer; text-align:center; line-height:25px; font-size:12px;">✎</label>
-            </div>
-            <input type="file" id="input_foto" style="display:none;" accept="image/*">
-            <div id="crop_area" style="display:none; margin-top:10px;"></div>
-            <button type="button" id="btn_crop" style="display:none; background:#28a745; color:white; border:none; padding:5px 10px; border-radius:15px; margin-top:5px; cursor:pointer;">Pas-in Foto!</button>
-            <input type="hidden" name="foto_base64" id="foto_base64">
-        </div>
+    <?php else:?>
+            
+            <form action="update_profile.php" method="POST" enctype="multipart/form-data" style="margin: 0;">
+                
+                <div style="text-align:center; margin-bottom:20px;">
+                    <div style="position: relative; display: inline-block;">
+                        <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
+                            id="prev_foto" 
+                            style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid #007bff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        
+                        <label for="input_foto" class="edit-mode" style="display:none; position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; text-align:center; line-height:30px; font-size:14px; border: 2px solid #fff;">✎</label>
+                    </div>
+                    <input type="file" id="input_foto" style="display:none;" accept="image/*">
+                    <input type="hidden" name="foto_base64" id="foto_base64">
+                </div>
 
-        <div style="margin-bottom:12px;">
-            <label style="font-size:12px; font-weight:bold;">Nama Lengkap</label>
-            <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user'] ?? ''; ?>" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;" required>
-        </div>
+                <div class="view-mode" style="text-align:center; margin-bottom:25px;">
+                    <h2 style="margin:0; color:#333; font-size:22px;">@<?php echo $_SESSION['username']; ?></h2>
+                    <p style="margin:5px 0 0; color:#888; font-size:13px;">Member Loyal TopZone 🔥</p>
+                </div>
 
-        <div style="margin-bottom:12px;">
-            <label style="font-size:12px; font-weight:bold;">Username</label>
-            <input type="text" name="username" value="<?php echo $_SESSION['username'] ?? ''; ?>" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;" required>
-        </div>
+                <div class="edit-mode" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:15px; border-radius:15px; border:1px solid #eee;">
+                    
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Nama Lengkap</label>
+                        <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                    </div>
 
-        <div style="margin-bottom:12px;">
-            <label style="font-size:12px; font-weight:bold;">Email</label>
-            <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;" required>
-        </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Username</label>
+                        <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                    </div>
 
-        <div style="margin-bottom:15px;">
-            <label style="font-size:12px; font-weight:bold;">Sandi Baru (Kosongkan jika tidak ganti)</label>
-            <input type="password" name="password" placeholder="******" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
-        </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Email</label>
+                        <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                    </div>
 
-        <button type="submit" name="btn_simpan" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">
-            💾 SIMPAN SEMUA
-        </button>
-    </form>
-    
-    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-    <a href="../Login/tampilanlogin.php" style="color:red; text-decoration:none; font-weight:bold; display:block; text-align:center;">🚪 Logout dari TopZone</a>
+                    <div style="margin-bottom:5px;">
+                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Sandi Baru</label>
+                        <input type="password" name="password" placeholder="Kosongkan jika tetap" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                    </div>
+                </div>
 
-    <?php endif; ?>
+                <div style="padding:0 10px;">
+                    <button type="button" onclick="enableEditMode()" class="view-mode" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <span>⚙️</span> Atur Profil
+                    </button>
+
+                    <div class="edit-mode" style="display:none;">
+                        <button type="submit" name="btn_simpan" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;">
+                            💾 Simpan Perubahan
+                        </button>
+                        <button type="button" onclick="disableEditMode()" style="width:100%; padding:10px; background:none; color:#666; border:1px solid #ccc; border-radius:12px; cursor:pointer; font-size:13px;">
+                            ⬅️ Kembali
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <hr class="view-mode" style="margin:25px 0 15px; border:0; border-top:1px solid #eee;">
+            <a href="../Login/tampilanlogin.php" class="view-mode" style="color:#dc3545; text-decoration:none; font-weight:bold; display:block; text-align:center; font-size:14px;">🚪 Logout</a>
+
+        <?php endif; ?>
 </div>
 
 <div id="cartSidebar" class="profile-panel">
@@ -350,6 +369,31 @@ document.addEventListener('keydown', function(event) {
     if (event.key === "Escape") {
         closeAllSidebars();
     }
+});
+
+function enableEditMode() {
+    // Sembunyiin semua yang ber-class view-mode
+    document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
+    // Munculin semua yang ber-class edit-mode
+    document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'block');
+}
+
+function disableEditMode() {
+    // Balikin lagi ke tampilan awal
+    document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'none');
+    // Tambahan buat tombol logout biar tetep block (bukan inline-block)
+    document.querySelector('a.view-mode').style.display = 'block';
+}
+
+// Logic preview foto tetep sama
+document.getElementById('input_foto').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('prev_foto').src = e.target.result;
+        document.getElementById('foto_base64').value = e.target.result;
+    }
+    reader.readAsDataURL(this.files[0]);
 });
 </script>
 </body>
