@@ -233,14 +233,16 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
                 <div id="total-display" style="font-size:24px; color:#ff4d4d; font-weight:800;">Rp 0</div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="tambahKeKeranjang()" style="flex: 1; background: #333; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-                + KERANJANG
-            </button>
-            
-            <button onclick="prosesBeli()" style="flex: 2;" class="btn-buy">
-                BELI SEKARANG
-            </button>
+            <div style="display: flex; gap: 12px; margin-top: 20px; align-items: center;">
+                <button type="button" onclick="tambahKeKeranjang()" 
+                    style="width: 55px; height: 55px; background: #ffffff; border: 2px solid #007bff; border-radius: 12px; color: #007bff; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    🛒
+                </button>
+
+                <button type="button" onclick="prosesBeli()" 
+                    style="flex-grow: 1; height: 55px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer;">
+                    ⚡ Beli Sekarang
+                </button>
             </div>
         </div>
     </div>
@@ -250,6 +252,17 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
 let selectedPrice = 0;
 let currentQty = 1;
 let selectedProductName = "";
+
+function pilihProduk(nama, harga) {
+    selectedPrice = harga;
+    selectedProductName = nama;
+    
+    // Update tulisan Total Bayar di layar
+    document.getElementById('totalBayarDisplay').innerText = "Rp " + harga.toLocaleString('id-ID');
+    
+    // Aktifkan tombol beli/keranjang jika sebelumnya mati
+    document.getElementById('btnKeranjang').disabled = false;
+}
 
 function switchTab(el, type) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -285,9 +298,33 @@ function updateTotal() {
     document.getElementById('total-display').innerText = "Rp " + total.toLocaleString('id-ID');
 }
 
+// Fungsi Cek Apakah User itu Guest
+function isUserGuest() {
+    // Kita cek variabel PHP yang sudah lo buat ($nama_tampil)
+    const userName = "<?php echo $nama_tampil; ?>";
+    // Jika nama mengandung "User" (default random guest) atau session kosong
+    return userName.includes("User");
+}
+
+function tambahKeKeranjang() {
+    if (isUserGuest()) {
+        alert("Waduh Paok! Guest dilarang masukin keranjang. Login dulu mprruy!");
+        window.location.href = "../Login/tampilanlogin.php";
+        return;
+    }
+    
+    // ... (sisa logika simpan ke MySQL lo yang tadi) ...
+}
+
 function prosesBeli() {
-    if (selectedPrice === 0) return alert("Pilih produk dulu mprruy!");
-    alert("Gas mprruy! Total: Rp " + (selectedPrice * currentQty).toLocaleString('id-ID'));
+    const isRealUser = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+    
+    if (!isRealUser) {
+        alert("Mau belanja? Login dulu dong mprruy!");
+        window.location.href = "../Login/tampilanlogin.php";
+        return;
+    }
+    // ... proses beli ...
 }
 </script>
 

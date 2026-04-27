@@ -1132,3 +1132,34 @@ body.detail-page { background-color: #f4f6f9; font-family: 'Inter', system-ui, s
     cursor: pointer;
     border: 2px solid white;
 }
+
+/* Container Tombol biar sejajar */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    align-items: center;
+}
+
+.btn-keranjang-custom {
+    width: 60px;
+    height: 60px;
+    background: #ffffff;
+    border: 2px solid #007bff; /* Stroke Biru */
+    border-radius: 12px; /* Corner Radius mprruy */
+    color: #007bff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-beli-biru {
+    flex-grow: 1;
+    height: 60px;
+    background: #007bff; /* Biru Gacor */
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
