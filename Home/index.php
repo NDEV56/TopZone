@@ -1,21 +1,21 @@
 <?php 
-session_start(); // WAJIB NOMOR 1
-include 'koneksi.php'; // Hapus ../ kalau filenya satu folder
+session_start();
+include 'koneksi.php'; // Pastikan file koneksi.php ada di folder yang sama
 
-// 1. Cek folder uploads
-if (!file_exists('uploads')) { 
-    mkdir('uploads', 0777, true); 
-}
+// 1. DEFINISIKAN VARIABEL STATUS USER (Biar line 59 gak error)
+$is_real_user = isset($_SESSION['id_user']); 
+$is_logged_in = isset($_SESSION['nama_user']); // Ini buat fix error line 59
 
-// 2. Ambil data game (Sekarang aman karena $conn udah ada di atas)
-$query = "SELECT * FROM games";
+// 2. JALANKAN QUERY PRODUK (Biar line 99 gak error)
+$query = "SELECT * FROM games"; // Ganti 'games' sesuai nama tabel lo
 $result = mysqli_query($conn, $query);
 
-// Variabel bantu buat cek login
-$is_logged_in = isset($_SESSION['nama_user']);
-$nama_user = $_SESSION['nama_user'] ?? 'Guest';
-$foto_user = $_SESSION['foto'] ?? 'Default.jpeg';
+// Cek kalau query gagal
+if (!$result) {
+    die("Query Error: " . mysqli_error($conn));
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">
@@ -47,31 +47,32 @@ $foto_user = $_SESSION['foto'] ?? 'Default.jpeg';
             </div>
         </div>
         <div class="tp-right">
-            
-        <div class="tp-cart" onclick="toggleCartModal()" style="cursor:pointer; position:relative; z-index: 9999;">
-            🛒 <span id="cartCount">0</span>
-            
-            <div id="cartDropdown" style="display:none; position:absolute; top:40px; right:0; width:260px; background:white; color:black; padding:15px; border-radius:10px; box-shadow:0 10px 20px rgba(0,0,0,0.2); border:1px solid #ddd;">
-                <h4 style="margin:0 0 10px 0; color:#333;">Keranjang Lu 🔥</h4>
-                <div id="cartItemsList" style="max-height:200px; overflow-y:auto; color:#555; font-size:13px;">
-                    </div>
-                <button onclick="localStorage.removeItem('topzone_cart'); location.reload();" style="width:100%; margin-top:10px; background:#eee; border:none; padding:5px; cursor:pointer;">Kosongkan</button>
-            </div>
-        </div>
-        <div class="tp-user">
-            <?php if($is_logged_in): ?>
-                <div onclick="toggleProfileSidebar()" style="cursor: pointer; display: flex; align-items: center;">
-                    <img src="uploads/<?php echo $foto_user; ?>" 
-                        class="nav-profile-img" 
-                        title="<?php echo $nama_user; ?>" 
-                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #007bff;">
+
+            <div class="tp-cart" onclick="toggleCartModal()" style="cursor:pointer; position:relative; z-index: 9999;">
+                🛒 <span id="cartCount" style="position:absolute; top:-5px; right:-10px; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:12px; font-weight:bold;">0</span>
+                
+                <div id="cartDropdown" style="display:none; position:absolute; top:40px; right:0; width:280px; background:white; color:black; padding:15px; border-radius:10px; box-shadow:0 10px 20px rgba(0,0,0,0.2); border:1px solid #ddd;">
+                    <h4 style="margin:0 0 10px 0; color:#333; border-bottom:1px solid #eee; padding-bottom:5px;">Keranjang Lu 🔥</h4>
+                    <div id="cartItemsList" style="max-height:250px; overflow-y:auto; color:#555; font-size:13px;">
+                        </div>
+                    <hr>
+                    <button onclick="clearCart()" style="width:100%; background:#eee; border:none; padding:8px; cursor:pointer; border-radius:5px;">Kosongkan</button>
+                    <button onclick="checkout()" style="width:100%; margin-top:5px; background:#007bff; color:white; border:none; padding:10px; cursor:pointer; border-radius:5px; font-weight:bold;">Checkout Sekarang</button>
                 </div>
-            <?php else: ?>
-                <a href="../Login/tampilanlogin.php" class="btn-login-nav" style="text-decoration: none; color: #333; font-weight: bold;">
-                    👤 Login
-                </a>
-            <?php endif; ?>
-        </div>
+            </div>
+
+            <div class="tp-user">
+                <div onclick="toggleProfileSidebar()" style="cursor: pointer; display: flex; align-items: center;">
+                    <?php if($is_logged_in): ?>
+                        <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
+                            style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                    <?php else: ?>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #ccc;">
+                            👤
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
         </div>
     </div>
@@ -143,11 +144,25 @@ $foto_user = $_SESSION['foto'] ?? 'Default.jpeg';
         <h3 style="margin:0;">Profil Lu mprruy 🔥</h3>
         <span onclick="toggleProfileSidebar()" style="cursor:pointer; font-size:28px;">&times;</span>
     </div>
-    
+
+    <?php if (!$is_real_user): // JIKA STATUSNYA BUKAN USER ASLI (GUEST) ?>
+        
+        <div style="text-align: center; margin-top: 50px;">
+            <div style="font-size: 60px; margin-bottom: 20px;">🔒</div>
+            <h2 style="color: #333;">Fitur Terbatas</h2>
+            <p style="color: #888; font-size: 14px;">Login dulu biar fitur kebuka semua mprruy!</p>
+            <br>
+            <a href="../Login/tampilanlogin.php" style="background:#007bff; color:white; padding:10px 20px; border-radius:20px; text-decoration:none;">⚡ LOGIN SEKARANG</a>
+        </div>
+
+    <?php else: // JIKA USER ASLI (LOGIN) ?>
+        
     <form action="update_profile.php" method="POST">
         <div style="text-align:center; margin-bottom:20px;">
             <div style="position: relative; display: inline-block;">
-                <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>" id="prev_foto" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #007bff;">
+            <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
+                id="prev_foto" 
+                style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #007bff;">
                 <label for="input_foto" style="position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 25px; height: 25px; border-radius: 50%; cursor: pointer; text-align:center; line-height:25px; font-size:12px;">✎</label>
             </div>
             <input type="file" id="input_foto" style="display:none;" accept="image/*">
@@ -183,6 +198,8 @@ $foto_user = $_SESSION['foto'] ?? 'Default.jpeg';
     
     <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
     <a href="../Login/tampilanlogin.php" style="color:red; text-decoration:none; font-weight:bold; display:block; text-align:center;">🚪 Logout dari TopZone</a>
+
+    <?php endif; ?>
 </div>
 
 <div id="panelOverlay" class="panel-overlay" onclick="toggleProfileSidebar()"></div>
@@ -210,7 +227,10 @@ $foto_user = $_SESSION['foto'] ?? 'Default.jpeg';
     </div>
     <div class="footer-bottom">© 2026 TOPZONE • All Rights Reserved</div>
 </footer>
-
+<script>
+    // Jembatan: variabel PHP dioper ke variabel global JS
+    const IS_REAL_USER = <?php echo $is_real_user ? 'true' : 'false'; ?>;
+</script>
 
 <script src="javascript.js"></script>
 <script>

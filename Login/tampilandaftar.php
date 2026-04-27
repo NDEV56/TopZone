@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 }
-?>
+?> 
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -60,6 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <button type="submit" class="btn-daftar">DAFTAR SEKARANG</button>
             </div>
         </form>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="masuk_guest.php" style="color: #a0a0a0; font-size: 13px; text-decoration: none;">
+                Masuk sebagai Guest
+            </a>
+        </div>
         
         <div class="footer-link">
             Sudah punya akun? <a href="tampilanlogin.php">Masuk di sini</a>
