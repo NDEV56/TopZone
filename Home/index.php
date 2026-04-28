@@ -1,4 +1,4 @@
-<?php 
+<?php
 session_start();
 include 'koneksi.php'; // Pastikan file koneksi.php ada di folder yang sama
 
@@ -170,16 +170,21 @@ if ($is_real_user) {
 
     <?php else:?>
             
-            <form action="update_profile.php" method="POST" enctype="multipart/form-data" style="margin: 0;">
-                
+            <form action="update_profile.php" method="POST" enctype="multipart/form-data">
                 <div style="text-align:center; margin-bottom:20px;">
                     <div style="position: relative; display: inline-block;">
                         <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
                             id="prev_foto" 
-                            style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid #007bff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                            style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid #007bff;">
                         
-                        <label for="input_foto" class="edit-mode" style="display:none; position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; text-align:center; line-height:30px; font-size:14px; border: 2px solid #fff;">✎</label>
+                        <label for="input_foto" class="edit-mode" style="display:none; position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; text-align:center; line-height:30px; z-index:10;">✎</label>
                     </div>
+
+                    <div id="crop_wrapper" style="display:none; margin-top:15px;">
+                        <div id="crop_area"></div>
+                        <button type="button" id="btn_crop" style="background:#28a745; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; margin-top:10px; font-size:12px;">✅ PASIN FOTO</button>
+                    </div>
+                    
                     <input type="file" id="input_foto" style="display:none;" accept="image/*">
                     <input type="hidden" name="foto_base64" id="foto_base64">
                 </div>
@@ -190,40 +195,29 @@ if ($is_real_user) {
                 </div>
 
                 <div class="edit-mode" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:15px; border-radius:15px; border:1px solid #eee;">
-                    
                     <div style="margin-bottom:12px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Nama Lengkap</label>
-                        <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                        <label style="font-size:11px; font-weight:bold; color:#666;">Nama Lengkap</label>
+                        <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
                     </div>
-
                     <div style="margin-bottom:12px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Username</label>
-                        <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                        <label style="font-size:11px; font-weight:bold; color:#666;">Username</label>
+                        <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
                     </div>
-
                     <div style="margin-bottom:12px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Email</label>
-                        <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                        <label style="font-size:11px; font-weight:bold; color:#666;">Email</label>
+                        <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
                     </div>
-
                     <div style="margin-bottom:5px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666; text-transform:uppercase; margin-left:5px;">Sandi Baru</label>
-                        <input type="password" name="password" placeholder="Kosongkan jika tetap" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; margin-top:5px; box-sizing:border-box;">
+                        <label style="font-size:11px; font-weight:bold; color:#666;">Sandi Baru</label>
+                        <input type="password" name="password" placeholder="Kosongkan jika tetap" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
                     </div>
                 </div>
 
                 <div style="padding:0 10px;">
-                    <button type="button" onclick="enableEditMode()" class="view-mode" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                        <span>⚙️</span> Atur Profil
-                    </button>
-
+                    <button type="button" onclick="enableEditMode()" class="view-mode" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">⚙️ Atur Profil</button>
                     <div class="edit-mode" style="display:none;">
-                        <button type="submit" name="btn_simpan" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;">
-                            💾 Simpan Perubahan
-                        </button>
-                        <button type="button" onclick="disableEditMode()" style="width:100%; padding:10px; background:none; color:#666; border:1px solid #ccc; border-radius:12px; cursor:pointer; font-size:13px;">
-                            ⬅️ Kembali
-                        </button>
+                        <button type="submit" name="btn_simpan" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;">💾 Simpan Perubahan</button>
+                        <button type="button" onclick="disableEditMode()" style="width:100%; padding:10px; background:none; color:#666; border:1px solid #ccc; border-radius:12px; cursor:pointer; font-size:13px;">⬅️ Kembali</button>
                     </div>
                 </div>
             </form>
@@ -280,28 +274,49 @@ if ($is_real_user) {
 <script>
 let croppie_instance;
 
+// --- FUNGSI SIDEBAR & MODES ---
 function toggleProfileSidebar() {
     const sidebar = document.getElementById("profileSidebar");
     const overlay = document.getElementById("panelOverlay");
     sidebar.classList.toggle("active");
     overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
 
-    // Reset croppie kalau sidebar ditutup tanpa simpan
-    if (!sidebar.classList.contains("active") && croppie_instance) {
-        croppie_instance.destroy();
-        croppie_instance = null;
-        document.getElementById('crop_area').style.display = 'none';
-        document.getElementById('btn_crop').style.display = 'none';
-        document.getElementById('prev_foto').style.display = 'inline-block';
+    // Reset Croppie kalau sidebar ditutup tanpa simpan
+    if (!sidebar.classList.contains("active")) {
+        resetCroppie();
+        disableEditMode();
     }
 }
 
+function enableEditMode() {
+    document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'block');
+}
+
+function disableEditMode() {
+    document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'none');
+    resetCroppie();
+}
+
+function resetCroppie() {
+    if (croppie_instance) {
+        croppie_instance.destroy();
+        croppie_instance = null;
+    }
+    document.getElementById('crop_wrapper').style.display = 'none';
+    document.getElementById('prev_foto').style.display = 'inline-block';
+}
+
+// --- LOGIC CROPPING FOTO ---
+
+// Trigger pas user pilih file
 document.getElementById('input_foto').addEventListener('change', function() {
     const reader = new FileReader();
     reader.onload = function(e) {
-        document.getElementById('crop_area').style.display = 'block';
-        document.getElementById('btn_crop').style.display = 'inline-block';
+        // Sembunyiin foto profil lama, munculin area potong
         document.getElementById('prev_foto').style.display = 'none';
+        document.getElementById('crop_wrapper').style.display = 'block';
 
         if (croppie_instance) croppie_instance.destroy();
 
@@ -316,84 +331,52 @@ document.getElementById('input_foto').addEventListener('change', function() {
     reader.readAsDataURL(this.files[0]);
 });
 
+// Pas user klik tombol "PASIN FOTO"
 document.getElementById('btn_crop').addEventListener('click', function() {
-    croppie_instance.result({
-        type: 'base64',
-        size: 'viewport',
-        circle: true
-    }).then(function(hasil) {
-        document.getElementById('prev_foto').src = hasil;
-        document.getElementById('prev_foto').style.display = 'inline-block';
-        document.getElementById('crop_area').style.display = 'none';
-        document.getElementById('btn_crop').style.display = 'none';
-        document.getElementById('foto_base64').value = hasil;
-    });
+    if (croppie_instance) {
+        croppie_instance.result({
+            type: 'base64',
+            size: 'viewport',
+            circle: true
+        }).then(function(hasil) {
+            // Tampilkan hasil crop ke preview foto profil
+            document.getElementById('prev_foto').src = hasil;
+            document.getElementById('prev_foto').style.display = 'inline-block';
+            
+            // Simpan data base64 ke input hidden biar keangkut ke PHP
+            document.getElementById('foto_base64').value = hasil;
+            
+            // Sembunyiin alat potongnya
+            document.getElementById('crop_wrapper').style.display = 'none';
+            console.log("Foto udah dipasin mprruy! 🔥");
+        });
+    }
 });
-// Fungsi ini buat nutup SEMUA sidebar pas klik area hitam/luar
+
+// --- FUNGSI TAMBAHAN ---
 function closeAllSidebars() {
     const cartSidebar = document.getElementById("cartSidebar");
     const profileSidebar = document.getElementById("profileSidebar");
     const overlay = document.getElementById("panelOverlay");
 
-    // Hapus class active dari keranjang
     if (cartSidebar) cartSidebar.classList.remove("active");
-    
-    // Hapus class active dari profil (biar aman kalau salah satu kebuka)
     if (profileSidebar) profileSidebar.classList.remove("active");
-
-    // Sembunyikan overlay hitamnya
     if (overlay) overlay.style.display = "none";
+    resetCroppie();
 }
 
-// 2. Fungsi Toggle Keranjang (Pemicu awal)
 function toggleCartSidebar() {
     const cartSidebar = document.getElementById("cartSidebar");
     const profileSidebar = document.getElementById("profileSidebar");
     const overlay = document.getElementById("panelOverlay");
 
-    // Biar gak tabrakan, kalau mau buka keranjang, tutup profil dulu
     if (profileSidebar) profileSidebar.classList.remove("active");
-
     cartSidebar.classList.toggle("active");
-
-    // Tampilkan overlay kalau keranjang kebuka
-    if (cartSidebar.classList.contains("active")) {
-        overlay.style.display = "block";
-    } else {
-        overlay.style.display = "none";
-    }
+    overlay.style.display = cartSidebar.classList.contains("active") ? "block" : "none";
 }
 
-// 3. (Optional) Tambahan biar kalau tekan tombol ESC di keyboard, keranjang tutup
 document.addEventListener('keydown', function(event) {
-    if (event.key === "Escape") {
-        closeAllSidebars();
-    }
-});
-
-function enableEditMode() {
-    // Sembunyiin semua yang ber-class view-mode
-    document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
-    // Munculin semua yang ber-class edit-mode
-    document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'block');
-}
-
-function disableEditMode() {
-    // Balikin lagi ke tampilan awal
-    document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'block');
-    document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'none');
-    // Tambahan buat tombol logout biar tetep block (bukan inline-block)
-    document.querySelector('a.view-mode').style.display = 'block';
-}
-
-// Logic preview foto tetep sama
-document.getElementById('input_foto').addEventListener('change', function(e) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        document.getElementById('prev_foto').src = e.target.result;
-        document.getElementById('foto_base64').value = e.target.result;
-    }
-    reader.readAsDataURL(this.files[0]);
+    if (event.key === "Escape") closeAllSidebars();
 });
 </script>
 </body>
