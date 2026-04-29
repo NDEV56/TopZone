@@ -53,17 +53,21 @@ function loadData() {
 function searchRealtime() { loadData(); }
 
 function filterKategori(kat, el) {
+    // 1. Logic Toggle (klik lagi buat matiin filter)
     if (kategoriAktif === kat) {
-        kategoriAktif = "";
+        kategoriAktif = ""; 
         if (el) el.classList.remove("active");
+        // Kalau dimatiin, balikin active ke menu "Semua"
+        document.querySelector('.tp-sidebar li:first-child').classList.add('active');
     } else {
         kategoriAktif = kat;
         document.querySelectorAll(".tp-sidebar li").forEach(li => li.classList.remove("active"));
         if (el) el.classList.add("active");
     }
+
+    // 2. Panggil loadData buat narik data dari database lewat search.php
     loadData();
 }
-
 /* ===== C. KERANJANG (CART) SYSTEM - DATABASE CONNECTED ===== */
 function updateCartDisplay() {
     fetch('ambil_keranjang_db.php')
@@ -238,11 +242,12 @@ function prosesCheckout() {
 }
 
 /* ===== F. INITIALIZE ON LOAD ===== */
+/* ===== F. INITIALIZE ON LOAD ===== */
 document.addEventListener("DOMContentLoaded", () => {
-    loadData();
+    // loadData(); // <--- KOMENTARIN ATAU HAPUS BARIS INI BIAR GAK DOUBLE RENDER
     updateCartDisplay();
 
-    // Slider Auto-Play
+    // Slider Auto-Play Tetap Jalan
     const track = document.getElementById("sliderTrack");
     const slides = document.querySelectorAll(".tp-slide");
     if (track && slides.length > 0) {
