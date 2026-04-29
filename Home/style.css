@@ -122,7 +122,7 @@ body {
 .tp-sidebar {
     width: 240px;
     min-width: 240px;
-    background: rgb(0, 0, 0);
+    background: white;
     padding: 15px;
     border-radius: 10px;
     border: 1px solid #e5e7eb;
@@ -137,12 +137,12 @@ body {
 .tp-sidebar li {
     padding: 10px;
     border-radius: 8px;
-    cursor: pointer;;
+    cursor: pointer;
 }
 
 .tp-sidebar li:hover {
     background: var(--primary-soft);
-    color: black;
+    color: var(--primary);
 }
 
 /* MAIN */
@@ -545,7 +545,7 @@ body {
     transition: 0.3s;
 }
 
-.btn-buy { background: #ff4d4d; color: white; }
+.btn-buy { background: #ff0000; color: white; }
 .btn-buy:hover { background: #cc0000; }
 
 .btn-cart { background: #f0f0f0; color: #333; }
