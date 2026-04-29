@@ -1,39 +1,30 @@
 <?php
 session_start();
-include 'koneksi.php'; // Pastikan file koneksi.php ada di folder yang sama
+include 'koneksi.php'; 
 
-// 1. DEFINISIKAN VARIABEL STATUS USER (Biar line 59 gak error)
+// 1. CEK STATUS USER
 $is_real_user = isset($_SESSION['id_user']); 
-$is_logged_in = isset($_SESSION['nama_user']); // Ini buat fix error line 59
+$is_logged_in = isset($_SESSION['nama_user']); 
 
-// 2. JALANKAN QUERY PRODUK (Biar line 99 gak error)
-$query = "SELECT * FROM games"; // Ganti 'games' sesuai nama tabel lo
+// 2. QUERY PRODUK
+$query = "SELECT * FROM games"; 
 $result = mysqli_query($conn, $query);
-
-// Cek kalau query gagal
 if (!$result) {
     die("Query Error: " . mysqli_error($conn));
 }
 
-// Di bagian atas index.php setelah query games
+// 3. HITUNG JUMLAH KERANJANG (REAL-TIME DARI DB)
 $jumlah_keranjang = 0;
 if ($is_real_user) {
     $id_user_skrg = $_SESSION['id_user'];
-    
-    // Kita pake try-catch atau cek query biar gak Fatal Error kalau kolom 'qty' belum ada
     $sql_cek_keranjang = "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'";
     $res_keranjang = mysqli_query($conn, $sql_cek_keranjang);
-    
     if ($res_keranjang) {
         $data_keranjang = mysqli_fetch_assoc($res_keranjang);
         $jumlah_keranjang = $data_keranjang['total'] ?? 0;
-    } else {
-        // Kalau error (misal kolom qty belum ada), set 0 aja biar web tetep jalan
-        $jumlah_keranjang = 0;
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="id">
@@ -44,18 +35,19 @@ if ($is_real_user) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
-
     <style>
-        /* CSS biar sidebar profile lu melayang dari kanan */
+        /* Sidebar & Overlay Logic */
         .profile-panel { position: fixed; top: 0; right: -400px; width: 350px; height: 100%; background: white; z-index: 10000; box-shadow: -5px 0 20px rgba(0,0,0,0.2); transition: 0.4s; padding: 25px; box-sizing: border-box; overflow-y: auto; }
         .profile-panel.active { right: 0; }
         .panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 9999; backdrop-filter: blur(2px); }
+        .tp-user img { cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
+        .tp-user img:hover { border-color: #007bff; }
     </style>
 </head>
 <body>
-    <div id="toastSuccess" class="toast-success">
-    ✅ Mantap mprruy! Berhasil masuk keranjang!
-    </div>
+
+<div id="panelOverlay" class="panel-overlay" onclick="closeAllSidebars()"></div>
+
 <header class="tp-header">
     <div class="container tp-nav">
         <div class="tp-left"><div class="tp-logo">TOPZONE</div></div>
@@ -65,28 +57,25 @@ if ($is_real_user) {
             </div>
         </div>
         <div class="tp-right">
-
-        <div class="cart-icon" onclick="toggleCartSidebar()" style="position: relative; cursor: pointer; font-size: 26px;">
-            <span>🛒</span> <?php if ($jumlah_keranjang > 0): ?>
-                <span style="position: absolute; top: -5px; right: -8px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold;">
-                    <?php echo $jumlah_keranjang; ?>
-                </span>
-            <?php endif; ?>
-        </div>
+            <div class="cart-icon" onclick="toggleCartSidebar()" style="position: relative; cursor: pointer; font-size: 26px; margin-right: 15px;">
+                <span>🛒</span>
+                <?php if ($jumlah_keranjang > 0): ?>
+                    <span id="cartCountBadge" style="position: absolute; top: -5px; right: -8px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold;">
+                        <?php echo $jumlah_keranjang; ?>
+                    </span>
+                <?php endif; ?>
+            </div>
 
             <div class="tp-user">
-                <div onclick="toggleProfileSidebar()" style="cursor: pointer; display: flex; align-items: center;">
+                <div onclick="toggleProfileSidebar()">
                     <?php if($is_logged_in): ?>
-                        <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
-                            style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                        <img id="nav_avatar" src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
+                             style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
                     <?php else: ?>
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #ccc;">
-                            👤
-                        </div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #ccc;">👤</div>
                     <?php endif; ?>
                 </div>
             </div>
-        </div>
         </div>
     </div>
 </header>
@@ -102,7 +91,7 @@ if ($is_real_user) {
         </ul>
     </aside>
 
-   <main class="tp-main">
+    <main class="tp-main">
         <div class="slider-wrap" id="sliderWrap">
             <div class="tp-slider">
                 <div class="tp-slides" id="sliderTrack">
@@ -114,17 +103,14 @@ if ($is_real_user) {
         </div>
 
         <h2 class="tp-title" id="mainTitle">🔥 Semua Produk</h2>
+        
         <div id="productList" class="tp-grid">
         <?php if(mysqli_num_rows($result) > 0): ?>
             <?php while($row_game = mysqli_fetch_assoc($result)): ?>
-                
                 <?php 
-                    // HITUNG MANUAL (PERSIS DETAIL GAME)
                     $id_ini = $row_game['id'];
                     $ambil_ulasan = mysqli_query($conn, "SELECT AVG(rating) as hasil_rata FROM reviews WHERE id_game = '$id_ini'");
                     $data_ulasan = mysqli_fetch_assoc($ambil_ulasan);
-                    
-                    // Variabel baru biar gak ketuker
                     $angka_bintang = ($data_ulasan['hasil_rata'] > 0) ? round($data_ulasan['hasil_rata'], 1) : 0;
                 ?>
 
@@ -137,16 +123,15 @@ if ($is_real_user) {
                         </div>
                     </div>
                 </a>
-
             <?php endwhile; ?>
         <?php endif; ?>
         </div>
         
         <div id="notFound" style="display:none; width:100%; padding: 50px 0;">
             <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                <div style="background:#fff3f3; border:2px dashed #ff0000; padding:20px 40px; border-radius:10px; text-align:center; min-width: 300px;">
-                    <h3 style="color:#ff0000; margin:0; font-size: 18px;">⚠️ GAME LAU GADA MPRUYY!</h3>
-                    <p style="color:#666; margin-top:5px; font-size: 13px;">Coba kata kunci lain mprruy...</p>
+                <div style="background:#fff3f3; border:2px dashed #ff0000; padding:20px 40px; border-radius:10px; text-align:center;">
+                    <h3 style="color:#ff0000; margin:0;">⚠️ GAME LAU GADA MPRUYY!</h3>
+                    <p style="color:#666;">Coba kata kunci lain...</p>
                 </div>
             </div>
         </div>
@@ -229,18 +214,14 @@ if ($is_real_user) {
 </div>
 
 <div id="cartSidebar" class="profile-panel">
-    <div class="sidebar-header">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:15px;">
         <h3>Keranjang Lu mprruy 🛒</h3>
-        <span onclick="toggleCartSidebar()" style="cursor:pointer;">&times;</span>
+        <span onclick="toggleCartSidebar()" style="cursor:pointer; font-size:28px;">&times;</span>
     </div>
-
-    <div id="cartItemsList" class="sidebar-body">
-        <p style="text-align:center; margin-top:50px;">Memuat keranjang...</p>
+    <div id="cartItemsList" style="margin-top:20px;">
+        <p style="text-align:center;">Memuat...</p>
     </div>
 </div>
-
-<div id="panelOverlay" onclick="closeAllSidebars()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99;"></div>
-<div id="panelOverlay" class="panel-overlay" onclick="toggleProfileSidebar()"></div>
 <footer class="tp-footer">
     <div class="footer-inner">
         <div class="container footer-grid">
@@ -266,26 +247,37 @@ if ($is_real_user) {
     <div class="footer-bottom">© 2026 TOPZONE • All Rights Reserved</div>
 </footer>
 <script>
-    // Jembatan: variabel PHP dioper ke variabel global JS
-    const IS_REAL_USER = <?php echo $is_real_user ? 'true' : 'false'; ?>;
-</script>
-
-<script src="javascript.js"></script>
-<script>
 let croppie_instance;
 
-// --- FUNGSI SIDEBAR & MODES ---
 function toggleProfileSidebar() {
+    closeSidebar("cartSidebar");
     const sidebar = document.getElementById("profileSidebar");
     const overlay = document.getElementById("panelOverlay");
     sidebar.classList.toggle("active");
     overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
+}
 
-    // Reset Croppie kalau sidebar ditutup tanpa simpan
-    if (!sidebar.classList.contains("active")) {
-        resetCroppie();
-        disableEditMode();
+function toggleCartSidebar() {
+    closeSidebar("profileSidebar");
+    const sidebar = document.getElementById("cartSidebar");
+    const overlay = document.getElementById("panelOverlay");
+    sidebar.classList.toggle("active");
+    overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
+    if(sidebar.classList.contains("active")) {
+        // Panggil fungsi muat keranjang lo di sini (jika ada di javascript.js)
     }
+}
+
+function closeSidebar(id) {
+    document.getElementById(id).classList.remove("active");
+}
+
+function closeAllSidebars() {
+    closeSidebar("profileSidebar");
+    closeSidebar("cartSidebar");
+    document.getElementById("panelOverlay").style.display = "none";
+    resetCroppie();
+    disableEditMode();
 }
 
 function enableEditMode() {
@@ -300,84 +292,41 @@ function disableEditMode() {
 }
 
 function resetCroppie() {
-    if (croppie_instance) {
-        croppie_instance.destroy();
-        croppie_instance = null;
-    }
+    if (croppie_instance) { croppie_instance.destroy(); croppie_instance = null; }
     document.getElementById('crop_wrapper').style.display = 'none';
     document.getElementById('prev_foto').style.display = 'inline-block';
 }
 
-// --- LOGIC CROPPING FOTO ---
-
-// Trigger pas user pilih file
-document.getElementById('input_foto').addEventListener('change', function() {
+// Logic Input File & Croppie
+document.getElementById('input_foto')?.addEventListener('change', function() {
     const reader = new FileReader();
-    reader.onload = function(e) {
-        // Sembunyiin foto profil lama, munculin area potong
+    reader.onload = (e) => {
         document.getElementById('prev_foto').style.display = 'none';
         document.getElementById('crop_wrapper').style.display = 'block';
-
         if (croppie_instance) croppie_instance.destroy();
-
         croppie_instance = new Croppie(document.getElementById('crop_area'), {
             viewport: { width: 150, height: 150, type: 'circle' },
             boundary: { width: 250, height: 250 },
             showZoomer: true
         });
-
         croppie_instance.bind({ url: e.target.result });
     }
     reader.readAsDataURL(this.files[0]);
 });
 
-// Pas user klik tombol "PASIN FOTO"
-document.getElementById('btn_crop').addEventListener('click', function() {
-    if (croppie_instance) {
-        croppie_instance.result({
-            type: 'base64',
-            size: 'viewport',
-            circle: true
-        }).then(function(hasil) {
-            // Tampilkan hasil crop ke preview foto profil
-            document.getElementById('prev_foto').src = hasil;
-            document.getElementById('prev_foto').style.display = 'inline-block';
-            
-            // Simpan data base64 ke input hidden biar keangkut ke PHP
-            document.getElementById('foto_base64').value = hasil;
-            
-            // Sembunyiin alat potongnya
-            document.getElementById('crop_wrapper').style.display = 'none';
-            console.log("Foto udah dipasin mprruy! 🔥");
-        });
-    }
+document.getElementById('btn_crop')?.addEventListener('click', function() {
+    croppie_instance.result({ type: 'base64', size: 'viewport', circle: true }).then(function(hasil) {
+        document.getElementById('prev_foto').src = hasil;
+        document.getElementById('nav_avatar').src = hasil; // Update navbar otomatis
+        document.getElementById('foto_base64').value = hasil;
+        document.getElementById('crop_wrapper').style.display = 'none';
+        document.getElementById('prev_foto').style.display = 'inline-block';
+    });
 });
 
-// --- FUNGSI TAMBAHAN ---
-function closeAllSidebars() {
-    const cartSidebar = document.getElementById("cartSidebar");
-    const profileSidebar = document.getElementById("profileSidebar");
-    const overlay = document.getElementById("panelOverlay");
-
-    if (cartSidebar) cartSidebar.classList.remove("active");
-    if (profileSidebar) profileSidebar.classList.remove("active");
-    if (overlay) overlay.style.display = "none";
-    resetCroppie();
-}
-
-function toggleCartSidebar() {
-    const cartSidebar = document.getElementById("cartSidebar");
-    const profileSidebar = document.getElementById("profileSidebar");
-    const overlay = document.getElementById("panelOverlay");
-
-    if (profileSidebar) profileSidebar.classList.remove("active");
-    cartSidebar.classList.toggle("active");
-    overlay.style.display = cartSidebar.classList.contains("active") ? "block" : "none";
-}
-
-document.addEventListener('keydown', function(event) {
-    if (event.key === "Escape") closeAllSidebars();
-});
+document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
 </script>
+
+<script src="javascript.js"></script>
 </body>
 </html>
