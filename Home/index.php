@@ -98,6 +98,7 @@ if ($is_real_user) {
                     <div class="tp-slide"><img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200"></div>
                     <div class="tp-slide"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200"></div>
                     <div class="tp-slide"><img src="https://images.unsplash.com/photo-1605901309584-818e25960a8f?w=1200"></div>
+                    <div class="tp-slide"><img src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXdaeh5nCCpewFNqlqhUTijdqvjpYhh66tL1vJCxzu0M28-lDOt8T9MQAxKkCfmRXiz90gYhgaA4t2SG8XAk4ntEz5_xxSNriTW04S4qcL36RtuZ6hFdtH0kTV7f6XFAJDCbFZJi?key=13D7PG225SiyZYQv4S1nVg1G"></div>
                 </div>
             </div>
         </div>

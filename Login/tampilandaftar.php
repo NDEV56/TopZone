@@ -61,10 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </form>
 
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="masuk_guest.php" style="color: #a0a0a0; font-size: 13px; text-decoration: none;">
-                Masuk sebagai Guest
-            </a>
+       <div class="footer-link">
+            Masuk sebagai <a href="masuk_guest.php">Guest</a>
         </div>
         
         <div class="footer-link">

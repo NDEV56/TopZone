@@ -8,8 +8,8 @@
 }
 
 :root {
-    --primary: #2563eb;
-    --primary-soft: #eff6ff;
+    --primary:  #0d2480;
+    --primary-soft:  rgba(13,36,128,.55);
     --text-dark: #1e293b;
     --bg: #f5f7fb;
 }
@@ -221,7 +221,7 @@ body {
 ========================================= */
 .tp-footer {
     width: 100%;
-    background: #141d33;
+    background: radial-gradient(ellipse at top, #1e3a8a 0%, #0d1b5e 50%, #080e2e 100%);;
     color: #e2e8f0;
     margin-top: auto;
 }
@@ -237,7 +237,7 @@ body {
 }
 
 .footer-brand h2 {
-    color: #121ded;
+    color:  #e7e7e7;
 }
 
 .footer-bottom {
@@ -545,7 +545,7 @@ body {
     transition: 0.3s;
 }
 
-.btn-buy { background: #ff4d4d; color: white; }
+.btn-buy { background: #ff0000; color: white; }
 .btn-buy:hover { background: #cc0000; }
 
 .btn-cart { background: #f0f0f0; color: #333; }
@@ -701,7 +701,7 @@ textarea { width: 100%; height: 80px; margin: 15px 0; border: 1px solid #ddd; bo
 /* Styling List Ulasan */
 .ulasan-list {
     width: 100%;
-    margin-top: 20px;
+    margin-top: 20px; 
 }
 
 .comment-card {
