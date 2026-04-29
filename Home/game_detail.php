@@ -99,6 +99,10 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
 
 <div class="container">
     <div class="main-info">
+        <a href="index.php" class="btn-back-home"
+                style="display: inline-flex;align-items: center;gap: 6px;padding: 8px 16px;margin-bottom: 16px;background:#333;color: #ffffff;border: 1.5px solid #ddd;border-radius: 8px;font-size: 13px;font-weight: 500;text-decoration: none;cursor: pointer;transition: all 0.2s ease;">
+                 Kembali ke Home
+            </a>
         <div style="display: flex; gap: 20px; align-items: center;">
             <div class="tp-img" style="background-image:url('<?php echo $g['gambar']; ?>')"></div>
             <div>
