@@ -50,7 +50,14 @@ if ($is_real_user) {
 
 <header class="tp-header">
     <div class="container tp-nav">
-        <div class="tp-left"><div class="tp-logo">TOPZONE</div></div>
+        <div class="tp-left">
+            <table>
+                <tr>
+                    <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="60" style="padding-right:10px;" ></td>
+                    <td><h2 style="color:#0d2480; margin:0; font-size:25px;">TOPZONE</h2></td>
+                 </tr>
+            </table>
+        </div>
         <div class="tp-center">
             <div class="search-box">
                 <input type="text" id="searchInput" onkeyup="searchRealtime()" placeholder="Cari game di TOPZONE...">
