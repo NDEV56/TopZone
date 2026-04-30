@@ -64,15 +64,14 @@ body {
 }
 
 /* LOGO */
-.tp-left {
-    width: 150px;
-    z-index: 2;
+.tp-left table {
+    border-collapse: collapse;
 }
 
-.tp-logo {
-    font-size: 22px;
-    font-weight: bold;
-    color: var(--primary);
+.tp-left td {
+    vertical-align: middle;
+    padding-right: 15px;
+    padding:15px;
 }
 
 /* SEARCH CENTER FIX */
