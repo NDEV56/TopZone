@@ -108,9 +108,9 @@ function updateCartDisplay() {
                     <span>Total Tagihan:</span>
                     <span id="totalHargaCart" style="color:#03ac0e;">Rp 0</span>
                 </div>
-                <button onclick="prosesCheckout()" style="width:100%; background:#03ac0e; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                    BAYAR SEKARANG
-                </button>
+                <!-- Contoh di HTML lu -->
+                // Bagian paling bawah di fungsi updateCartDisplay
+                <button class="btn-bayar" onclick="checkoutDariKeranjang()">BAYAR SEKARANG</button>
             </div>`;
         
         tambahEventChecklist();
@@ -241,6 +241,39 @@ function prosesCheckout() {
     window.location.href = "checkout.php?ids=" + ids.join(',');
 }
 
+function prosesBeli() {
+    // 1. Ambil data User & Zone (Universal)
+    const userIdInput = document.getElementById('user_id');
+    const zoneIdInput = document.getElementById('zone_id');
+    
+    // 2. Validasi Input User
+    if (!userIdInput || userIdInput.value.trim() === "") {
+        alert("Waduh, ID Game-nya jangan lupa diisi dulu bre! 🙏");
+        userIdInput.focus();
+        return;
+    }
+
+    // 3. Pastiin User udah milih nominal (Diamond/UC/dll)
+    // selectedPrice & selectedProductName harusnya udah ke-update pas user klik item-card
+    if (typeof selectedPrice === 'undefined' || selectedPrice === 0) {
+        alert("Pilih dulu nominal yang mau lo beli mprruy! 💎");
+        return;
+    }
+
+    // 4. Kumpulin Data buat dilempar ke Pembayaran
+    const gameId = document.getElementById('id_game_hidden').value; // Ambil dari input hidden
+    const userId = userIdInput.value;
+    const zoneId = zoneIdInput ? zoneIdInput.value : '';
+    const namaProduk = selectedProductName;
+    const harga = selectedPrice;
+
+    // 5. Redirect ke halaman pembayaran (Universal)
+    // Pastikan path-nya "Checkout/pembayaran.php"
+    const url = `Checkout/pembayaran.php?id_game=${gameId}&user=${encodeURIComponent(userIdInput.value)}&produk=${encodeURIComponent(paketTerpilih.nama)}&harga=${selectedPrice}&qty=${currentQty}&type=direct`;
+    
+    window.location.href = url;
+}
+
 /* ===== F. INITIALIZE ON LOAD ===== */
 /* ===== F. INITIALIZE ON LOAD ===== */
 document.addEventListener("DOMContentLoaded", () => {
@@ -269,4 +302,35 @@ if(overlay) {
         document.getElementById("profileSidebar").classList.remove("active");
         this.style.display = "none";
     };
+}
+function checkoutDariKeranjang() {
+    // 1. Ambil semua item yang dicentang di sidebar
+    const dipilih = document.querySelectorAll('.cart-checkbox:checked');
+    
+    if (dipilih.length === 0) {
+        Swal.fire('Mpruyy!', 'Centang dulu barang yang mau dibayar mprruy!', 'info');
+        return;
+    }
+
+    // 2. Ambil ID User/Game (sesuaikan ID inputnya dengan yang ada di index.php lu)
+    const inputId = document.getElementById('user_id') || document.getElementById('general_user_id');
+    const inputZone = document.getElementById('zone_id');
+
+    if (!inputId || inputId.value.trim() === "") {
+        Swal.fire('ID Kosong!', 'Isi ID Game lu dulu mprruy agar pesanan gak nyasar!', 'error');
+        return;
+    }
+
+    // 3. Gabungkan ID Keranjang jadi string (misal: "16,17")
+    let ids = Array.from(dipilih).map(cb => cb.value).join(',');
+    
+    // Gabungkan ID + Zone jika ada
+    let userData = inputId.value;
+    if (inputZone && inputZone.value.trim() !== "") {
+        userData += ` (${inputZone.value})`;
+    }
+
+    // 4. Redirect ke path yang benar (Sesuai folder Checkout di sidebar VS Code)
+    // Gunakan folder 'Checkout/' karena file pembayaran.php ada di dalam sana
+    window.location.href = `Checkout/pembayaran.php?ids=${ids}&user=${encodeURIComponent(userData)}`;
 }
