@@ -76,6 +76,8 @@ if ($is_real_user) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
+    <!-- Taruh ini di paling atas file atau di dalam <head> -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         /* Sidebar & Overlay Logic */
         .profile-panel { position: fixed; top: 0; right: -400px; width: 350px; height: 100%; background: white; z-index: 10000; box-shadow: -5px 0 20px rgba(0,0,0,0.2); transition: 0.4s; padding: 25px; box-sizing: border-box; overflow-y: auto; }
@@ -83,6 +85,8 @@ if ($is_real_user) {
         .panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 9999; backdrop-filter: blur(2px); }
         .tp-user img { cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
         .tp-user img:hover { border-color: #007bff; }
+
+        
     </style>
 </head>
 <body>
@@ -294,7 +298,7 @@ if ($is_real_user) {
                                 mysqli_data_seek($st['q'], 0); 
                                 while($d = mysqli_fetch_assoc($st['q'])): ?>
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                    <img src="./assets/img/<?= !empty($d['gambar_game']) ? $d['gambar_game'] : 'Default.jpg' ?>" onerror="this.src='./Default.jpg'" style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
+                                    <img src="<?= !empty($d['gambar_game']) ? $d['gambar_game'] : 'Default.jpg' ?>" onerror="this.src='./Default.jpg'" style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
                                     <div style="flex: 1;">
                                         <!-- BARIS ATAS: Nama Game (Roblox/ML/dll) -->
                                     <div style="font-size: 11px; font-weight: bold; color: #333;">
@@ -345,7 +349,11 @@ if ($is_real_user) {
             </div>
             <div>
                 <h4>Menu</h4>
-                <ul><li>Home</li><li>Semua Game</li><li>Promo</li></ul>
+                <ul><li>Home</li><li>Semua Game</li>
+            <li class="promo-text">
+                <span id="btnPromo" class="promo-btn">P</span>romo
+            </li>
+            </ul>
             </div>
             <div>
                 <h4>Bantuan</h4>
@@ -465,6 +473,36 @@ document.getElementById('btn_crop')?.addEventListener('click', function() {
 });
 
 document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnP = document.getElementById('btnPromo');
+    
+    if (btnP) {
+        btnP.addEventListener('click', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '🔥 Promo Spesial mprruy! 🔥',
+                    // Path folder sesuai gambar yang lo kasih
+                    html: '<iframe src="../Home/806/index.html" style="width:100%; height:450px; border:none; border-radius:10px;"></iframe>',
+                    
+                    // BAGIAN TIMER DIHAPUS BIAR GAK NUTUP OTOMATIS
+                    showConfirmButton: false, 
+                    showCloseButton: true, // Tombol silang (X) tetep ada biar user bisa tutup manual
+                    
+                    width: '700px',
+                    background: '#ff748d',
+                    color: '#fff',
+                    
+                    // Biar user bisa tutup dengan klik di luar kotak (opsional)
+                    allowOutsideClick: true 
+                });
+            } else {
+                console.error("SweetAlert2 belum muat mprruy!");
+                alert("Sabar mprruy, lagi loading library-nya!");
+            }
+        });
+    }
+});
 </script>
 
 <script src="javascript.js"></script>

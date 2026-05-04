@@ -144,6 +144,7 @@ $res = mysqli_query($koneksi, "SELECT * FROM orders ORDER BY created_at DESC");
                                     <select name="status_baru">
                                         <option value="PENDING" <?= $row['status'] == 'PENDING' ? 'selected' : '' ?>>Pending</option>
                                         <option value="PROSES" <?= $row['status'] == 'PROSES' ? 'selected' : '' ?>>Proses</option>
+                                        <option value="DIKIRIM" <? $row['status'] == 'DIKIRIM' ? 'selected' : '' ?>>Dikirim</option>
                                         <option value="SELESAI" <?= $row['status'] == 'SELESAI' ? 'selected' : '' ?>>Selesai</option>
                                     </select>
                                     <button type="submit" name="update_status" class="btn-set">SET</button>
