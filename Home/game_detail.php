@@ -42,6 +42,10 @@ $q_rev = mysqli_query($koneksi, "SELECT * FROM reviews WHERE id_game = '$id_g' O
 // ==========================================
 $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . rand(100, 999));
 
+// Tangkap data dari keranjang jika ada
+$selected_produk = $_GET['select_produk'] ?? '';
+$qty_cart = $_GET['qty'] ?? 1;
+$from_cart = $_GET['from_cart'] ?? false;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -297,17 +301,22 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
 
         <div class="item-grid" id="product-list">
             <?php 
-            // Ambil data produk berdasarkan id_game
             $q_produk = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_g' ORDER BY harga ASC");
-            
             if(mysqli_num_rows($q_produk) > 0): 
-                while($p = mysqli_fetch_assoc($q_produk)): ?>
-                    <div class="item-card" onclick="selectProduct(this, <?= $p['harga']; ?>, '<?= addslashes($p['nama_produk']); ?>')">
-                        <div style="font-size: 14px; font-weight: 600; color: #444;"><?= $p['nama_produk']; ?></div>
-                        <div class="price">Rp <?= number_format($p['harga'], 0, ',', '.'); ?></div>
-                    </div>
-                <?php endwhile; 
-            else: ?>
+                while($p = mysqli_fetch_assoc($q_produk)): 
+                    // Tambahkan class tipe produk di sini
+                    $tipe_p = $p['tipe'] ?? 'default'; 
+            ?>
+                <div class="item-card produk-item" 
+                    data-tipe="<?= $tipe_p ?>" 
+                    onclick="selectProduct(this, <?= $p['harga']; ?>, '<?= addslashes($p['nama_produk']); ?>')"
+                    style="display: <?= ($gn_check == 'roblox' && $tipe_p != 'roblox_login') ? 'none' : 'block' ?>;">
+                    <div style="font-size: 14px; font-weight: 600; color: #444;"><?= $p['nama_produk']; ?></div>
+                    <div class="price">Rp <?= number_format($p['harga'], 0, ',', '.'); ?></div>
+                </div>
+            <?php endwhile; ?>
+
+            <?php else: ?>
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa;">
                     <p>Produk belum tersedia untuk game ini mprruy. 🙏</p>
                 </div>
@@ -458,6 +467,7 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
     let basePrice = 0;
     let currentQuantity = 1;
     let robloxTabMode = 'login'; // 'login' atau '5hari'
+    
 
     /**
      * Fungsi pilih produk dari grid
@@ -510,14 +520,29 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
      */
     function toggleRobloxTab(mode) {
         robloxTabMode = mode;
+        const filterKey = (mode === 'login') ? 'roblox_login' : 'roblox_5hari';
         
-        // UI Button
+        // 1. UI Button & Fields (Udah ada di kode lu)
         document.getElementById('btn-tab-login').classList.toggle('active', mode === 'login');
         document.getElementById('btn-tab-5hari').classList.toggle('active', mode === '5hari');
-
-        // Field Visibility
         document.getElementById('roblox-fields-login').style.display = (mode === 'login' ? 'block' : 'none');
         document.getElementById('roblox-fields-5hari').style.display = (mode === '5hari' ? 'block' : 'none');
+
+        // 2. Filter Produk (Tambahan Baru)
+        const allProducts = document.querySelectorAll('.produk-item');
+        allProducts.forEach(el => {
+            if (el.getAttribute('data-tipe') === filterKey) {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        });
+
+        // Reset pilihan produk kalau pindah tab biar gak salah harga
+        currentSelectedProduct = null;
+        basePrice = 0;
+        document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+        updatePriceDisplay();
     }
 
     /**
@@ -537,12 +562,14 @@ $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . ran
             return;
         }
 
+        const idGameAsli = "<?php echo $id_g; ?>";
         // Persiapan data
         let formData = new FormData();
+        // Nama field harus 'id_game' sesuai tabel di phpMyAdmin lu
+        formData.append('id_game', idGameAsli); 
         formData.append('nama_produk', currentSelectedProduct);
         formData.append('harga', basePrice);
         formData.append('qty', currentQuantity);
-
         fetch('proses_keranjang.php', {
             method: 'POST',
             body: formData

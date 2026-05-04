@@ -138,31 +138,60 @@ if (isset($_GET['hapus'])) {
                         </thead>
                         <tbody>
                             <?php
-                            $q_paket = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_game' ORDER BY harga ASC");
+                            // 1. Tambahkan 'tipe ASC' di ORDER BY supaya paket yang setipe ngumpul jadi satu
+                            $q_paket = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_game' ORDER BY tipe ASC, harga ASC");
                             
                             if(mysqli_num_rows($q_paket) > 0) {
+                                $current_tipe = ""; // Variabel pembantu buat cek perubahan tipe
+
                                 while($p = mysqli_fetch_assoc($q_paket)) {
-                                    // GANTI 'id_produk' di bawah ini sesuai nama kolom di database lu!
                                     $id_p = $p['id_produk']; 
                                     $nama_p = htmlspecialchars($p['nama_produk']);
                                     $harga_p = number_format($p['harga'], 0, ',', '.');
+                                    $tipe_p = $p['tipe']; // Ambil kolom tipe
+
+                                    // 2. LOGIKA PEMISAH (Hanya muncul jika tipe berubah)
+                                    if ($tipe_p !== $current_tipe) {
+                                        $current_tipe = $tipe_p;
+                                        
+                                        // Tentukan label Header berdasarkan tipe
+                                        $header_label = "";
+                                        $header_color = "";
+
+                                        if ($tipe_p == 'roblox_login') {
+                                            $header_label = "--- KATEGORI: VIA LOGIN (ROBLOX) ---";
+                                            $header_color = "#ff4d4d"; // Merah
+                                        } elseif ($tipe_p == 'roblox_5hari') {
+                                            $header_label = "--- KATEGORI: 5 HARI / GIFT (ROBLOX) ---";
+                                            $header_color = "#2ecc71"; // Hijau
+                                        }
+
+                                        // Tampilkan baris header pemisah jika ini produk roblox
+                                        if ($header_label !== "") {
+                                            echo "<tr>
+                                                    <td colspan='3' style='background: rgba(255,255,255,0.05); color: $header_color; font-weight: bold; text-align: center; font-size: 12px; letter-spacing: 1px; padding: 10px 0;'>
+                                                        $header_label
+                                                    </td>
+                                                </tr>";
+                                        }
+                                    }
                             ?>
-                                <tr>
-                                    <td><strong style="color: #fff;"><?php echo $nama_p; ?></strong></td>
-                                    <td style="color: var(--primary); font-family: monospace; font-weight: bold;">
-                                        Rp <?php echo $harga_p; ?>
-                                    </td>
-                                    <td style="text-align:right; padding-right:15px;">
-                                        <div class="action-btns" style="justify-content: flex-end;">
-                                            <a href="admin_edit_paket.php?id=<?php echo $id_p; ?>" class="btn-edit-item">Edit</a>
-                                            <a href="admin_paket.php?hapus=<?php echo $id_p; ?>" 
-                                            class="btn-del-item" 
-                                            onclick="return confirm('Hapus paket <?php echo $nama_p; ?>?')">
-                                            Hapus
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td><strong style="color: #fff;"><?php echo $nama_p; ?></strong></td>
+                                        <td style="color: var(--primary); font-family: monospace; font-weight: bold;">
+                                            Rp <?php echo $harga_p; ?>
+                                        </td>
+                                        <td style="text-align:right; padding-right:15px;">
+                                            <div class="action-btns" style="justify-content: flex-end;">
+                                                <a href="admin_edit_paket.php?id=<?php echo $id_p; ?>" class="btn-edit-item">Edit</a>
+                                                <a href="admin_paket.php?hapus=<?php echo $id_p; ?>" 
+                                                class="btn-del-item" 
+                                                onclick="return confirm('Hapus paket <?php echo $nama_p; ?>?')">
+                                                Hapus
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
                             <?php 
                                 }
                             } else {

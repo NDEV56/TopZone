@@ -3,17 +3,17 @@ session_start();
 include '../koneksi.php'; 
 
 // 1. AMBIL DATA DARI URL
-$id_game = $_GET['id_game'] ?? '';
-$user_data = $_GET['user'] ?? '';
+$id_game = mysqli_real_escape_string($koneksi, $_GET['id_game'] ?? '');
+$user_data_mentah = $_GET['user'] ?? '';
 $nama_produk = $_GET['produk'] ?? 'Produk';
 $harga_satuan = (int)($_GET['harga'] ?? 0);
 $qty = (int)($_GET['qty'] ?? 1);
 
-// 2. AMBIL DATA DARI DATABASE (Tabel 'games')
-$query_game = mysqli_query($conn, "SELECT * FROM games WHERE id = '$id_game'");
+// 2. AMBIL DATA DARI DATABASE (Cek Game & Tipe-nya)
+// Pastikan variabel koneksi lo bener ($koneksi atau $conn)
+$query_game = mysqli_query($koneksi, "SELECT * FROM games WHERE id = '$id_game'");
 $data_game = mysqli_fetch_assoc($query_game);
 
-// 3. SET DATA DINAMIS
 $nama_game = $data_game['nama_game'] ?? 'Game';
 $nama_foto = $data_game['gambar'] ?? 'default.jpg';
 $path_foto = "../" . $nama_foto; 
@@ -27,12 +27,14 @@ $path_foto = "../" . $nama_foto;
     <link rel="stylesheet" href="style.css">
     <style>
         .container { display: flex; gap: 20px; padding: 20px; font-family: sans-serif; max-width: 1000px; margin: auto; }
-        .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #fff; }
+        .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .btn-pay { width: 100%; padding: 15px; background: #ff6a00; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-pay:hover { background: #e65c00; }
         .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
-        .method-box { padding: 15px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .method-box { padding: 15px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .method-box.active { border-color: #ff6a00; background: #fff9f5; }
+        .input-edit-data { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; }
+        .group-input { margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -49,39 +51,35 @@ $path_foto = "../" . $nama_foto;
                     <h3 style="margin:0; font-size: 1.2em;"><?= htmlspecialchars($nama_produk) ?></h3>
                     <p style="margin:5px 0; color:#666; font-size: 0.9em;">Game: <?= htmlspecialchars($nama_game) ?></p>
 
-                    <!-- Box Data Akun -->
+                    <!-- Box Edit Data Akun (Fungsi dari kode lama lo mprruy) -->
                     <div style="background: #fdfdfd; padding: 15px; border-radius: 10px; margin-top: 15px; border: 1px solid #eee;">
-                        <label style="font-size: 0.75em; color: #aaa; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 10px; letter-spacing: 1px;">Data Akun Terisi:</label>
+                        <label style="font-size: 0.75em; color: #aaa; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 10px; letter-spacing: 1px;">
+                            Lengkapi / Edit Data Akun:
+                        </label>
                         
-                        <div style="display: grid; gap: 8px;">
+                        <div id="container-input-data">
                             <?php 
-                            $user_raw = $_GET['user'] ?? '';
-                            // Kita pecah datanya berdasarkan tanda '|' yang kita buat di detail tadi
-                            $data_list = explode('|', $user_raw); 
-
+                            // Pecah data berdasarkan '|' dan ':'
+                            $data_list = explode('|', $user_data_mentah); 
                             foreach ($data_list as $baris): 
-                                if (empty(trim($baris))) continue; // Skip kalau datanya kosong
+                                if (empty(trim($baris))) continue;
                                 
-                                // Cek apakah ada label (misal "User: admin")
                                 if (strpos($baris, ':') !== false) {
-                                    $pecah_label = explode(':', $baris, 2);
-                                    $label = trim($pecah_label[0]);
-                                    $value = trim($pecah_label[1]);
+                                    $pecah = explode(':', $baris, 2);
+                                    $label = trim($pecah[0]);
+                                    $value = trim($pecah[1]);
                                 } else {
                                     $label = "Data";
                                     $value = trim($baris);
                                 }
                             ?>
-                                <div style="display: flex; justify-content: space-between; font-size: 14px; padding-bottom: 5px; border-bottom: 1px dashed #f0f0f0;">
-                                    <span style="color: #888;"><?= htmlspecialchars($label) ?></span>
-                                    <strong style="color: #333; font-family: 'Courier New', Courier, monospace;"><?= htmlspecialchars($value) ?></strong>
+                                <div class="group-input">
+                                    <span style="color: #888; font-size: 12px; font-weight: bold;"><?= $label ?></span>
+                                    <input type="text" class="input-edit-data" data-label="<?= $label ?>" value="<?= htmlspecialchars($value) ?>">
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     </div>
-                    
-                    <!-- Input Hidden buat dikirim ke backend/Xendit -->
-                    <input type="hidden" id="edit-user" value="<?= htmlspecialchars($user_raw) ?>">
                 </div>
             </div>
         </div>
@@ -124,15 +122,26 @@ $path_foto = "../" . $nama_foto;
 </div>
 
 <script>
-// Gabungkan semua fungsi onclick jadi satu mprruy biar gak bentrok
+// Fungsi Ambil Data dari Input Dinamis (Ini yang lo mau mprruy)
 document.getElementById('pay-button').onclick = function() {
     const btn = this;
     
-    // 1. Ambil data user lengkap dari input (ID Game / Akun)
-    const dataUserLengkap = document.getElementById('edit-user').value;
+    // 1. PROSES DATA DARI INPUT (Biar kalau user ganti username/pass, datanya ikut ke update)
+    const allInputs = document.querySelectorAll('.input-edit-data');
+    let dataArray = [];
+    
+    allInputs.forEach(input => {
+        const label = input.getAttribute('data-label');
+        const val = input.value.trim();
+        if(val !== "") {
+            dataArray.push(label + ": " + val);
+        }
+    });
 
-    if (dataUserLengkap === "") {
-        alert("Data pesanan tidak valid!");
+    const dataUserTerupdate = dataArray.join(' | ');
+
+    if (dataArray.length === 0) {
+        alert("Data pesanan tidak boleh kosong mprruy!");
         return;
     }
 
@@ -140,27 +149,24 @@ document.getElementById('pay-button').onclick = function() {
     btn.innerText = "Processing...";
     btn.disabled = true;
 
-    // 3. Kirim data ke PHP
-    // Tips: id_user diambil langsung dari session PHP lewat script ini
+    // 3. Kirim ke PHP (ambil_token.php)
     fetch('ambil_token.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-            'id_user': '<?= $_SESSION['id_user'] ?? 0 ?>', // Ini kunci biar id_user gak 0!
-            'produk': '<?= $nama_produk ?? $_GET['produk'] ?>',
-            'harga': '<?= $harga_satuan ?? $_GET['harga'] ?>',
-            'qty': '<?= $qty ?? $_GET['qty'] ?>',
-            'user': dataUserLengkap
+            'id_user': '<?= $_SESSION['id_user'] ?? 0 ?>',
+            'produk': '<?= $nama_produk ?>',
+            'harga': '<?= $harga_satuan * $qty ?>', // Kirim total harga
+            'qty': '<?= $qty ?>',
+            'user': dataUserTerupdate // Kirim data yang udah diedit user
         })
     })
     .then(res => res.json())
     .then(data => {
         if (data.invoice_url) {
-            // Berhasil: Lempar ke halaman pembayaran Xendit
             window.location.href = data.invoice_url;
         } else {
-            // Gagal: Kasih tau alasannya (misal: Secret Key salah)
-            alert("Gagal: " + (data.message || "Unknown error"));
+            alert("Gagal: " + (data.message || "Error server"));
             btn.innerText = "Checkout & Bayar";
             btn.disabled = false;
         }
@@ -173,18 +179,11 @@ document.getElementById('pay-button').onclick = function() {
     });
 };
 
-// Fungsi untuk memilih metode (UI saja)
 function pilihMetode(nama) {
-    const boxKonfirmasi = document.getElementById('box-konfirmasi');
-    const teksMetode = document.getElementById('teks-metode');
-    const xenditBox = document.getElementById('xendit-box');
-    const btn = document.getElementById('pay-button');
-
-    if(boxKonfirmasi) boxKonfirmasi.style.display = 'block';
-    if(teksMetode) teksMetode.innerText = nama;
-    if(xenditBox) xenditBox.classList.add('active');
-
-    btn.disabled = false;
+    document.getElementById('box-konfirmasi').style.display = 'block';
+    document.getElementById('teks-metode').innerText = nama;
+    document.getElementById('xendit-box').classList.add('active');
+    document.getElementById('pay-button').disabled = false;
 }
 </script>
 
