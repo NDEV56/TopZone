@@ -98,8 +98,8 @@ if ($is_real_user) {
         <div class="tp-left">
             <table>
                 <tr>
-                    <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="60" style="padding-right:10px;" ></td>
-                    <td><h2 style="color:#0d2480; margin:0; font-size:25px;">TOPZONE</h2></td>
+                    <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="65"></td>
+                    <td><h2 style="color:#0d2480; font-size:28px;">TOPZONE</h2></td>
                  </tr>
             </table>
         </div>
