@@ -298,11 +298,11 @@ if ($is_real_user) {
                                 mysqli_data_seek($st['q'], 0); 
                                 while($d = mysqli_fetch_assoc($st['q'])): ?>
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                    <img src="<?= !empty($d['gambar_game']) ? $d['gambar_game'] : 'Default.jpg' ?>" onerror="this.src='./Default.jpg'" style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
+                                    <img src="<?= !empty($d['gambar_game_asli']) ? $d['gambar_game_asli'] : 'Default.jpg' ?>" onerror="this.src='./Default.jpg'" style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
                                     <div style="flex: 1;">
                                         <!-- BARIS ATAS: Nama Game (Roblox/ML/dll) -->
                                     <div style="font-size: 11px; font-weight: bold; color: #333;">
-                                            <?= !empty($d['nama_game_asli']) ? $d['nama_game_asli'] : 'Game' ?>
+                                            <?= !empty($d['nama_game']) ? $d['nama_game'] : 'games' ?>
                                         </div>
         
                                         <!-- BARIS BAWAH: Nama Paket (400 Robux/dll) -->
