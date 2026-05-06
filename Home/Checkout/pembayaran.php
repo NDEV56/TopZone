@@ -154,12 +154,13 @@ document.getElementById('pay-button').onclick = function() {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-            'id_user': '<?= $_SESSION['id_user'] ?? 0 ?>',
-            'produk': '<?= $nama_produk ?>',
-            'harga': '<?= $harga_satuan * $qty ?>', // Kirim total harga
-            'qty': '<?= $qty ?>',
-            'user': dataUserTerupdate // Kirim data yang udah diedit user
-        })
+                'id_user': '<?= $_SESSION['id_user'] ?? 0 ?>',
+                'id_game': '<?= $id_game ?>', // <--- INI WAJIB ADA BIAR GAK JADI "GAME" DOANG
+                'produk': '<?= $nama_produk ?>',
+                'harga': '<?= $harga_satuan * $qty ?>', 
+                'qty': '<?= $qty ?>',
+                'user': dataUserTerupdate 
+            })
     })
     .then(res => res.json())
     .then(data => {
