@@ -145,11 +145,11 @@ body {
  
 .card {
   position: relative;
+  isolation: isolate;
   width: 360px;
   height: 550px;
   background: transparent;
   border-radius: 15px;
-  overflow: hidden;
   color: white;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -177,6 +177,7 @@ body {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0;
+  z-index: -1;
   transition: opacity 0.5s;
 }
 
@@ -200,8 +201,11 @@ body {
 }
 
 .logo-wrap {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 10px; margin-bottom: 32px;
+  display: flex; 
+  flex-direction: column; 
+  align-items: center;
+  gap: 10px; 
+  margin-bottom: 32px;
 }
 
 .logo-img {
