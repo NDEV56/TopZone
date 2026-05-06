@@ -87,11 +87,18 @@ function updateCartDisplay() {
 
         listContainer.innerHTML = data.map(item => `
             <div class="cart-card" style="display:flex; gap:10px; border-bottom:1px solid #eee; padding:10px 0; align-items:center;">
-                <input type="checkbox" class="cart-checkbox" value="${item.id_keranjang}">
-                <img src="./${item.gambar}" onerror="this.src='./Default.jpg'" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
+                <input type="checkbox" class="cart-checkbox" value="${item.id_keranjang}" data-price="${item.qty * item.harga}" onchange="hitungTotal()">
+                
+                <img src="${item.gambar}" onerror="this.src='Default.jpg'" style="width:55px; height:55px; border-radius:8px; object-fit:cover; border:1px solid #ddd;">
+                
                 <div style="flex:1;">
-                    <b style="font-size:13px; display:block;">${item.nama_produk}</b>
+                    <small style="color:#888; font-size:10px; display:block; text-transform:uppercase; font-weight:bold;">
+                        ${item.nama_game}
+                    </small>
+                    
+                    <b style="font-size:13px; display:block; margin-top:-2px;">${item.nama_produk}</b>
                     <span style="color:#03ac0e; font-weight:bold;">Rp ${parseInt(item.harga).toLocaleString('id-ID')}</span>
+                    
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                         <div style="display:flex; border:1px solid #ddd; border-radius:5px; align-items:center;">
                             <button onclick="ubahQty(${item.id_keranjang}, -1)" style="border:none; background:#f9f9f9; padding:2px 8px; cursor:pointer;">-</button>
@@ -103,20 +110,18 @@ function updateCartDisplay() {
                 </div>
             </div>
         `).join('') + `
-            <div style="padding:15px; border-top:2px solid #eee; margin-top:10px;">
-                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px;">
-                    <span>Total Tagihan:</span>
-                    <span id="totalHargaCart" style="color:#03ac0e;">Rp 0</span>
-                </div>
-                <button onclick="prosesCheckout()" style="width:100%; background:#03ac0e; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                    BAYAR SEKARANG
-                </button>
-            </div>`;
+        <div style="padding:15px; border-top:2px solid #eee; margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px;">
+                <span>Total Tagihan:</span>
+                <span id="totalHargaCart" style="color:#03ac0e;">Rp 0</span>
+            </div>
+            <button onclick="prosesCheckout()" style="width:100%; background:#03ac0e; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                BAYAR SEKARANG
+            </button>
+        </div>`;
         
-        tambahEventChecklist();
     }).catch(err => console.error("Cart Error:", err));
 }
-
 function ubahQty(id, delta) {
     const qtySpan = document.getElementById(`qty-${id}`);
     let newQty = parseInt(qtySpan.innerText) + delta;
@@ -215,7 +220,7 @@ function eksekusiTambah(id_game) {
     }
 
     let fd = new FormData();
-    fd.append('id_game', id_game);
+    fd.append('id_game', id_game); // KIRIM ID GAME-NYA KE PHP
     fd.append('nama_produk', selectedProductName);
     fd.append('harga', selectedPrice);
     fd.append('qty', currentQty);
@@ -233,12 +238,18 @@ function eksekusiTambah(id_game) {
 
 function prosesCheckout() {
     const dipilih = document.querySelectorAll('.cart-checkbox:checked');
+    
     if (dipilih.length === 0) {
         alert("Pilih dulu barangnya mprruy! 🙏");
         return;
     }
+
+    // Ambil ID keranjang yang dicentang
     let ids = Array.from(dipilih).map(cb => cb.value);
-    window.location.href = "checkout.php?ids=" + ids.join(',');
+
+    // ARAHKAN KE FOLDER Checkout DAN FILE pembayaran.php
+    // Gunakan path yang benar: Checkout/pembayaran.php
+    window.location.href = "../Home/Checkout/pembayaran.php?ids=" + ids.join(',');
 }
 
 /* ===== F. INITIALIZE ON LOAD ===== */

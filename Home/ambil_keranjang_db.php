@@ -1,38 +1,31 @@
 <?php
 session_start();
-include 'koneksi.php';
+include 'koneksi.php'; 
 header('Content-Type: application/json');
 
-$id_user = $_SESSION['id_user'];
+$id_user = $_SESSION['id_user'] ?? 0;
 
-$query = "SELECT * FROM keranjang WHERE id_user = '$id_user' ORDER BY id_keranjang DESC";
+// Query ini ngambil:
+// 1. Data belanjaan (nama_produk, harga, qty) dari tabel KERANJANG (k)
+// 2. Data Master (nama_game, gambar) dari tabel GAMES (g)
+// ... (bagian awal sama)
+$query = "SELECT 
+            k.id_keranjang, k.nama_produk, k.harga, k.qty, 
+            g.nama_game, g.gambar 
+          FROM keranjang k 
+          LEFT JOIN games g ON k.id_game = g.id 
+          WHERE k.id_user = '$id_user' 
+          ORDER BY k.id_keranjang DESC";
+// ... (sisanya sama)
+
 $result = mysqli_query($conn, $query);
-
 $data_keranjang = [];
+
 while ($row = mysqli_fetch_assoc($result)) {
-    $produk = strtolower($row['nama_produk']);
-    $gambar = "Default.jpg"; // Default kalau gak ketemu
-
-
-    if (strpos($produk, 'robux') !== false || strpos($produk, 'roblox') !== false) {
-        $gambar = "Roblox.jpg";
-    } else if (strpos($produk, 'mobile legends') !== false || strpos($produk, 'mlbb') !== false) {
-        $gambar = "MLBB.JPEG";
-    } else if (strpos($produk, 'free fire') !== false || strpos($produk, 'ff') !== false) {
-        $gambar = "FF.jpg";
-    } else if (strpos($produk, 'genshin') !== false) {
-        $gambar = "Genshin.jpg";
-    } else {
-        // Kalau nggak ada kata kunci di atas, coba cari berdasarkan harga yang mirip di tabel games
-        $harga = $row['harga'];
-        $cari = mysqli_query($conn, "SELECT gambar FROM games WHERE harga = '$harga' LIMIT 1");
-        $hasil = mysqli_fetch_assoc($cari);
-        if ($hasil) {
-            $gambar = $hasil['gambar'];
-        }
+    // Kalau di table games nggak ada (id gak cocok), kasih default
+    if (empty($row['gambar'])) {
+        $row['gambar'] = "Default.jpg";
     }
-
-    $row['gambar'] = $gambar;
     $data_keranjang[] = $row;
 }
 

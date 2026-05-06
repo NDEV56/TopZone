@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthetic Simple Sync - Final</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Quicksand:wght@600&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #ffafbd; 
+            font-family: 'Quicksand', sans-serif;
+            overflow: hidden;
+            color: white;
+        }
+
+        #wrapper {
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        #lyrics {
+            font-size: 2.5rem;
+            width: 80%;
+            color: white;
+            text-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            line-height: 1.4;
+            opacity: 0;
+            position: absolute;
+            pointer-events: none;
+            transform: scale(0.9);
+            transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
+        }
+
+        #lyrics.show {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        #playBtn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ff4d6d;
+            background: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            transition: 0.3s;
+        }
+
+        #playBtn:hover { transform: scale(1.05); }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1; 
+            animation: fall linear forwards;
+            opacity: 0.5;
+            white-space: nowrap;
+        }
+
+        @keyframes fall {
+            from { transform: translateY(-10vh) rotate(0deg); }
+            to { transform: translateY(110vh) rotate(360deg); }
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 20px;
+            font-size: 1.2rem;
+            font-family: 'Caveat', cursive;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+<audio id="song" src="ssstik.io_1777815012599.mp3"></audio>
+
+<div id="wrapper">
+    <button id="playBtn">Mulai 💕</button>
+    <div id="lyrics"></div>
+</div>
+
+<div class="watermark">p</div>
+
+<script>
+    const audio = document.getElementById("song");
+    const lyricsDiv = document.getElementById("lyrics");
+    const playBtn = document.getElementById("playBtn");
+
+    const lyricsData = [
+        { text: "TAKE ME HOME, I'M FALLIN'", time: 3.5 },
+        { text: "LOVE ME LONG, I'M ROLLIN'", time: 6.7 },
+        { text: "LOSING CONTROL, BODY AND SOUL", time: 10.0 },
+        { text: "MIND TOO, FOR SURE, I'M ALREADY YOURS", time: 13.8 },
+        { text: "WALK YOU DOWN, I'M ALL IN", time: 17.8 },
+        { text: "HOLD YOU TIGHT, YOU CALL AND'", time: 21.2 },
+        { text: "I'LL TAKE CONTROL YOUR BODY AND SOUL'", time: 24.5 },
+        { text: "MIND TOO FOR SURE I'M ALREADY YOURS...", time: 28.0 },
+    ];
+
+    audio.addEventListener("timeupdate", () => {
+        const currentTime = audio.currentTime;
+        let activeLyric = "";
+        
+        for (let i = 0; i < lyricsData.length; i++) {
+            if (currentTime >= lyricsData[i].time) {
+                activeLyric = lyricsData[i].text;
+            }
+        }
+
+        if (activeLyric !== "" && lyricsDiv.innerText !== activeLyric) {
+            lyricsDiv.classList.remove("show");
+            setTimeout(() => {
+                lyricsDiv.innerText = activeLyric;
+                lyricsDiv.classList.add("show");
+            }, 100); 
+        }
+    });
+
+    audio.addEventListener("ended", () => {
+        lyricsDiv.classList.remove("show");
+        setTimeout(() => {
+            lyricsDiv.innerText = "";
+            playBtn.style.display = "block";
+        }, 500);
+    });
+
+    function createParticle() {
+        const p = document.createElement("div");
+        p.className = "particle";
+        
+        const rand = Math.random();
+        if (rand < 0.33) {
+            p.innerHTML = "💕"; // Hati sudah diganti ke 💕
+        } else if (rand < 0.66) {
+            p.innerHTML = "p";
+        } else {
+            p.innerHTML = "ipyana";
+            p.style.fontFamily = "'Caveat', cursive";
+        }
+
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.top = "-5vh";
+        p.style.fontSize = Math.random() * 10 + 15 + "px";
+        p.style.animationDuration = (Math.random() * 3 + 4) + "s";
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 7000);
+    }
+
+    playBtn.onclick = () => {
+        playBtn.style.display = "none";
+        audio.play().catch(e => alert("Cek file lagu!"));
+        setInterval(createParticle, 300);
+    };
+</script>
+</body>
+</html>

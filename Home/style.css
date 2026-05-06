@@ -1230,3 +1230,16 @@ body.detail-page { background-color: #f4f6f9; font-family: 'Inter', system-ui, s
     cursor: pointer;
     font-size: 18px;
 }
+
+.promo-btn {
+    cursor: pointer; /* Ubah kursor jadi tangan */
+    font-weight: bold;
+    color: #9e9e9e; /* Kasih warna beda biar mencolok */
+    transition: 0.3s;
+}
+
+.promo-btn:hover {
+    text-shadow: 0 0 10px rgba(219, 219, 219, 0.8);
+    transform: scale(1.2);
+    display: inline-block;
+}

@@ -1,17 +1,24 @@
 <?php
-include 'koneksi.php';
 session_start();
+include 'koneksi.php';
 
-$nama_produk = $_POST['nama_produk'] ?? '';
-$harga = $_POST['harga'] ?? 0;
-$id_game = $_POST['id_game'] ?? '';
+$id_user = $_SESSION['id_user'] ?? 0;
 
-// Masukin ke tabel keranjang lo
-$query = "INSERT INTO keranjang (nama_produk, harga, id_game) VALUES ('$nama_produk', '$harga', '$id_game')";
+// Di file proses tambah keranjang lu:
+$id = $_POST['id']; // ID ini HARUS DIAMBIL dari halaman game
+$nama_produk = $_POST['nama_produk'];
+$harga = $_POST['harga'];
 
-if(mysqli_query($conn, $query)) {
-    echo json_encode(['status' => 'sukses']);
-} else {
-    echo json_encode(['status' => 'error', 'pesan' => mysqli_error($conn)]);
+// Query INSERT-nya harus nyimpen id_game
+$sql = "INSERT INTO keranjang (id_user, id, nama_produk, harga, qty) 
+        VALUES ('$id_user', '$id', '$nama_produk', '$harga', 1)";
+$result = mysqli_query($koneksi, $sql);
+$data = [];
+
+while ($row = mysqli_fetch_assoc($result)) {
+    $data[] = $row;
 }
+
+header('Content-Type: application/json');
+echo json_encode($data);
 ?>

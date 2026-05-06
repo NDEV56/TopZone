@@ -5,27 +5,68 @@ include 'koneksi.php';
 // 1. CEK STATUS USER
 $is_real_user = isset($_SESSION['id_user']); 
 $is_logged_in = isset($_SESSION['nama_user']); 
+$id_user_skrg = $_SESSION['id_user'] ?? 0;
 
-// 2. QUERY PRODUK
-$query = "SELECT * FROM games"; 
-$result = mysqli_query($conn, $query);
-if (!$result) {
-    die("Query Error: " . mysqli_error($conn));
+// 2. LOGIKA CALLBACK / UPDATE STATUS (Pending -> proses)
+if (isset($_GET['status']) && $_GET['status'] == 'success' && $is_real_user) {
+    $update_status = "UPDATE orders SET status = 'proses' 
+                      WHERE id_user = '$id_user_skrg' AND status = 'pending'";
+    mysqli_query($koneksi, $update_status);
+    header("Location: index.php");
+    exit();
 }
 
-// 3. HITUNG JUMLAH KERANJANG (REAL-TIME DARI DB)
+// 3. QUERY PRODUK UTAMA
+$query = "SELECT * FROM games"; 
+$result = mysqli_query($koneksi, $query);
+
+// 4. AMBIL DATA ORDER (DENGAN LOGIKA NAMA GAME ASLI)
 $jumlah_keranjang = 0;
+$count_pending = $count_proses = $count_dikirim = $count_selesai = 0;
+$q_pending = $q_proses = $q_dikirim = $q_selesai = null;
+
 if ($is_real_user) {
-    $id_user_skrg = $_SESSION['id_user'];
-    $sql_cek_keranjang = "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'";
-    $res_keranjang = mysqli_query($conn, $sql_cek_keranjang);
-    if ($res_keranjang) {
-        $data_keranjang = mysqli_fetch_assoc($res_keranjang);
-        $jumlah_keranjang = $data_keranjang['total'] ?? 0;
+    // Hitung Keranjang
+    $res_keranjang = mysqli_query($koneksi, "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'");
+    $data_keranjang = mysqli_fetch_assoc($res_keranjang);
+    $jumlah_keranjang = $data_keranjang['total'] ?? 0;
+
+    // Fungsi Sakti: Nyocokkin teks di orders dengan nama game di tabel games
+    function getOrders($koneksi, $id_user, $status) {
+        $sql = "SELECT o.*, 
+                COALESCE(
+                    -- Cara 1: Cek apakah nama game ada di dalam teks paket
+                    (SELECT g.nama_game FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                    -- Cara 2: Cek berdasarkan harga (SANGAT PENTING buat yang namanya 'Paket Utama')
+                    (SELECT g.nama_game FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                    -- Cara 3: Cadangan kalau tetep gak ketemu
+                    'TopZone Product'
+                ) as nama_game_asli,
+                COALESCE(
+                    (SELECT g.gambar FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                    (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                    'Default.jpg'
+                ) as gambar_game_asli
+                FROM orders o 
+                WHERE o.id_user = '$id_user' AND o.status = '$status' 
+                ORDER BY o.id_order DESC";
+        return mysqli_query($koneksi, $sql);
     }
+    
+    // Eksekusi Query per Status
+    $q_pending = getOrders($koneksi, $id_user_skrg, 'pending');
+    $count_pending = mysqli_num_rows($q_pending);
+
+    $q_proses = getOrders($koneksi, $id_user_skrg, 'proses');
+    $count_proses = mysqli_num_rows($q_proses);
+
+    $q_dikirim = getOrders($koneksi, $id_user_skrg, 'dikirim');
+    $count_dikirim = mysqli_num_rows($q_dikirim);
+
+    $q_selesai = getOrders($koneksi, $id_user_skrg, 'selesai');
+    $count_selesai = mysqli_num_rows($q_selesai);
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -35,6 +76,8 @@ if ($is_real_user) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
+    <!-- Taruh ini di paling atas file atau di dalam <head> -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         /* Sidebar & Overlay Logic */
         .profile-panel { position: fixed; top: 0; right: -400px; width: 350px; height: 100%; background: white; z-index: 10000; box-shadow: -5px 0 20px rgba(0,0,0,0.2); transition: 0.4s; padding: 25px; box-sizing: border-box; overflow-y: auto; }
@@ -42,6 +85,8 @@ if ($is_real_user) {
         .panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 9999; backdrop-filter: blur(2px); }
         .tp-user img { cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
         .tp-user img:hover { border-color: #007bff; }
+
+        
     </style>
 </head>
 <body>
@@ -161,64 +206,129 @@ if ($is_real_user) {
             <a href="../Login/tampilanlogin.php" style="background:#007bff; color:white; padding:10px 20px; border-radius:20px; text-decoration:none;">⚡ LOGIN SEKARANG</a>
         </div>
 
-    <?php else:?>
-            
-            <form action="update_profile.php" method="POST" enctype="multipart/form-data">
-                <div style="text-align:center; margin-bottom:20px;">
-                    <div style="position: relative; display: inline-block;">
-                        <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
-                            id="prev_foto" 
-                            style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid #007bff;">
-                        
-                        <label for="input_foto" class="edit-mode" style="display:none; position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; text-align:center; line-height:30px; z-index:10;">✎</label>
-                    </div>
-
-                    <div id="crop_wrapper" style="display:none; margin-top:15px;">
-                        <div id="crop_area"></div>
-                        <button type="button" id="btn_crop" style="background:#28a745; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; margin-top:10px; font-size:12px;">✅ PASIN FOTO</button>
-                    </div>
+    <?php else: ?>
+        <!-- FORM UPDATE PROFIL -->
+        <form action="update_profile.php" method="POST" enctype="multipart/form-data">
+            <div style="text-align:center; margin-bottom:20px;">
+                <div style="position: relative; display: inline-block;">
+                    <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
+                        id="prev_foto" 
+                        style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid #007bff;">
                     
-                    <input type="file" id="input_foto" style="display:none;" accept="image/*">
-                    <input type="hidden" name="foto_base64" id="foto_base64">
+                    <label for="input_foto" class="edit-mode" style="display:none; position: absolute; bottom: 5px; right: 5px; background: #333; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; text-align:center; line-height:30px; z-index:10;">✎</label>
                 </div>
 
-                <div class="view-mode" style="text-align:center; margin-bottom:25px;">
-                    <h2 style="margin:0; color:#333; font-size:22px;">@<?php echo $_SESSION['username']; ?></h2>
-                    <p style="margin:5px 0 0; color:#888; font-size:13px;">Member Loyal TopZone 🔥</p>
+                <div id="crop_wrapper" style="display:none; margin-top:15px;">
+                    <div id="crop_area"></div>
+                    <button type="button" id="btn_crop" style="background:#28a745; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; margin-top:10px; font-size:12px;">✅ PASIN FOTO</button>
                 </div>
+                
+                <input type="file" id="input_foto" style="display:none;" accept="image/*">
+                <input type="hidden" name="foto_base64" id="foto_base64">
+            </div>
 
-                <div class="edit-mode" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:15px; border-radius:15px; border:1px solid #eee;">
-                    <div style="margin-bottom:12px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666;">Nama Lengkap</label>
-                        <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
-                    </div>
-                    <div style="margin-bottom:12px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666;">Username</label>
-                        <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
-                    </div>
-                    <div style="margin-bottom:12px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666;">Email</label>
-                        <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
-                    </div>
-                    <div style="margin-bottom:5px;">
-                        <label style="font-size:11px; font-weight:bold; color:#666;">Sandi Baru</label>
-                        <input type="password" name="password" placeholder="Kosongkan jika tetap" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
-                    </div>
+            <div class="view-mode" style="text-align:center; margin-bottom:25px;">
+                <h2 style="margin:0; color:#333; font-size:22px;">@<?php echo $_SESSION['username']; ?></h2>
+                <p style="margin:5px 0 0; color:#888; font-size:13px;">Member Loyal TopZone 🔥</p>
+            </div>
+
+            <!-- INPUT EDIT PROFILE (HIDDEN BY DEFAULT) -->
+            <div class="edit-mode" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:15px; border-radius:15px; border:1px solid #eee;">
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px; font-weight:bold; color:#666;">Nama Lengkap</label>
+                    <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
                 </div>
-
-                <div style="padding:0 10px;">
-                    <button type="button" onclick="enableEditMode()" class="view-mode" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">⚙️ Atur Profil</button>
-                    <div class="edit-mode" style="display:none;">
-                        <button type="submit" name="btn_simpan" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;">💾 Simpan Perubahan</button>
-                        <button type="button" onclick="disableEditMode()" style="width:100%; padding:10px; background:none; color:#666; border:1px solid #ccc; border-radius:12px; cursor:pointer; font-size:13px;">⬅️ Kembali</button>
-                    </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px; font-weight:bold; color:#666;">Username</label>
+                    <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
                 </div>
-            </form>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px; font-weight:bold; color:#666;">Email</label>
+                    <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:5px;">
+                    <label style="font-size:11px; font-weight:bold; color:#666;">Sandi Baru</label>
+                    <input type="password" name="password" placeholder="Kosongkan jika tetap" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
+                </div>
+            </div>
 
-            <hr class="view-mode" style="margin:25px 0 15px; border:0; border-top:1px solid #eee;">
-            <a href="../Login/tampilanlogin.php" class="view-mode" style="color:#dc3545; text-decoration:none; font-weight:bold; display:block; text-align:center; font-size:14px;">🚪 Logout</a>
+            <!-- TOMBOL ATUR / SIMPAN -->
+            <div style="padding:0 10px;">
+                <button type="button" onclick="enableEditMode()" class="view-mode" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">⚙️ Atur Profil</button>
+                <div class="edit-mode" style="display:none;">
+                    <button type="submit" name="btn_simpan" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;">💾 Simpan Perubahan</button>
+                    <button type="button" onclick="disableEditMode()" style="width:100%; padding:10px; background:none; color:#666; border:1px solid #ccc; border-radius:12px; cursor:pointer; font-size:13px;">⬅️ Kembali</button>
+                </div>
+            </div>
+        </form>
 
-        <?php endif; ?>
+        <!-- SEKSI STATUS PESANAN (Tampil di View Mode) -->
+        <!-- SEKSI STATUS PESANAN -->
+        <!-- HTML BAGIAN SIDEBAR STATUS PESANAN -->
+        <!-- 2. BAGIAN TAMPILAN HTML -->
+        <div class="view-mode" style="margin-top: 30px; padding: 0 10px;">
+            <h4 style="margin: 0 0 15px 5px; font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: 1px;">Status Pesanan 🛒</h4>
+            
+            <div style="display: grid; gap: 10px;">
+                
+            <div class="status-container" style="font-family: sans-serif; max-width: 400px;">
+
+                <?php
+                // Array buat ngerender box status secara otomatis
+                $status_list = [
+                    ['id' => 'pending', 'label' => 'Belum Bayar', 'icon' => '⏳', 'bg' => '#fffde7', 'border' => '#fff9c4', 'color' => '#fbc02d', 'q' => $q_pending, 'count' => $count_pending],
+                    ['id' => 'proses', 'label' => 'Diproses', 'icon' => '📦', 'bg' => '#e3f2fd', 'border' => '#bbdefb', 'color' => '#1976d2', 'q' => $q_proses, 'count' => $count_proses],
+                    ['id' => 'dikirim', 'label' => 'Sudah Dikirim', 'icon' => '🚀', 'bg' => '#f3e5f5', 'border' => '#e1bee7', 'color' => '#4a148c', 'q' => $q_dikirim, 'count' => $count_dikirim],
+                    ['id' => 'selesai', 'label' => 'Selesai', 'icon' => '🏁', 'bg' => '#e8f5e9', 'border' => '#c8e6c9', 'color' => '#1b5e20', 'q' => $q_selesai, 'count' => $count_selesai]
+                ];
+
+                foreach ($status_list as $st): ?>
+                    <div onclick="toggleDetail('det_<?= $st['id'] ?>')" style="cursor:pointer; background: <?= $st['bg'] ?>; padding: 12px; border-radius: 12px; border: 1px solid <?= $st['border'] ?>; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 20px;"><?= $st['icon'] ?></span>
+                                <span style="font-size: 13px; font-weight: 600; color: <?= $st['color'] ?>;"><?= $st['label'] ?></span>
+                            </div>
+                            <span style="background: <?= $st['color'] ?>; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold;"><?= $st['count'] ?></span>
+                        </div>
+
+                        <!-- Detail List Order -->
+                        <div id="det_<?= $st['id'] ?>" style="display:none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed <?= $st['border'] ?>;">
+                            <?php if($st['count'] > 0): 
+                                mysqli_data_seek($st['q'], 0); 
+                                while($d = mysqli_fetch_assoc($st['q'])): ?>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                    <img src="<?= !empty($d['gambar_game_asli']) ? $d['gambar_game_asli'] : 'Default.jpg' ?>" onerror="this.src='./Default.jpg'" style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
+                                    <div style="flex: 1;">
+                                        <!-- BARIS ATAS: Nama Game (Roblox/ML/dll) -->
+                                    <div style="font-size: 11px; font-weight: bold; color: #333;">
+                                            <?= !empty($d['nama_game']) ? $d['nama_game'] : 'games' ?>
+                                        </div>
+        
+                                        <!-- BARIS BAWAH: Nama Paket (400 Robux/dll) -->
+                                        <div style="font-size: 9px; color: #777;"><?= $d['game_name'] ?></div>
+                                    </div>
+                                    <?php if($st['id'] == 'dikirim'): ?>
+                                        <button onclick="event.stopPropagation(); window.location.href='konfirmasi.php?id=<?= $d['id_order'] ?>'" style="background: #9c27b0; color: white; border: none; padding: 5px 8px; border-radius: 5px; font-size: 9px; cursor: pointer;">TERIMA</button>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endwhile; else: ?>
+                                <div style="font-size: 10px; color: #888; text-align: center;">Belum ada pesanan nih bre.</div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <hr class="view-mode" style="margin:25px 0 15px; border:0; border-top:1px solid #eee;">
+                <a href="../Login/tampilanlogin.php" class="view-mode" style="color:#dc3545; text-decoration:none; font-weight:bold; display:block; text-align:center; font-size:14px; margin-bottom: 20px;">🚪 Logout</a>
+            </div>
+        </div>
+        </div>
+    </div>
+
+        
+
+    <?php endif; ?>
+
 </div>
 
 <div id="cartSidebar" class="profile-panel">
@@ -239,7 +349,11 @@ if ($is_real_user) {
             </div>
             <div>
                 <h4>Menu</h4>
-                <ul><li>Home</li><li>Semua Game</li><li>Promo</li></ul>
+                <ul><li>Home</li><li>Semua Game</li>
+            <li class="promo-text">
+                <span id="btnPromo" class="promo-btn">P</span>romo
+            </li>
+            </ul>
             </div>
             <div>
                 <h4>Bantuan</h4>
@@ -256,7 +370,33 @@ if ($is_real_user) {
 </footer>
 <script>
 let croppie_instance;
-
+// Tambahkan ini di deretan fungsi JS lo
+function toggleDetail(id) {
+    var x = document.getElementById(id);
+    if (x.style.display === "none") {
+        x.style.display = "block";
+    } else {
+        x.style.display = "none";
+    }
+}
+function confirmSelesai(idOrder) {
+    if (confirm("Beneran pesanan ini udah masuk, bre?")) {
+        fetch('update_status.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id_order=' + idOrder
+        })
+        .then(response => response.text())
+        .then(data => {
+            if (data.trim() === "success") {
+                alert("Status Berhasil Diupdate 🔥");
+                location.reload(); // Ini kuncinya biar berubah otomatis di layar
+            } else {
+                alert("Gagal update: " + data);
+            }
+        });
+    }
+}
 function toggleProfileSidebar() {
     closeSidebar("cartSidebar");
     const sidebar = document.getElementById("profileSidebar");
@@ -333,6 +473,36 @@ document.getElementById('btn_crop')?.addEventListener('click', function() {
 });
 
 document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnP = document.getElementById('btnPromo');
+    
+    if (btnP) {
+        btnP.addEventListener('click', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '🔥 Promo Spesial mprruy! 🔥',
+                    // Path folder sesuai gambar yang lo kasih
+                    html: '<iframe src="../Home/806/index.html" style="width:100%; height:450px; border:none; border-radius:10px;"></iframe>',
+                    
+                    // BAGIAN TIMER DIHAPUS BIAR GAK NUTUP OTOMATIS
+                    showConfirmButton: false, 
+                    showCloseButton: true, // Tombol silang (X) tetep ada biar user bisa tutup manual
+                    
+                    width: '700px',
+                    background: '#ff748d',
+                    color: '#fff',
+                    
+                    // Biar user bisa tutup dengan klik di luar kotak (opsional)
+                    allowOutsideClick: true 
+                });
+            } else {
+                console.error("SweetAlert2 belum muat mprruy!");
+                alert("Sabar mprruy, lagi loading library-nya!");
+            }
+        });
+    }
+});
 </script>
 
 <script src="javascript.js"></script>
