@@ -75,8 +75,21 @@ if (isset($_POST['btn_simpan'])) {
     <link rel="stylesheet" href="tampilanlogin.css">
 </head>
 <body>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
+    <div id="stage">
+ 
+        <div class="orb-layer">
+            <div class="orb o1"></div>
+            <div class="orb o2"></div>
+            <div class="orb o3"></div>
+            <div class="orb o4"></div>
+            <div class="orb o5"></div>
+            <div class="orb o6"></div>
+        </div>
+ 
+        <div class="noise-overlay"></div>
+        <div class="vignette"></div>
+        <div class="top-fade"></div>
+        <div class="bottom-fade"></div>
 
     <div class="card">
         <div class="logo-wrap">
@@ -105,6 +118,20 @@ if (isset($_POST['btn_simpan'])) {
         <div class="footer-link">
             Belum punya akun? <a href="tampilandaftar.php">Daftar di sini</a>
         </div>
+
+         <script>
+            let cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.onmousemove = function(e) {
+                   let x = e.pageX - card.offsetLeft;
+                   let y = e.pageY - card.offsetTop;
+
+                   card.style.setProperty('--x', x + 'px');
+                   card.style.setProperty('--y', y + 'px');
+                };
+            })
+        </script>
+        
     </div> 
 </body>
 </html>
