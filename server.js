@@ -1,89 +1,79 @@
 /**
- * TopZone — Universal Ngrok Launcher v2.0
+ * TopZone — Universal Ngrok Launcher v3.0
  * ════════════════════════════════════════
- * Fitur:
- *  • Setup wizard otomatis (first-run)
- *  • Auto-detect server (XAMPP, Laragon, WAMP, MAMP, PHP built-in)
- *  • HTTP health check — verifikasi server benar-benar nyala
- *  • Port fallback otomatis (PHP mode)
- *  • Retry ngrok dengan exponential backoff
- *  • Live request logger dari ngrok API
- *  • Preflight checks (Node.js, PHP, port)
- *  • Error map — setiap error disertai solusi spesifik
- *  • Colored output (tanpa dependency tambahan)
- *  • Graceful shutdown
- *
- * MODE (SERVER_MODE di .env):
- *   auto | xampp | laragon | wamp | mamp | php | custom
+ * Full logging system:
+ *   • 5 level: COMMON | UNCOMMON | WARNING | CRITICAL | ERROR
+ *   • Live tail dari logs/topzone.log (JSON per baris)
+ *   • Tulis ke logs/ per level + master log
+ *   • Stats counter di terminal
+ *   • Preflight, wizard, retry ngrok, health check
  */
 
-// ─────────────────────────────────────────────────
-//  DEPENDENCIES
-// ─────────────────────────────────────────────────
-const path     = require("path");
-const fs       = require("fs");
+require("dotenv").config();
+const { spawn, execSync } = require("child_process");
 const net      = require("net");
 const http     = require("http");
-const https    = require("https");
-const { spawn, execSync } = require("child_process");
+const fs       = require("fs");
+const path     = require("path");
 const readline = require("readline");
 
-// Lazy-load agar error lebih jelas kalau belum npm install
-let ngrok, dotenv;
-try {
-  ngrok  = require("@ngrok/ngrok");
-  dotenv = require("dotenv");
-} catch {
-  console.error("\n❌  Dependencies belum diinstall!");
-  console.error("    Jalankan: npm install\n");
-  process.exit(1);
-}
+let ngrok;
+try   { ngrok = require("@ngrok/ngrok"); }
+catch { die("❌  npm install belum dijalankan!\n    Jalankan: npm install"); }
 
-// ─────────────────────────────────────────────────
-//  ANSI COLORS (tanpa chalk)
-// ─────────────────────────────────────────────────
-const c = {
-  reset  : "\x1b[0m",
-  bold   : "\x1b[1m",
-  dim    : "\x1b[2m",
-  red    : "\x1b[31m",
-  green  : "\x1b[32m",
-  yellow : "\x1b[33m",
-  blue   : "\x1b[34m",
+// ═══════════════════════════════════════════════
+//  ANSI COLORS
+// ═══════════════════════════════════════════════
+const C = {
+  reset  : "\x1b[0m",  bold : "\x1b[1m",  dim   : "\x1b[2m",
+  red    : "\x1b[31m", green: "\x1b[32m",  yellow: "\x1b[33m",
+  blue   : "\x1b[34m", cyan : "\x1b[36m",  white : "\x1b[37m",
   magenta: "\x1b[35m",
-  cyan   : "\x1b[36m",
-  white  : "\x1b[37m",
-  bgGreen: "\x1b[42m",
-  bgRed  : "\x1b[41m",
+  bgBlack: "\x1b[40m", bgRed: "\x1b[41m",  bgGreen : "\x1b[42m",
+  bgYellow:"\x1b[43m", bgBlue:"\x1b[44m",  bgMagenta:"\x1b[45m",
+  bgCyan : "\x1b[46m",
 };
 
-const ok    = (s) => `${c.green}✔${c.reset}  ${s}`;
-const fail  = (s) => `${c.red}✖${c.reset}  ${s}`;
-const warn  = (s) => `${c.yellow}⚠${c.reset}  ${s}`;
-const info  = (s) => `${c.cyan}ℹ${c.reset}  ${s}`;
-const step  = (s) => `${c.blue}→${c.reset}  ${s}`;
-const bold  = (s) => `${c.bold}${s}${c.reset}`;
-const dim   = (s) => `${c.dim}${s}${c.reset}`;
-const hi    = (s) => `${c.cyan}${c.bold}${s}${c.reset}`;
+function die(msg) { console.error(msg); process.exit(1); }
+const bold  = s => `${C.bold}${s}${C.reset}`;
+const dim   = s => `${C.dim}${s}${C.reset}`;
+const hi    = s => `${C.cyan}${C.bold}${s}${C.reset}`;
 
-// ─────────────────────────────────────────────────
-//  KONSTANTA
-// ─────────────────────────────────────────────────
-const ENV_FILE      = path.join(__dirname, ".env");
-const ENV_EXAMPLE   = path.join(__dirname, ".env.example");
-const AUTO_PORTS    = [80, 8080, 8888, 3000, 5000, 8000, 8008];
-const NGROK_API     = "http://127.0.0.1:4040/api/requests/http";
-const RETRY_MAX     = 3;
-const RETRY_DELAY   = 1500; // ms
+// ═══════════════════════════════════════════════
+//  LOG LEVEL CONFIG
+// ═══════════════════════════════════════════════
+const LEVELS = {
+  common  : { color: C.green,   bg: C.bgGreen,   icon: "●", label: "COMMON  " },
+  uncommon: { color: C.blue,    bg: C.bgBlue,     icon: "◆", label: "UNCOMMON" },
+  warning : { color: C.yellow,  bg: C.bgYellow,   icon: "▲", label: "WARNING " },
+  critical: { color: C.magenta, bg: C.bgMagenta,  icon: "★", label: "CRITICAL" },
+  error   : { color: C.red,     bg: C.bgRed,      icon: "✖", label: "ERROR   " },
+};
 
-const APP_PROFILES  = {
-  auto    : { name: "Auto-detect",   ports: AUTO_PORTS },
-  xampp   : { name: "XAMPP",         ports: [80, 8080], hint: "Pastikan Apache di XAMPP Control Panel sudah START" },
-  laragon : { name: "Laragon",       ports: [80, 8080], hint: "Pastikan Laragon sudah dibuka dan service ON" },
-  wamp    : { name: "WampServer",    ports: [80, 8080], hint: "Klik icon WampServer → Start All Services" },
-  mamp    : { name: "MAMP",          ports: [8888, 80], hint: "Buka MAMP lalu klik Start Servers" },
-  php     : { name: "PHP Built-in",  ports: [],         hint: "PHP harus terinstall (cek: php -v)" },
-  custom  : { name: "Custom Server", ports: [],         hint: "Pastikan server kamu sudah jalan di LOCAL_PORT" },
+// ═══════════════════════════════════════════════
+//  PATHS & CONFIG
+// ═══════════════════════════════════════════════
+const ROOT      = __dirname;
+const LOG_DIR   = path.join(ROOT, "logs");
+const LOG_MAIN  = path.join(LOG_DIR, "topzone.log");    // PHP menulis ke sini (JSON)
+const LOG_FILES = {
+  common  : path.join(LOG_DIR, "common.log"),
+  uncommon: path.join(LOG_DIR, "uncommon.log"),
+  warning : path.join(LOG_DIR, "warning.log"),
+  critical: path.join(LOG_DIR, "critical.log"),
+  error   : path.join(LOG_DIR, "error.log"),
+};
+const ENV_FILE  = path.join(ROOT, ".env");
+const AUTO_PORTS= [80, 8080, 8888, 3000, 5000, 8000];
+
+const APP_PROFILES = {
+  auto   : { name: "Auto-detect",  ports: AUTO_PORTS },
+  xampp  : { name: "XAMPP",        ports: [80, 8080], hint: "Pastikan Apache di XAMPP Control Panel sudah START" },
+  laragon: { name: "Laragon",      ports: [80, 8080], hint: "Pastikan Laragon sudah dibuka dan service ON" },
+  wamp   : { name: "WampServer",   ports: [80, 8080], hint: "Klik icon WampServer → Start All Services" },
+  mamp   : { name: "MAMP",         ports: [8888, 80], hint: "Buka MAMP lalu klik Start Servers" },
+  php    : { name: "PHP Built-in", ports: [],         hint: "PHP harus terinstall: php -v" },
+  custom : { name: "Custom",       ports: [],         hint: "Set LOCAL_PORT di .env" },
 };
 
 const FOLDER_HINTS = {
@@ -93,65 +83,163 @@ const FOLDER_HINTS = {
   mamp   : ["/Applications/MAMP/htdocs"],
 };
 
-// ─────────────────────────────────────────────────
-//  LOAD CONFIG
-// ─────────────────────────────────────────────────
-function loadConfig() {
-  if (fs.existsSync(ENV_FILE)) dotenv.config({ path: ENV_FILE });
-  return {
-    ngrokToken  : process.env.NGROK_AUTHTOKEN,
-    ngrokDomain : process.env.NGROK_DOMAIN   || null,
-    serverMode  : (process.env.SERVER_MODE   || "auto").toLowerCase(),
-    localPort   : parseInt(process.env.LOCAL_PORT || "0", 10) || 0,
-    phpPort     : parseInt(process.env.PHP_PORT   || "8080", 10),
-    phpRoot     : process.env.PHP_ROOT || path.join(__dirname, "Home"),
-    logRequests : (process.env.LOG_REQUESTS  || "true") === "true",
-  };
+// ═══════════════════════════════════════════════
+//  LOG STATS
+// ═══════════════════════════════════════════════
+const stats = { common:0, uncommon:0, warning:0, critical:0, error:0, total:0 };
+
+// ═══════════════════════════════════════════════
+//  SETUP LOG DIRECTORY & FILES
+// ═══════════════════════════════════════════════
+function setupLogDir() {
+  if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+  // Buat file log kosong kalau belum ada
+  for (const f of Object.values(LOG_FILES)) {
+    if (!fs.existsSync(f)) fs.writeFileSync(f, "");
+  }
+  if (!fs.existsSync(LOG_MAIN)) fs.writeFileSync(LOG_MAIN, "");
 }
 
-// ─────────────────────────────────────────────────
-//  SETUP WIZARD (first-run)
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+//  SERVER-SIDE LOGGER (log dari Node sendiri)
+// ═══════════════════════════════════════════════
+function serverLog(level, event, msg, data = {}) {
+  const entry = {
+    ts    : new Date().toISOString().replace("T", " ").slice(0, 23),
+    level,
+    event,
+    msg,
+    src   : "server",
+    data,
+  };
+
+  // Tulis ke file level
+  const line = JSON.stringify(entry) + "\n";
+  if (LOG_FILES[level]) fs.appendFileSync(LOG_FILES[level], line);
+
+  // Tampilkan di terminal
+  printLogEntry(entry);
+}
+
+// ═══════════════════════════════════════════════
+//  PRINT LOG ENTRY (terminal)
+// ═══════════════════════════════════════════════
+function printLogEntry(entry) {
+  const lvl = LEVELS[entry.level] || LEVELS.common;
+  const src  = entry.src === "server" ? dim("[SRV]") : dim("[PHP]");
+  const time = dim(entry.ts.slice(11, 23));   // HH:MM:SS.mmm
+  const badge= `${lvl.color}${C.bold}${lvl.icon} ${lvl.label}${C.reset}`;
+  const evt  = `${C.bold}${entry.event}${C.reset}`;
+
+  stats[entry.level] = (stats[entry.level] || 0) + 1;
+  stats.total++;
+
+  let line = `${time} ${badge} ${src} ${evt}`;
+
+  // Tampilkan msg kalau berbeda dari event
+  if (entry.msg && entry.msg !== entry.event) {
+    line += `  ${C.white}${entry.msg}${C.reset}`;
+  }
+
+  // Tampilkan data penting secara inline
+  const skipKeys = ["user_agent", "referer"];
+  const inlineData = Object.entries(entry.data || {})
+    .filter(([k]) => !skipKeys.includes(k))
+    .map(([k, v]) => `${dim(k + ":")}${v}`)
+    .join("  ");
+  if (inlineData) line += `\n          ${C.dim}└─${C.reset} ${inlineData}`;
+
+  console.log(line);
+}
+
+// ═══════════════════════════════════════════════
+//  PRINT STATS BAR
+// ═══════════════════════════════════════════════
+function printStatsBar() {
+  const bar = Object.entries(LEVELS)
+    .map(([k, v]) => `${v.color}${v.icon}${k.padEnd(8)}${C.reset}${C.bold}${stats[k]}${C.reset}`)
+    .join("  ");
+  process.stdout.write(`\r  ${bar}  ${dim("total:")}${C.bold}${stats.total}${C.reset}  `);
+}
+
+// ═══════════════════════════════════════════════
+//  TAIL LOG FILE (baca logs dari PHP)
+// ═══════════════════════════════════════════════
+let tailPos = 0;
+
+function startLogTail() {
+  // Set posisi awal ke akhir file (abaikan log lama)
+  try {
+    const st = fs.statSync(LOG_MAIN);
+    tailPos = st.size;
+  } catch { tailPos = 0; }
+
+  const interval = setInterval(() => {
+    try {
+      const st = fs.statSync(LOG_MAIN);
+      if (st.size <= tailPos) return;
+
+      const buf = Buffer.alloc(st.size - tailPos);
+      const fd  = fs.openSync(LOG_MAIN, "r");
+      fs.readSync(fd, buf, 0, buf.length, tailPos);
+      fs.closeSync(fd);
+      tailPos = st.size;
+
+      const lines = buf.toString("utf8").split("\n").filter(Boolean);
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          entry.src   = "php";
+
+          // Tulis ke file level yang sesuai
+          if (LOG_FILES[entry.level]) {
+            fs.appendFileSync(LOG_FILES[entry.level], line + "\n");
+          }
+
+          // Tampilkan di terminal
+          printLogEntry(entry);
+          printStatsBar();
+
+        } catch { /* baris bukan JSON, abaikan */ }
+      }
+    } catch { /* file belum ada */ }
+  }, 400);
+
+  return interval;
+}
+
+// ═══════════════════════════════════════════════
+//  SETUP WIZARD
+// ═══════════════════════════════════════════════
 async function runSetupWizard() {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const ask = (q) => new Promise((res) => rl.question(q, res));
+  const rl  = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ask = q => new Promise(res => rl.question(q, res));
 
-  console.log(`\n${c.cyan}${c.bold}╔══════════════════════════════════════════════╗`);
-  console.log(`║   🧙  Setup Wizard — Konfigurasi Pertama     ║`);
-  console.log(`╚══════════════════════════════════════════════╝${c.reset}\n`);
-  console.log(info("File .env belum ada. Mari kita buat sekarang!\n"));
+  console.log(`\n${C.cyan}${C.bold}╔══════════════════════════════════════════╗`);
+  console.log(`║   🧙  Setup Wizard — Konfigurasi Pertama  ║`);
+  console.log(`╚══════════════════════════════════════════╝${C.reset}\n`);
+  console.log(dim("  Daftar ngrok gratis: https://dashboard.ngrok.com\n"));
 
-  // 1. Ngrok token
-  console.log(dim("Daftar gratis di: https://dashboard.ngrok.com/get-started/your-authtoken"));
-  const token = (await ask(`${c.yellow}▸ NGROK_AUTHTOKEN${c.reset}: `)).trim();
-  if (!token) {
-    console.log(fail("Token tidak boleh kosong. Jalankan ulang dan isi token.\n"));
-    rl.close(); process.exit(1);
-  }
+  const token = (await ask(`${C.yellow}▸ NGROK_AUTHTOKEN${C.reset}: `)).trim();
+  if (!token) { rl.close(); die("\n❌  Token tidak boleh kosong. Jalankan ulang.\n"); }
 
-  // 2. Server mode
-  console.log(`\n${c.cyan}Server mode:${c.reset}`);
-  const modes = ["auto", "xampp", "laragon", "wamp", "mamp", "php", "custom"];
-  modes.forEach((m, i) => console.log(`  ${c.dim}${i + 1}.${c.reset} ${m.padEnd(8)} ${dim(APP_PROFILES[m]?.hint || "")}`));
-  const modeInput = (await ask(`\n${c.yellow}▸ Pilih mode (1-7) atau ketik nama${c.reset} [default: auto]: `)).trim();
-
+  console.log(`\n${C.cyan}Server mode:${C.reset}`);
+  const modes = Object.keys(APP_PROFILES);
+  modes.forEach((m, i) =>
+    console.log(`  ${C.dim}${i+1}.${C.reset} ${m.padEnd(10)} ${dim(APP_PROFILES[m].hint || "")}`)
+  );
+  const modeInput = (await ask(`\n${C.yellow}▸ Pilih mode (1-${modes.length}) atau nama${C.reset} [default: auto]: `)).trim();
+  const idx = parseInt(modeInput, 10);
   let serverMode = "auto";
-  if (modeInput) {
-    const idx = parseInt(modeInput, 10);
-    serverMode = (!isNaN(idx) && modes[idx - 1]) ? modes[idx - 1] : modeInput.toLowerCase();
-  }
+  if (modeInput) serverMode = (!isNaN(idx) && modes[idx-1]) ? modes[idx-1] : modeInput.toLowerCase();
 
-  // 3. Port (untuk custom)
   let localPort = "";
   if (serverMode === "custom") {
-    localPort = (await ask(`${c.yellow}▸ LOCAL_PORT${c.reset}: `)).trim();
+    localPort = (await ask(`${C.yellow}▸ LOCAL_PORT${C.reset}: `)).trim();
   }
 
-  // 4. Tulis .env
   const lines = [
-    `# TopZone .env — generated by setup wizard`,
-    `# Edit kapan saja, lalu restart server.js`,
-    ``,
+    `# TopZone .env — dibuat oleh setup wizard`,
     `NGROK_AUTHTOKEN=${token}`,
     `SERVER_MODE=${serverMode}`,
     localPort ? `LOCAL_PORT=${localPort}` : `# LOCAL_PORT=80`,
@@ -161,475 +249,356 @@ async function runSetupWizard() {
     `# LOG_REQUESTS=true`,
   ];
   fs.writeFileSync(ENV_FILE, lines.join("\n") + "\n");
-
   rl.close();
-  console.log(`\n${ok("File .env berhasil dibuat!")}`);
-  console.log(dim("  Edit .env kapan saja untuk mengubah konfigurasi.\n"));
 
-  // Reload config
-  dotenv.config({ path: ENV_FILE, override: true });
+  console.log(`\n${C.green}✔${C.reset}  File .env berhasil dibuat!\n`);
+  require("dotenv").config({ path: ENV_FILE, override: true });
 }
 
-// ─────────────────────────────────────────────────
-//  PREFLIGHT CHECKS
-// ─────────────────────────────────────────────────
-async function preflight(cfg) {
-  console.log(`\n${bold("[ Preflight Checks ]")}`);
+// ═══════════════════════════════════════════════
+//  LOAD CONFIG
+// ═══════════════════════════════════════════════
+function loadConfig() {
+  if (fs.existsSync(ENV_FILE)) require("dotenv").config({ path: ENV_FILE });
+  return {
+    ngrokToken : process.env.NGROK_AUTHTOKEN,
+    ngrokDomain: process.env.NGROK_DOMAIN  || null,
+    serverMode : (process.env.SERVER_MODE  || "auto").toLowerCase(),
+    localPort  : parseInt(process.env.LOCAL_PORT || "0", 10) || 0,
+    phpPort    : parseInt(process.env.PHP_PORT   || "8080", 10),
+    phpRoot    : process.env.PHP_ROOT || path.join(ROOT, "Home"),
+  };
+}
 
-  // Node.js version
-  const nodeVer = parseInt(process.versions.node.split(".")[0], 10);
-  if (nodeVer < 16) {
-    console.log(fail(`Node.js ${process.versions.node} terlalu lama. Butuh >= 16.`));
-    process.exit(1);
+// ═══════════════════════════════════════════════
+//  PORT UTILS
+// ═══════════════════════════════════════════════
+function isPortOpen(port, host = "127.0.0.1", ms = 900) {
+  return new Promise(res => {
+    const s = new net.Socket();
+    s.setTimeout(ms);
+    s.connect(port, host, () => { s.destroy(); res(true); });
+    s.on("error",   () => { s.destroy(); res(false); });
+    s.on("timeout", () => { s.destroy(); res(false); });
+  });
+}
+
+function httpHealthCheck(port, ms = 3000) {
+  return new Promise(res => {
+    const req = http.get(
+      { hostname:"127.0.0.1", port, path:"/", timeout: ms },
+      r => res({ ok: true, status: r.statusCode })
+    );
+    req.on("error",   () => res({ ok: false }));
+    req.on("timeout", () => { req.destroy(); res({ ok: false }); });
+  });
+}
+
+async function findFreePort(start) {
+  for (let p = start; p < start + 20; p++) {
+    if (!await isPortOpen(p)) return p;
   }
-  console.log(ok(`Node.js ${process.versions.node}`));
+  throw new Error("Tidak ada port kosong di range " + start + "-" + (start+20));
+}
 
-  // PHP check (hanya kalau mode php)
+// ═══════════════════════════════════════════════
+//  PREFLIGHT
+// ═══════════════════════════════════════════════
+async function preflight(cfg) {
+  console.log(`\n${bold("[ ⚙  Preflight Checks ]")}`);
+
+  const nodeVer = parseInt(process.versions.node.split(".")[0], 10);
+  if (nodeVer < 16) die(` ✖  Node.js ${process.versions.node} terlalu lama — butuh >= 16`);
+  console.log(` ${C.green}✔${C.reset}  Node.js ${process.versions.node}`);
+
   if (cfg.serverMode === "php") {
     try {
-      const ver = execSync("php -r \"echo PHP_VERSION;\"", { timeout: 3000 }).toString().trim();
-      console.log(ok(`PHP ${ver}`));
+      const ver = execSync("php -r \"echo PHP_VERSION;\"", { timeout:3000 }).toString().trim();
+      console.log(` ${C.green}✔${C.reset}  PHP ${ver}`);
     } catch {
-      console.log(fail("PHP tidak ditemukan di PATH!"));
-      console.log(info("  Install PHP: https://www.php.net/downloads"));
-      console.log(info("  Windows: install XAMPP → tambah C:\\xampp\\php ke PATH"));
+      console.log(` ${C.red}✖${C.reset}  PHP tidak ditemukan di PATH`);
+      console.log(`    ${dim("Windows: tambah C:\\xampp\\php ke PATH")}`);
+      console.log(`    ${dim("Linux  : sudo apt install php")}`);
+      console.log(`    ${dim("Mac    : brew install php")}`);
       process.exit(1);
+    }
+    if (!fs.existsSync(cfg.phpRoot)) {
+      die(` ✖  Folder PHP tidak ditemukan: ${cfg.phpRoot}\n    Set PHP_ROOT di .env`);
     }
   }
 
-  // PHP root folder (mode php)
-  if (cfg.serverMode === "php" && !fs.existsSync(cfg.phpRoot)) {
-    console.log(fail(`Folder PHP tidak ada: ${cfg.phpRoot}`));
-    console.log(info("  Set PHP_ROOT di .env ke path folder project kamu"));
-    process.exit(1);
-  }
-
-  // Token ngrok
   if (!cfg.ngrokToken || cfg.ngrokToken.includes("isi_token")) {
-    console.log(fail("NGROK_AUTHTOKEN belum diisi di .env !"));
-    console.log(info("  Daftar gratis: https://dashboard.ngrok.com/get-started/your-authtoken"));
-    process.exit(1);
+    die(` ✖  NGROK_AUTHTOKEN belum diisi di .env\n    https://dashboard.ngrok.com/get-started/your-authtoken`);
   }
-  console.log(ok("Ngrok auth token ditemukan"));
+  console.log(` ${C.green}✔${C.reset}  Ngrok token OK`);
 
-  // Custom port validation
-  if (cfg.serverMode === "custom" && !cfg.localPort) {
-    console.log(fail("Mode 'custom' butuh LOCAL_PORT di .env (contoh: LOCAL_PORT=3000)"));
-    process.exit(1);
-  }
+  if (cfg.serverMode === "custom" && !cfg.localPort)
+    die(` ✖  Mode custom butuh LOCAL_PORT di .env`);
 
+  // Pastikan log dir ada
+  setupLogDir();
+  console.log(` ${C.green}✔${C.reset}  Log directory: ${LOG_DIR}`);
   console.log();
 }
 
-// ─────────────────────────────────────────────────
-//  PORT UTILITIES
-// ─────────────────────────────────────────────────
-function isPortOpen(port, host = "127.0.0.1", timeoutMs = 900) {
-  return new Promise((resolve) => {
-    const s = new net.Socket();
-    s.setTimeout(timeoutMs);
-    s.connect(port, host, () => { s.destroy(); resolve(true); });
-    s.on("error",   () => { s.destroy(); resolve(false); });
-    s.on("timeout", () => { s.destroy(); resolve(false); });
-  });
-}
-
-// HTTP health check — pastikan server benar-benar merespons
-function httpHealthCheck(port, timeoutMs = 3000) {
-  return new Promise((resolve) => {
-    const req = http.get(
-      { hostname: "127.0.0.1", port, path: "/", timeout: timeoutMs },
-      (res) => { resolve({ ok: true, status: res.statusCode }); }
-    );
-    req.on("error",   () => resolve({ ok: false }));
-    req.on("timeout", () => { req.destroy(); resolve({ ok: false }); });
-  });
-}
-
-// Cari port kosong mulai dari startPort
-async function findFreePort(startPort) {
-  for (let p = startPort; p < startPort + 20; p++) {
-    const inUse = await isPortOpen(p);
-    if (!inUse) return p;
-  }
-  throw new Error("Tidak ada port kosong ditemukan (dicoba 20 port)");
-}
-
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 //  SERVER DETECTION
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 async function detectServer(mode, cfg) {
-  console.log(`${bold("[ Deteksi Server ]")}`);
+  console.log(`${bold("[ 🔍  Deteksi Server ]")}`);
 
   const profile  = APP_PROFILES[mode] || APP_PROFILES.auto;
-  const tryPorts = cfg.localPort
-    ? [cfg.localPort]
+  const tryPorts = cfg.localPort ? [cfg.localPort]
     : (mode === "auto" ? AUTO_PORTS : profile.ports);
 
   for (const port of tryPorts) {
-    process.stdout.write(step(`Cek port ${port}... `));
+    process.stdout.write(`    Cek port ${String(port).padEnd(5)} ... `);
     const tcpOpen = await isPortOpen(port);
+    if (!tcpOpen) { process.stdout.write(dim("tutup\n")); continue; }
 
-    if (!tcpOpen) {
-      process.stdout.write(dim("tutup\n"));
-      continue;
-    }
-
-    // TCP open → HTTP health check
     const health = await httpHealthCheck(port);
     if (health.ok) {
       const label =
-        port === 80   ? "XAMPP / Laragon / WAMP / Apache" :
-        port === 8080 ? "XAMPP Alt / PHP Built-in" :
-        port === 8888 ? "MAMP" :
-        profile.name;
-      console.log(`${c.green}HTTP ${health.status}${c.reset} → ${c.bold}${label}${c.reset} (port ${port})`);
-      console.log();
+        port===80   ? "XAMPP / Laragon / WAMP / Apache" :
+        port===8080 ? "XAMPP Alt / PHP Built-in" :
+        port===8888 ? "MAMP" : profile.name;
+      process.stdout.write(`${C.green}HTTP ${health.status}${C.reset} → ${C.bold}${label}${C.reset}\n\n`);
       return { port, label };
     } else {
-      // Port terbuka tapi gak merespons HTTP — mungkin bukan web server
-      process.stdout.write(warn(`port ${port} terbuka tapi tidak merespons HTTP, skip\n`));
+      process.stdout.write(`${C.yellow}port terbuka, bukan web server — skip${C.reset}\n`);
     }
   }
 
-  // Tidak ada yang cocok — tampilkan solusi
-  console.log(fail(`Tidak ada server yang aktif terdeteksi`));
-  if (mode !== "auto" && profile.hint) {
-    console.log(info(`  ${profile.hint}`));
-  } else {
-    console.log(info("  Jalankan XAMPP / Laragon / WAMP / MAMP terlebih dahulu"));
-    console.log(info("  Atau pakai SERVER_MODE=php di .env untuk PHP built-in\n"));
-  }
+  console.log(` ${C.red}✖${C.reset}  Tidak ada server yang terdeteksi`);
+  if (profile.hint) console.log(`    ${dim(profile.hint)}`);
+  console.log(`    ${dim("Atau pakai SERVER_MODE=php di .env")}\n`);
   process.exit(1);
 }
 
-// ─────────────────────────────────────────────────
-//  PHP BUILT-IN SERVER
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+//  PHP BUILT-IN
+// ═══════════════════════════════════════════════
 async function startPhpBuiltIn(cfg) {
-  console.log(`${bold("[ PHP Built-in Server ]")}`);
-
-  // Cari port kosong kalau PHP_PORT sudah dipakai
+  console.log(`${bold("[ 🐘  PHP Built-in Server ]")}`);
   let port = cfg.phpPort;
-  const inUse = await isPortOpen(port);
-  if (inUse) {
-    console.log(warn(`Port ${port} sudah dipakai, mencari port lain...`));
+  if (await isPortOpen(port)) {
+    console.log(`    ${C.yellow}Port ${port} sudah dipakai, mencari port lain...${C.reset}`);
     port = await findFreePort(port + 1);
-    console.log(ok(`Menggunakan port ${port}`));
   }
-
-  console.log(step(`Root  : ${cfg.phpRoot}`));
-  console.log(step(`Port  : ${port}\n`));
+  console.log(`    Root: ${cfg.phpRoot}`);
+  console.log(`    Port: ${port}\n`);
 
   return new Promise((resolve, reject) => {
     const php = spawn("php", ["-S", `127.0.0.1:${port}`, "-t", cfg.phpRoot], {
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["ignore","pipe","pipe"],
       shell: process.platform === "win32",
     });
 
-    let started = false;
-
-    php.stderr.on("data", (data) => {
+    php.stderr.on("data", data => {
       const msg = data.toString().trim();
-      if (/Development Server.*started/i.test(msg) && !started) {
-        started = true;
-        console.log(ok("PHP server jalan!"));
-      }
-      // Log PHP error/warning
-      if (/Fatal error|Parse error|Warning/i.test(msg)) {
-        console.log(`${c.yellow}[PHP]${c.reset} ${msg}`);
-      }
+      if (/started/i.test(msg)) console.log(` ${C.green}✔${C.reset}  PHP server jalan\n`);
+      if (/Fatal|Parse error/i.test(msg))
+        serverLog("error", "PHP_STDERR", msg);
     });
 
-    php.on("error", (err) => {
-      if (err.code === "ENOENT") {
-        console.log(fail("Perintah 'php' tidak ditemukan di PATH!"));
-        console.log(info("  Windows: Install XAMPP → tambah C:\\xampp\\php ke PATH"));
-        console.log(info("  Linux  : sudo apt install php"));
-        console.log(info("  Mac    : brew install php\n"));
-      }
+    php.on("error", err => {
+      if (err.code === "ENOENT") die(" ✖  Perintah 'php' tidak ditemukan di PATH");
       reject(err);
     });
 
-    php.on("exit", (code) => {
-      if (code && code !== 0) {
-        console.log(fail(`PHP process berhenti dengan kode ${code}`));
-      }
-    });
-
-    // Tunggu PHP ready dengan polling
-    const maxWait = 5000;
-    const interval = 200;
-    let waited = 0;
     const poll = setInterval(async () => {
-      waited += interval;
-      if (await isPortOpen(port)) {
-        clearInterval(poll);
-        resolve({ process: php, port });
-      } else if (waited >= maxWait) {
-        clearInterval(poll);
-        reject(new Error("PHP server tidak kunjung jalan (timeout 5 detik)"));
-      }
-    }, interval);
+      if (await isPortOpen(port)) { clearInterval(poll); resolve({ process: php, port }); }
+    }, 200);
+    setTimeout(() => { clearInterval(poll); reject(new Error("PHP timeout")); }, 6000);
   });
 }
 
-// ─────────────────────────────────────────────────
-//  NGROK TUNNEL (dengan retry)
-// ─────────────────────────────────────────────────
-async function startNgrokWithRetry(port, cfg) {
-  console.log(`${bold("[ Ngrok Tunnel ]")}`);
+// ═══════════════════════════════════════════════
+//  NGROK (dengan retry)
+// ═══════════════════════════════════════════════
+async function startNgrok(port, cfg) {
+  console.log(`${bold("[ 🚇  Ngrok Tunnel ]")}`);
+  const opts = { addr: port, authtoken: cfg.ngrokToken };
+  if (cfg.ngrokDomain) opts.domain = cfg.ngrokDomain;
 
-  const options = { addr: port, authtoken: cfg.ngrokToken };
-  if (cfg.ngrokDomain) options.domain = cfg.ngrokDomain;
-
-  for (let attempt = 1; attempt <= RETRY_MAX; attempt++) {
+  for (let i = 1; i <= 3; i++) {
     try {
-      process.stdout.write(step(`Koneksi ke ngrok (percobaan ${attempt}/${RETRY_MAX})... `));
-      const listener = await ngrok.forward(options);
+      process.stdout.write(`    Koneksi (percobaan ${i}/3) ... `);
+      const listener = await ngrok.forward(opts);
       const url = listener.url();
-      console.log(`${c.green}OK${c.reset}`);
-      console.log();
+      console.log(`${C.green}OK${C.reset}\n`);
       return url;
     } catch (err) {
-      console.log(`${c.red}Gagal${c.reset}`);
-      const errMsg = err.message || "";
-
-      // Error-specific hints
-      if (/authtoken|authentication/i.test(errMsg)) {
-        console.log(fail("Token ngrok tidak valid!"));
-        console.log(info("  Cek token di: https://dashboard.ngrok.com/get-started/your-authtoken"));
+      const msg = err.message || "";
+      console.log(`${C.red}Gagal${C.reset}`);
+      if (/authtoken|auth/i.test(msg)) {
+        serverLog("error","NGROK_AUTH_FAILED","Token ngrok tidak valid",{ hint:"https://dashboard.ngrok.com" });
         process.exit(1);
       }
-      if (/tunnel session.*limit|free.*plan/i.test(errMsg)) {
-        console.log(fail("Batas tunnel ngrok gratis tercapai!"));
-        console.log(info("  Tutup session ngrok lain di https://dashboard.ngrok.com/tunnels"));
+      if (/limit|session/i.test(msg)) {
+        serverLog("error","NGROK_SESSION_LIMIT","Batas session ngrok tercapai",{ hint:"Tutup session lain di dashboard" });
         process.exit(1);
       }
-      if (/ECONNREFUSED|network/i.test(errMsg)) {
-        console.log(warn("  Tidak bisa konek ke server ngrok. Cek koneksi internet."));
-      }
-
-      if (attempt < RETRY_MAX) {
-        const delay = RETRY_DELAY * attempt;
-        console.log(dim(`  Coba lagi dalam ${delay / 1000} detik...`));
-        await new Promise((r) => setTimeout(r, delay));
+      if (i < 3) {
+        const delay = 1500 * i;
+        serverLog("warning","NGROK_RETRY",`Retry dalam ${delay/1000}s`,{ attempt: i });
+        await new Promise(r => setTimeout(r, delay));
       } else {
-        console.log(fail("Ngrok gagal setelah " + RETRY_MAX + " percobaan"));
-        console.log(dim(`  Detail: ${errMsg}`));
+        serverLog("error","NGROK_FAILED","Ngrok gagal setelah 3 percobaan",{ detail: msg });
         process.exit(1);
       }
     }
   }
 }
 
-// ─────────────────────────────────────────────────
-//  LIVE REQUEST LOGGER
-// ─────────────────────────────────────────────────
-let lastReqId = null;
-let reqCount  = 0;
-
-function startRequestLogger() {
-  const METHOD_COLOR = {
-    GET   : c.green,
-    POST  : c.cyan,
-    PUT   : c.yellow,
-    DELETE: c.red,
-    PATCH : c.magenta,
-  };
-
-  const pollFn = () => {
-    http.get(NGROK_API, (res) => {
-      let raw = "";
-      res.on("data", (d) => (raw += d));
-      res.on("end", () => {
-        try {
-          const { requests } = JSON.parse(raw);
-          if (!requests || !requests.length) return;
-
-          const newest = requests[0];
-          if (newest.id === lastReqId) return;
-          lastReqId = newest.id;
-          reqCount++;
-
-          const method  = newest.request?.method || "GET";
-          const uri     = newest.request?.uri    || "/";
-          const status  = newest.response?.status || "...";
-          const ts      = new Date().toLocaleTimeString("id-ID");
-          const mColor  = METHOD_COLOR[method] || c.white;
-          const sColor  = status < 400 ? c.green : c.red;
-
-          console.log(
-            `${c.dim}[${ts}]${c.reset} ` +
-            `${mColor}${method.padEnd(6)}${c.reset} ` +
-            `${sColor}${status}${c.reset} ` +
-            `${uri}`
-          );
-        } catch (_) {}
-      });
-    }).on("error", () => {}); // Ngrok API belum siap, abaikan
-  };
-
-  return setInterval(pollFn, 1200);
-}
-
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 //  PRINT SUMMARY
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 function printSummary(publicUrl, localPort, serverLabel, cfg) {
-  const sep = "═".repeat(62);
+  const sep = "═".repeat(64);
 
-  // Deteksi folder htdocs berdasarkan mode
-  const mode        = cfg.serverMode;
-  const platform    = process.platform;
-  const hintPaths   = FOLDER_HINTS[mode] || [];
-  const existingDir = hintPaths.find((p) => fs.existsSync(p));
-  const htdocsHint  = existingDir
+  const hintPaths  = FOLDER_HINTS[cfg.serverMode] || [];
+  const existingDir= hintPaths.find(p => fs.existsSync(p));
+  const folderHint = existingDir
     ? `${existingDir}${path.sep}TopZone${path.sep}Home`
-    : mode === "php"
-    ? cfg.phpRoot
-    : `(sesuai folder www / htdocs aplikasi kamu)`;
+    : cfg.serverMode === "php" ? cfg.phpRoot : "(folder www/htdocs aplikasi kamu)";
 
-  console.log(`${c.cyan}${sep}${c.reset}`);
-  console.log(`  ${c.bgGreen}${c.bold}  ✅  TopZone ONLINE!  ${c.reset}\n`);
-  console.log(`  ${c.bold}Server${c.reset}         : ${serverLabel}`);
-  console.log(`  ${c.bold}Lokal${c.reset}          : ${hi(`http://localhost:${localPort}`)}`);
-  console.log(`  ${c.bold}Publik (ngrok)${c.reset} : ${hi(publicUrl)}`);
-  console.log(`  ${c.bold}Ngrok UI${c.reset}       : ${hi("http://localhost:4040")}\n`);
-  console.log(`  ${c.bold}📁 Folder project:${c.reset}`);
-  console.log(`     ${c.dim}${htdocsHint}${c.reset}\n`);
-  console.log(`  ${c.bold}📌 URL Webhook / Payment Gateway:${c.reset}`);
-  console.log(`     Callback    : ${c.cyan}${publicUrl}/callback.php${c.reset}`);
-  console.log(`     Ambil Token : ${c.cyan}${publicUrl}/Checkout/ambil_token.php${c.reset}`);
-  console.log(`${c.cyan}${sep}${c.reset}`);
-  console.log(dim("\n  📡 Live request log (Ctrl+C untuk berhenti):\n"));
+  console.log(`\n${C.cyan}${sep}${C.reset}`);
+  console.log(`  ${C.bgGreen}${C.bold}  ✅  TopZone ONLINE & LOGGING AKTIF!  ${C.reset}\n`);
+  console.log(`  ${bold("Server")}         : ${serverLabel}`);
+  console.log(`  ${bold("Lokal")}          : ${hi("http://localhost:" + localPort)}`);
+  console.log(`  ${bold("Publik")}         : ${hi(publicUrl)}`);
+  console.log(`  ${bold("Ngrok UI")}       : ${hi("http://localhost:4040")}\n`);
+  console.log(`  ${bold("📁 Folder project")} :`);
+  console.log(`     ${dim(folderHint)}\n`);
+  console.log(`  ${bold("📌 Webhook / Payment")} :`);
+  console.log(`     Callback    : ${C.cyan}${publicUrl}/callback.php${C.reset}`);
+  console.log(`     Ambil Token : ${C.cyan}${publicUrl}/Checkout/ambil_token.php${C.reset}\n`);
+  console.log(`  ${bold("📂 Log files")} (logs/) :`);
+  for (const [level, lv] of Object.entries(LEVELS)) {
+    const f = path.basename(LOG_FILES[level]);
+    console.log(`     ${lv.color}${lv.icon}${C.reset} ${f.padEnd(16)} ${dim("→ " + LOG_FILES[level])}`);
+  }
+  console.log(`${C.cyan}${sep}${C.reset}\n`);
+
+  // Header kolom log
+  console.log(
+    `${dim("  TIME        ")}` +
+    `${C.bold}LEVEL   ${C.reset}` +
+    `${dim("SRC  ")}` +
+    `${C.bold}EVENT${C.reset}`
+  );
+  console.log(dim("  " + "─".repeat(60)));
 }
 
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 //  GRACEFUL SHUTDOWN
-// ─────────────────────────────────────────────────
-function setupShutdown(phpProc, loggerInterval) {
-  let shutting = false;
-
+// ═══════════════════════════════════════════════
+function setupShutdown(phpProc, tailInterval) {
+  let stopping = false;
   async function shutdown(sig) {
-    if (shutting) return;
-    shutting = true;
+    if (stopping) return;
+    stopping = true;
+    clearInterval(tailInterval);
 
-    console.log(`\n\n${c.yellow}🛑  ${sig} — mematikan server...${c.reset}`);
-    clearInterval(loggerInterval);
+    console.log(`\n\n${C.yellow}🛑  ${sig} — mematikan server...${C.reset}`);
 
-    try {
-      await ngrok.disconnect();
-      console.log(ok("Ngrok tunnel ditutup"));
-    } catch (_) {}
+    // Final stats
+    console.log(`\n${bold("  [ Log Stats Sesi Ini ]")}`);
+    for (const [level, lv] of Object.entries(LEVELS)) {
+      const n = stats[level];
+      if (n > 0) console.log(`  ${lv.color}${lv.icon}${C.reset} ${level.padEnd(10)} : ${C.bold}${n}${C.reset}`);
+    }
+    console.log(`  ${"─".repeat(28)}`);
+    console.log(`  ${C.bold}Total events${C.reset}  : ${C.bold}${stats.total}${C.reset}`);
+
+    serverLog("common","SERVER_STOP","Server dimatikan",{ total_events: stats.total });
+
+    try   { await ngrok.disconnect(); console.log(`\n ${C.green}✔${C.reset}  Ngrok ditutup`); }
+    catch { }
 
     if (phpProc && !phpProc.killed) {
       phpProc.kill("SIGTERM");
-      console.log(ok("PHP server dihentikan"));
+      console.log(` ${C.green}✔${C.reset}  PHP server dihentikan`);
     }
-
-    console.log(`\n${c.dim}Total request diterima: ${reqCount}${c.reset}`);
-    console.log(`${c.green}👋  Sampai jumpa!${c.reset}\n`);
+    console.log(`\n${C.green}👋  Sampai jumpa!${C.reset}\n`);
     process.exit(0);
   }
 
   process.on("SIGINT",  () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-  // Tangkap uncaught errors supaya server tidak langsung crash diam-diam
-  process.on("uncaughtException", (err) => {
-    console.log(`\n${fail("Uncaught error:")} ${err.message}`);
-    console.log(dim(err.stack));
+  process.on("uncaughtException", err => {
+    serverLog("error","UNCAUGHT_EXCEPTION", err.message, { stack: err.stack?.slice(0,300) });
     shutdown("uncaughtException");
   });
-
-  process.on("unhandledRejection", (reason) => {
-    console.log(`\n${fail("Unhandled rejection:")} ${reason}`);
+  process.on("unhandledRejection", reason => {
+    serverLog("error","UNHANDLED_REJECTION", String(reason));
     shutdown("unhandledRejection");
   });
 }
 
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 //  MAIN
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
 (async () => {
-  // Banner
   console.clear();
-  console.log(`${c.cyan}${c.bold}`);
+
+  // ASCII Banner
+  console.log(`${C.cyan}${C.bold}`);
   console.log("  ████████╗ ██████╗ ██████╗ ███████╗ ██████╗ ███╗  ██╗███████╗");
   console.log("     ██╔══╝██╔═══██╗██╔══██╗╚════██║██╔═══██╗████╗ ██║██╔════╝");
   console.log("     ██║   ██║   ██║██████╔╝    ██╔╝██║   ██║██╔██╗██║█████╗  ");
   console.log("     ██║   ██║   ██║██╔═══╝    ██╔╝ ██║   ██║██║╚████║██╔══╝  ");
   console.log("     ██║   ╚██████╔╝██║        ██║  ╚██████╔╝██║ ╚███║███████╗");
   console.log("     ╚═╝    ╚═════╝ ╚═╝        ╚═╝   ╚═════╝ ╚═╝  ╚══╝╚══════╝");
-  console.log(`${c.reset}${c.dim}                    Universal Ngrok Launcher v2.0${c.reset}\n`);
+  console.log(`${C.reset}${C.dim}                   Universal Logger v3.0${C.reset}\n`);
 
-  // Setup wizard kalau .env belum ada / token belum diisi
-  const hasDotEnv  = fs.existsSync(ENV_FILE);
-  const envContent = hasDotEnv ? fs.readFileSync(ENV_FILE, "utf8") : "";
-  const tokenMissing = !hasDotEnv || envContent.includes("isi_token") ||
-                       !envContent.includes("NGROK_AUTHTOKEN=") ||
-                       envContent.match(/NGROK_AUTHTOKEN=\s*$/m);
-
-  if (tokenMissing) {
-    await runSetupWizard();
-  }
+  // Wizard jika .env belum ada / token kosong
+  const hasDotEnv = fs.existsSync(ENV_FILE);
+  const envRaw    = hasDotEnv ? fs.readFileSync(ENV_FILE, "utf8") : "";
+  const needWizard= !hasDotEnv || !envRaw.includes("NGROK_AUTHTOKEN=")
+                  || /NGROK_AUTHTOKEN=\s*$|NGROK_AUTHTOKEN=isi_/m.test(envRaw);
+  if (needWizard) await runSetupWizard();
 
   const cfg  = loadConfig();
   const mode = cfg.serverMode;
 
-  // Validasi mode
   if (!APP_PROFILES[mode]) {
-    console.log(fail(`SERVER_MODE tidak dikenal: "${mode}"`));
-    console.log(info(`  Pilihan: ${Object.keys(APP_PROFILES).join(" | ")}`));
-    process.exit(1);
+    die(`❌  SERVER_MODE tidak dikenal: "${mode}"\n    Pilihan: ${Object.keys(APP_PROFILES).join(" | ")}`);
   }
 
-  // Preflight
   await preflight(cfg);
 
-  // Resolve server & port
-  let localPort  = cfg.localPort;
-  let phpProcess = null;
+  let localPort = cfg.localPort;
+  let phpProcess= null;
   let serverLabel;
 
   if (mode === "php") {
-    const result = await startPhpBuiltIn(cfg);
-    localPort    = result.port;
-    phpProcess   = result.process;
-    serverLabel  = `PHP Built-in (port ${localPort})`;
-
+    const r  = await startPhpBuiltIn(cfg);
+    localPort= r.port; phpProcess = r.process;
+    serverLabel = `PHP Built-in (port ${localPort})`;
   } else if (mode === "custom") {
-    console.log(`${bold("[ Custom Server ]")}`);
-    const open = await isPortOpen(localPort);
-    if (!open) {
-      console.log(fail(`Tidak ada server di port ${localPort}`));
-      console.log(info(`  Jalankan servermu dulu, lalu coba lagi\n`));
-      process.exit(1);
-    }
-    const health = await httpHealthCheck(localPort);
-    if (!health.ok) {
-      console.log(warn(`Port ${localPort} terbuka tapi tidak merespons HTTP. Lanjut tetap...`));
-    } else {
-      console.log(ok(`Server aktif di port ${localPort} (HTTP ${health.status})`));
-    }
-    serverLabel = `Custom Server (port ${localPort})`;
-    console.log();
-
+    console.log(`${bold("[ 🔌  Custom Server ]")}`);
+    if (!await isPortOpen(localPort))
+      die(` ✖  Tidak ada server di port ${localPort}. Jalankan dulu.\n`);
+    serverLabel = `Custom (port ${localPort})`;
+    console.log(` ${C.green}✔${C.reset}  Server aktif di port ${localPort}\n`);
   } else {
     const detected = await detectServer(mode, cfg);
-    localPort   = detected.port;
-    serverLabel = detected.label;
+    localPort  = detected.port;
+    serverLabel= detected.label;
   }
 
-  // Ngrok
-  const publicUrl     = await startNgrokWithRetry(localPort, cfg);
-  const loggerInterval = cfg.logRequests ? startRequestLogger() : null;
+  const publicUrl  = await startNgrok(localPort, cfg);
+  const tailInterval = startLogTail();
 
-  // Shutdown handler
-  setupShutdown(phpProcess, loggerInterval);
-
-  // Summary
+  setupShutdown(phpProcess, tailInterval);
   printSummary(publicUrl, localPort, serverLabel, cfg);
 
+  // Log server start
+  serverLog("common", "SERVER_START", `Server online — ${serverLabel}`, {
+    local  : `http://localhost:${localPort}`,
+    public : publicUrl,
+    log_dir: LOG_DIR,
+  });
 })();
