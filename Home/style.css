@@ -1243,3 +1243,61 @@ body.detail-page { background-color: #f4f6f9; font-family: 'Inter', system-ui, s
     transform: scale(1.2);
     display: inline-block;
 }
+
+/*Chat*/
+/* Container Utama */
+.chat-wrapper {
+    position: fixed;
+    bottom: 30px; /* Jarak dari bawah */
+    right: 30px;  /* Jarak dari kanan */
+    z-index: 9999; /* Biar selalu di atas konten lain */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+}
+
+/* Tombol Bulet Melayang */
+.chat-btn {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #ff6a00, #ee0979);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(238, 9, 121, 0.4);
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.chat-btn:hover {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Box Chat Container */
+.chat-container {
+    width: 350px;
+    height: 500px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: none; /* Sembunyi dulu */
+    overflow: hidden;
+    border: 1px solid #eee;
+    animation: slideUp 0.4s ease;
+}
+
+/* Animasi Muncul */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* AGAR TIDAK TEMBUS FOOTER */
+/* Jika layar discroll sampai bawah, kita beri margin agar tidak menutupi teks footer */
+@media screen and (max-height: 700px) {
+    .chat-container { height: 400px; }
+}
