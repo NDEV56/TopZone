@@ -50,8 +50,8 @@
         <a href="admin_orders.php" class="nav-link">📦 Pesanan Masuk</a>
         <a href="admin_tambah_game.php" class="nav-link active">🎮 Kelola Game</a>
         <a href="admin_paket.php" class="nav-link">💎 Kelola Paket</a>
-        <hr style="border: 0.1px solid #222; margin: 20px 0;">
-        <a href="../index.php" class="nav-link">🏠 Lihat Website</a>
+        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
+        <a href="index.php" class="nav-link">🏠 Lihat Website</a>
     </div>
 
     <div class="content">

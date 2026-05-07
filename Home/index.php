@@ -511,8 +511,123 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function toggleChatMprruy() {
+    const chatBox = document.getElementById('chatContainer');
+    const chatIcon = document.getElementById('chatIcon');
+    
+    if (chatBox.style.display === 'none' || chatBox.style.display === '') {
+        chatBox.style.display = 'block';
+        chatIcon.innerText = '×'; // Ganti jadi silang kalau buka
+    } else {
+        chatBox.style.display = 'none';
+        chatIcon.innerText = '💬'; // Balik jadi icon chat
+    }
+}
+
+// Tambahan: Tutup chat kalau user klik di luar chat-wrapper
+document.addEventListener('click', function(event) {
+    const wrapper = document.getElementById('chatWrapper');
+    const chatBox = document.getElementById('chatContainer');
+    if (!wrapper.contains(event.target)) {
+        chatBox.style.display = 'none';
+        document.getElementById('chatIcon').innerText = '💬';
+    }
+});
+
+function bukaModalChat() {
+    document.getElementById("modalChatMprruy").style.display = "flex";
+    document.body.style.overflow = "hidden";
+    scrollKeBawah();
+}
+
+function tutupModalChat() {
+    document.getElementById("modalChatMprruy").style.display = "none";
+    document.body.style.overflow = "auto";
+}
+
+function scrollKeBawah() {
+    var chatBox = document.getElementById("chatBodyContainer");
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// FUNGSI LIVE: MUAT CHAT TIAP 1 DETIK
+function muatChatLive() {
+    $.ajax({
+        url: 'Chat/load_chat.php', // Buat file ini mprruy!
+        type: 'GET',
+        success: function(data) {
+            $('#chatBodyContainer').html(data);
+        }
+    });
+}
+
+// FUNGSI KIRIM: TANPA REFRESH
+function kirimChatLive() {
+    var pesan = $('#inputPesanAjax').val();
+    if(pesan.trim() == "") return;
+
+    $.ajax({
+        url: 'Chat/kirim_chat.php',
+        type: 'POST',
+        data: { pesan: pesan },
+        success: function() {
+            $('#inputPesanAjax').val(''); // Kosongin input
+            muatChatLive(); // Langsung update
+            scrollKeBawah();
+        }
+    });
+}
+
+// Jalankan auto-update tiap 1 detik
+setInterval(muatChatLive, 1000);
+
+// Support Enter key
+document.getElementById('inputPesanAjax').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') { kirimChatLive(); }
+});
 </script>
 
-<script src="javascript.js"></script>
+<?php if(isset($_SESSION['id_user'])): ?>
+<div id="btnChatFloating" style="position:fixed; bottom:20px; right:20px; z-index:9999;">
+    <button onclick="bukaModalChat()" style="width:60px; height:60px; background:#007bff; border-radius:50%; color:white; border:none; cursor:pointer; font-size:24px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; transition: 0.3s;">
+        💬
+    </button>
+</div>
+<?php endif; ?>
+
+<div id="modalChatMprruy" style="display:none; position:fixed; z-index:10000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+    <div style="background:white; width:95%; max-width:450px; border-radius:15px; overflow:hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); animation: zoomIn 0.2s ease-out;">
+        
+        <div style="padding:15px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:10px; background:#fff;">
+            <div style="position:relative;">
+                <img src="assets/img/logo.png" style="width:40px; border-radius:50%;" onerror="this.src='https://ui-avatars.com/api/?name=Top+Zone'">
+                <div id="onlineIndicator" style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#ccc; border:2px solid white; border-radius:50%;"></div>
+            </div>
+            <div style="flex:1;">
+                <div style="font-weight:bold; font-size:14px; color:#333;">TOPZONE OFFICIAL</div>
+                <div id="onlineText" style="font-size:11px; color:#888;">Memuat status...</div>
+            </div>
+            <button onclick="tutupModalChat()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button>
+        </div>
+
+        <div id="chatBodyContainer" style="height:400px; overflow-y:auto; padding:15px; background:#f9f9f9;">
+            </div>
+
+        <div style="padding:10px; background:#fff; border-top:1px solid #eee; display:flex; gap:8px;">
+            <input type="text" id="inputPesanAjax" placeholder="Tulis pesan..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #ddd; outline:none;">
+            <button type="button" onclick="kirimChatLive()" style="background:#007bff; color:white; border:none; padding:0 15px; border-radius:8px; cursor:pointer;">Kirim</button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+</script>
 </body>
 </html>

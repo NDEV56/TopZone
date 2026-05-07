@@ -147,11 +147,11 @@ body {
  
 .card {
   position: relative;
+  isolation: isolate;
   width: 360px;
   height: 650px;
   background: transparent;
   border-radius: 15px;
-  overflow: hidden;
   color: white;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -179,6 +179,7 @@ body {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0;
+  z-index: -1;
   transition: opacity 0.5s;
 }
 
@@ -504,4 +505,3 @@ input::placeholder {
      border-color: var(--gold); 
      box-shadow: 0 4px 20px rgba(201,162,39,.25); 
 }
-
