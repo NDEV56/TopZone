@@ -1,18 +1,19 @@
 <?php
 session_start();
-
-// 1. HAPUS SEMUA SESSION LAMA (Biar gak login otomatis)
 session_unset();
 session_destroy();
 
-// 2. MULAI SESSION BARU UNTUK GUEST
 session_start();
-$_SESSION['nama_user'] = "Guest_" . rand(100, 999);
+$guestName = "Guest_" . rand(100, 999);
+$_SESSION['nama_user'] = $guestName;
 $_SESSION['foto'] = "Default.jpeg";
-unset($_SESSION['user_id']); // WAJIB: Biar ID user sebelumnya kehapus total
-// 3. JANGAN SET $_SESSION['user_id'] 
-// Ini kuncinya! Tanpa user_id, fitur bakal terkunci.
+unset($_SESSION['user_id']);
 
-header("Location: ../Home/index.php"); // Sesuaikan folder lo
+// ── LOG: Guest login ──
+tz_log('common', 'GUEST_LOGIN', "Sesi guest dimulai sebagai '{$guestName}'", [
+    'guest_name' => $guestName,
+]);
+
+header("Location: ../Home/index.php");
 exit();
 ?>

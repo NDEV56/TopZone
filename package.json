@@ -1,17 +1,16 @@
 {
   "name": "topzone-server",
-  "version": "1.0.0",
-  "description": "TopZone local dev server with PHP + ngrok tunnel",
+  "version": "3.0.0",
+  "description": "TopZone Universal Ngrok Launcher + Full Logger",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev":   "node server.js",
+    "logs":  "tail -f logs/topzone.log | node -e \"const readline=require('readline');const rl=readline.createInterface({input:process.stdin});rl.on('line',l=>{try{const e=JSON.parse(l);const lv={common:'\\x1b[32m',uncommon:'\\x1b[34m',warning:'\\x1b[33m',critical:'\\x1b[35m',error:'\\x1b[31m'};console.log((lv[e.level]||'')+'['+e.level.toUpperCase()+'] '+e.event+' '+e.msg+'\\x1b[0m')}catch{}});\""
   },
   "dependencies": {
     "@ngrok/ngrok": "^1.4.0",
-    "dotenv": "^16.4.5"
+    "dotenv":       "^16.4.5"
   },
-  "engines": {
-    "node": ">=16"
-  }
+  "engines": { "node": ">=16" }
 }

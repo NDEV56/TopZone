@@ -98,8 +98,8 @@ if ($is_real_user) {
         <div class="tp-left">
             <table>
                 <tr>
-                    <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="60" style="padding-right:10px;" ></td>
-                    <td><h2 style="color:#0d2480; margin:0; font-size:25px;">TOPZONE</h2></td>
+                    <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="65"></td>
+                    <td><h2 style="color:#0d2480; font-size:28px;">TOPZONE</h2></td>
                  </tr>
             </table>
         </div>
@@ -298,18 +298,26 @@ if ($is_real_user) {
                                 mysqli_data_seek($st['q'], 0); 
                                 while($d = mysqli_fetch_assoc($st['q'])): ?>
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                    <img src="<?= !empty($d['gambar_game']) ? $d['gambar_game'] : 'Default.jpg' ?>" onerror="this.src='./Default.jpg'" style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
+                                    <!-- Gunakan 'gambar_game_asli' hasil JOIN dari Fungsi Sakti lo -->
+                                    <img src="<?= !empty($d['gambar_game_asli']) ? $d['gambar_game_asli'] : 'Default.jpg' ?>" 
+                                        onerror="this.src='./Default.jpg'" 
+                                        style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
+
                                     <div style="flex: 1;">
-                                        <!-- BARIS ATAS: Nama Game (Roblox/ML/dll) -->
-                                    <div style="font-size: 11px; font-weight: bold; color: #333;">
-                                            <?= !empty($d['nama_game_asli']) ? $d['nama_game_asli'] : 'Game' ?>
+                                        <!-- Pake nama_game_asli biar gak muncul 'TopZone Product' -->
+                                        <div style="font-size: 11px; font-weight: bold; color: #333;">
+                                            <?= $d['nama_game_asli'] ?>
                                         </div>
-        
-                                        <!-- BARIS BAWAH: Nama Paket (400 Robux/dll) -->
-                                        <div style="font-size: 9px; color: #777;"><?= $d['game_name'] ?></div>
+                                        
+                                        <div style="font-size: 9px; color: #777;">
+                                            Paket: <?= $d['paket'] ?>
+                                        </div>
                                     </div>
                                     <?php if($st['id'] == 'dikirim'): ?>
-                                        <button onclick="event.stopPropagation(); window.location.href='konfirmasi.php?id=<?= $d['id_order'] ?>'" style="background: #9c27b0; color: white; border: none; padding: 5px 8px; border-radius: 5px; font-size: 9px; cursor: pointer;">TERIMA</button>
+                                        <button onclick="event.stopPropagation(); window.location.href='konfirmasi.php?id=<?= $d['id_order'] ?>'" 
+                                                style="background: #9c27b0; color: white; border: none; padding: 5px 8px; border-radius: 5px; font-size: 9px; cursor: pointer;">
+                                            TERIMA
+                                        </button>
                                     <?php endif; ?>
                                 </div>
                             <?php endwhile; else: ?>
