@@ -1,16 +1,37 @@
 {
   "name": "topzone-server",
-  "version": "3.0.0",
-  "description": "TopZone Universal Ngrok Launcher + Full Logger",
+  "version": "2.0.0",
+  "description": "TopZone — gaming top-up platform with PHP backend, Xendit gateway, and ngrok tunnel for local webhook testing.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev":   "node server.js",
-    "logs":  "tail -f logs/topzone.log | node -e \"const readline=require('readline');const rl=readline.createInterface({input:process.stdin});rl.on('line',l=>{try{const e=JSON.parse(l);const lv={common:'\\x1b[32m',uncommon:'\\x1b[34m',warning:'\\x1b[33m',critical:'\\x1b[35m',error:'\\x1b[31m'};console.log((lv[e.level]||'')+'['+e.level.toUpperCase()+'] '+e.event+' '+e.msg+'\\x1b[0m')}catch{}});\""
+    "dev": "node server.js",
+    "setup": "node -e \"require('fs').existsSync('.env')||require('fs').copyFileSync('.env.example','.env');console.log('✔ .env ready — edit isi tokennya')\"",
+    "db:setup": "mysql -u root -p < database/schema.sql && mysql -u root -p topzone < database/seed.sql",
+    "db:schema": "mysql -u root -p < database/schema.sql",
+    "db:seed": "mysql -u root -p topzone < database/seed.sql",
+    "db:reset": "mysql -u root -p -e \"DROP DATABASE IF EXISTS topzone\" && npm run db:setup",
+    "lint:php": "find Home Login includes -name '*.php' -exec php -l {} \\;",
+    "clean:logs": "rm -f *.log Home/*.log",
+    "clean:uploads": "find Home/uploads -type f ! -name '.htaccess' ! -name '.gitkeep' -delete"
   },
+  "keywords": [
+    "topup",
+    "gaming",
+    "xendit",
+    "php",
+    "ngrok",
+    "mobile-legends",
+    "free-fire"
+  ],
+  "author": "TopZone Team",
+  "license": "GPL-2.0",
   "dependencies": {
     "@ngrok/ngrok": "^1.4.0",
-    "dotenv":       "^16.4.5"
+    "dotenv": "^16.4.5"
   },
-  "engines": { "node": ">=16" }
+  "engines": {
+    "node": ">=16",
+    "npm": ">=8"
+  }
 }

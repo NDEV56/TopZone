@@ -3,7 +3,7 @@
         'name' => 'topzone/topzone',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '55179341750bb2aae2308b0cee51ef6939758d2a',
+        'reference' => 'b82f026b4b60920d31167e81eeb2b6cbef1c2010',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'topzone/topzone' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '55179341750bb2aae2308b0cee51ef6939758d2a',
+            'reference' => 'b82f026b4b60920d31167e81eeb2b6cbef1c2010',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

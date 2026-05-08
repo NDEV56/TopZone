@@ -1,0 +1,29 @@
+{
+    "name": "topzone/topzone",
+    "description": "TopZone — gaming top-up platform with Xendit/Midtrans integration",
+    "type": "project",
+    "license": "GPL-2.0",
+    "require": {
+        "php": ">=7.4",
+        "ext-mysqli": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.10"
+    },
+    "autoload": {
+        "files": [
+            "includes/config.php",
+            "includes/db.php",
+            "includes/security.php"
+        ]
+    },
+    "scripts": {
+        "lint": "find Home Login includes -name '*.php' -print0 | xargs -0 -n1 php -l",
+        "analyze": "phpstan analyze Home Login includes --level=3"
+    }
+}

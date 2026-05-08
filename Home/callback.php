@@ -1,62 +1,45 @@
 <?php
-require_once __DIR__ . '/../koneksi.php';
+// Jalur ke koneksi.php
+require_once __DIR__ . '/../koneksi.php'; 
 
+// 1. Tangkap data JSON dari Xendit
 $rawRequest = file_get_contents("php://input");
 $data = json_decode($rawRequest, true);
 
 if (!$data) {
-    tz_log('warning', 'CALLBACK_INVALID_PAYLOAD', "Callback diterima tapi payload tidak valid atau kosong", [
-        'raw' => substr($rawRequest, 0, 200),
-    ]);
     http_response_code(400);
     die("Tidak ada data");
 }
 
-$external_id    = mysqli_real_escape_string($koneksi, $data['external_id']);
-$status         = $data['status'];
+// 2. Ambil info penting & Amankan data
+$external_id    = mysqli_real_escape_string($koneksi, $data['external_id']); 
+$status         = $data['status']; 
 $payment_method = mysqli_real_escape_string($koneksi, $data['payment_method'] ?? 'Xendit');
-$amount         = $data['amount'] ?? 0;
 
-// ── LOG: Callback masuk dari Xendit ──
-tz_log('critical', 'PAYMENT_CALLBACK', "Callback Xendit diterima — order '{$external_id}' status: {$status}", [
-    'external_id'    => $external_id,
-    'status'         => $status,
-    'payment_method' => $payment_method,
-    'amount'         => $amount,
-]);
-
+// 3. Logika Update Database
 if ($status === 'PAID' || $status === 'SETTLED') {
-    $sql = "UPDATE orders
-            JOIN games ON orders.game_name = CAST(games.id AS CHAR)
-            SET orders.status = 'proses',
+    
+    // QUERY SAKTI: Update status DAN benerin nama game berdasarkan relasi tabel
+    // Kita asumsikan kolom penghubung di tabel games adalah 'id_game'
+    $sql = "UPDATE orders 
+            JOIN games ON orders.game_name = CAST(games.id AS CHAR) 
+            SET orders.status = 'proses', 
                 orders.payment_method = '$payment_method',
                 orders.game_name = games.nama_game
             WHERE orders.external_id = '$external_id'";
+    
+    // CATATAN: Kalau kolom game_name lo isinya ID (angka), query di atas bakal 
+    // otomatis ganti angka "100" jadi "Roblox" (misalnya) pas pembayaran lunas.
 
     if (mysqli_query($koneksi, $sql)) {
-        // ── LOG: Pembayaran berhasil ──
-        tz_log('critical', 'PAYMENT_SUCCESS', "Pembayaran LUNAS — order '{$external_id}' diupdate ke 'proses'", [
-            'external_id'    => $external_id,
-            'payment_method' => $payment_method,
-            'amount'         => $amount,
-            'new_status'     => 'proses',
-        ]);
         http_response_code(200);
-        echo "Lunas mprruy!";
+        echo "Lunas mprruy! Nama game diperbarui & status jadi proses.";
     } else {
-        // ── LOG: DB error saat update order ──
-        tz_log('error', 'PAYMENT_UPDATE_DB_ERROR', "Gagal update status order setelah pembayaran sukses", [
-            'external_id' => $external_id,
-            'db_error'    => mysqli_error($koneksi),
-        ]);
+        file_put_contents('callback_error.log', "[" . date('Y-m-d H:i:s') . "] " . mysqli_error($koneksi) . "\n", FILE_APPEND);
         http_response_code(500);
     }
 } else {
-    // ── LOG: Callback status selain PAID ──
-    tz_log('uncommon', 'PAYMENT_NON_PAID', "Callback Xendit dengan status non-PAID diabaikan", [
-        'external_id' => $external_id,
-        'status'      => $status,
-    ]);
+    // Jika status EXPIRED atau lainnya, beri respon 200 tapi jangan update ke 'proses'
     http_response_code(200);
     echo "Status bukan PAID, abaikan.";
 }
