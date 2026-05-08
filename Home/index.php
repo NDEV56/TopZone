@@ -1,70 +1,88 @@
 <?php
-session_start();
-include 'koneksi.php'; 
+/**
+ * index.php — HARDENED v3.1
+ *   • Prepared SQL untuk semua query
+ *   • Backward compat: $koneksi (mysqli) + $result tetap tersedia untuk template lama
+ *   • Loop order tetap pakai mysqli_fetch_assoc supaya markup di bawah tidak berubah
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
 
 // 1. CEK STATUS USER
-$is_real_user = isset($_SESSION['id_user']); 
-$is_logged_in = isset($_SESSION['nama_user']); 
-$id_user_skrg = $_SESSION['id_user'] ?? 0;
+$is_real_user = isset($_SESSION['id_user']) && (int)$_SESSION['id_user'] > 0;
+$is_logged_in = isset($_SESSION['nama_user']);
+$id_user_skrg = (int)($_SESSION['id_user'] ?? 0);
 
-// 2. LOGIKA CALLBACK / UPDATE STATUS (Pending -> proses)
-if (isset($_GET['status']) && $_GET['status'] == 'success' && $is_real_user) {
-    $update_status = "UPDATE orders SET status = 'proses' 
-                      WHERE id_user = '$id_user_skrg' AND status = 'pending'";
-    mysqli_query($koneksi, $update_status);
-    header("Location: index.php");
-    exit();
+// 2. CALLBACK SUKSES: pending -> proses (PREPARED, anti SQLi)
+if (isset($_GET['status']) && $_GET['status'] === 'success' && $is_real_user) {
+    try {
+        tz_db()->exec(
+            "UPDATE orders SET status = 'proses'
+             WHERE id_user = ? AND status = 'pending'",
+            [$id_user_skrg]
+        );
+    } catch (\Throwable $e) {
+        error_log('[topzone-index] ' . $e->getMessage());
+    }
+    tz_safe_redirect('/Home/index.php');
 }
 
-// 3. QUERY PRODUK UTAMA
-$query = "SELECT * FROM games"; 
-$result = mysqli_query($koneksi, $query);
+// 3. QUERY PRODUK UTAMA — sediakan $koneksi & $result untuk template
+$koneksi = tz_legacy_mysqli();
+$result  = mysqli_query($koneksi, 'SELECT * FROM games ORDER BY id DESC');
 
-// 4. AMBIL DATA ORDER (DENGAN LOGIKA NAMA GAME ASLI)
+// 4. AMBIL DATA ORDER
 $jumlah_keranjang = 0;
 $count_pending = $count_proses = $count_dikirim = $count_selesai = 0;
 $q_pending = $q_proses = $q_dikirim = $q_selesai = null;
 
 if ($is_real_user) {
-    // Hitung Keranjang
-    $res_keranjang = mysqli_query($koneksi, "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'");
-    $data_keranjang = mysqli_fetch_assoc($res_keranjang);
-    $jumlah_keranjang = $data_keranjang['total'] ?? 0;
+    // Hitung keranjang (prepared)
+    try {
+        $jumlah_keranjang = (int)tz_db()->fetchColumn(
+            'SELECT COALESCE(SUM(qty),0) FROM keranjang WHERE id_user = ?',
+            [$id_user_skrg]
+        );
+    } catch (\Throwable $e) { $jumlah_keranjang = 0; }
 
-    // Fungsi Sakti: Nyocokkin teks di orders dengan nama game di tabel games
-    function getOrders($koneksi, $id_user, $status) {
-        $sql = "SELECT o.*, 
-                COALESCE(
-                    -- Cara 1: Cek apakah nama game ada di dalam teks paket
-                    (SELECT g.nama_game FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
-                    -- Cara 2: Cek berdasarkan harga (SANGAT PENTING buat yang namanya 'Paket Utama')
-                    (SELECT g.nama_game FROM games g WHERE g.harga = o.total_price LIMIT 1),
-                    -- Cara 3: Cadangan kalau tetep gak ketemu
-                    'TopZone Product'
-                ) as nama_game_asli,
-                COALESCE(
-                    (SELECT g.gambar FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
-                    (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
-                    'Default.jpg'
-                ) as gambar_game_asli
-                FROM orders o 
-                WHERE o.id_user = '$id_user' AND o.status = '$status' 
-                ORDER BY o.id_order DESC";
-        return mysqli_query($koneksi, $sql);
+    // Helper: prepared via mysqli supaya hasilnya kompatibel dengan
+    // mysqli_fetch_assoc-loop yang ada di template di bawah.
+    if (!function_exists('tz_get_orders_mysqli')) {
+        function tz_get_orders_mysqli(\mysqli $kon, int $id_user, string $status) {
+            $stmt = $kon->prepare(
+                "SELECT o.*,
+                    COALESCE(
+                        (SELECT g.nama_game FROM games g WHERE INSTR(o.game_name, g.nama_game) > 0 LIMIT 1),
+                        (SELECT g.nama_game FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                        'TopZone Product'
+                    ) AS nama_game_asli,
+                    COALESCE(
+                        (SELECT g.gambar FROM games g WHERE INSTR(o.game_name, g.nama_game) > 0 LIMIT 1),
+                        (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                        'Default.jpg'
+                    ) AS gambar_game_asli
+                FROM orders o
+                WHERE o.id_user = ? AND o.status = ?
+                ORDER BY o.id_order DESC"
+            );
+            if (!$stmt) return null;
+            $stmt->bind_param('is', $id_user, $status);
+            $stmt->execute();
+            return $stmt->get_result();
+        }
     }
-    
-    // Eksekusi Query per Status
-    $q_pending = getOrders($koneksi, $id_user_skrg, 'pending');
-    $count_pending = mysqli_num_rows($q_pending);
 
-    $q_proses = getOrders($koneksi, $id_user_skrg, 'proses');
-    $count_proses = mysqli_num_rows($q_proses);
+    $q_pending     = tz_get_orders_mysqli($koneksi, $id_user_skrg, 'pending');
+    $count_pending = $q_pending ? mysqli_num_rows($q_pending) : 0;
 
-    $q_dikirim = getOrders($koneksi, $id_user_skrg, 'dikirim');
-    $count_dikirim = mysqli_num_rows($q_dikirim);
+    $q_proses      = tz_get_orders_mysqli($koneksi, $id_user_skrg, 'proses');
+    $count_proses  = $q_proses ? mysqli_num_rows($q_proses) : 0;
 
-    $q_selesai = getOrders($koneksi, $id_user_skrg, 'selesai');
-    $count_selesai = mysqli_num_rows($q_selesai);
+    $q_dikirim     = tz_get_orders_mysqli($koneksi, $id_user_skrg, 'dikirim');
+    $count_dikirim = $q_dikirim ? mysqli_num_rows($q_dikirim) : 0;
+
+    $q_selesai     = tz_get_orders_mysqli($koneksi, $id_user_skrg, 'selesai');
+    $count_selesai = $q_selesai ? mysqli_num_rows($q_selesai) : 0;
 }
 ?>
 <!DOCTYPE html>

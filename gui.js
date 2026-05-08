@@ -1,20 +1,16 @@
 #!/usr/bin/env node
 /**
- * gui.js — TopZone Web Control Panel
- * ══════════════════════════════════
- * GUI berbasis browser yang sangat ramah pemula:
- *   • Wizard step-by-step kalau belum dikonfigurasi
- *   • Tombol besar Start/Stop server
- *   • Live log streaming (SSE) dengan filter kategori
- *   • Halaman update GitHub satu tombol
- *   • Halaman diagnostik "System Check"
- *   • Halaman pengaturan dengan validasi input
+ * gui.js — TopZone Web Control Panel (HARDENED v3.1)
+ * ══════════════════════════════════════════════════
+ * Versi ini di-harden dengan:
+ *   • lib/firewall.js   — unified WAF + DDoS + lockdown
+ *   • lib/antiDdos.js   — multi-layer rate limiting & connection cap
+ *   • lib/lockdown.js   — emergency lockdown (auto + manual)
+ *   • lib/security.js   — CSRF, session, scrypt password, WAF patterns
  *
- * Default bind: 127.0.0.1:4747 (tidak diakses dari luar kecuali user
- * mengubah GUI_BIND di .env). Tetap dibungkus security manager.
- *
- *   node gui.js
- *   node server.js --gui
+ * Default bind 127.0.0.1 + lockdown otomatis bila threshold serangan
+ * tertembus + body-size cap 96 KB + SSE max-clients-per-IP + JSON-bomb-safe
+ * + path-traversal-proof static + security headers default-deny.
  */
 
 "use strict";
@@ -24,14 +20,14 @@ const fs       = require("fs");
 const path     = require("path");
 const url      = require("url");
 const crypto   = require("crypto");
-const { spawn, exec } = require("child_process");
+const { exec } = require("child_process");
 
 const config         = require("./lib/config");
 const { Controller } = require("./lib/controller");
 const detector       = require("./lib/detector");
 const { c, badge }   = require("./lib/colors");
 const {
-  parseCookies, buildCookie, getIp, SecurityManager,
+  parseCookies, buildCookie, buildSecurityHeaders, getIp, SecurityManager,
 } = require("./lib/security");
 const {
   parseArgs, isValidPort, looksLikeNgrokToken, formatDuration,
@@ -41,22 +37,28 @@ const {
 const { flags } = parseArgs();
 
 // ─────────────────────────────────────────────────
-//  Setup controller
+//  Setup controller + security stack
 // ─────────────────────────────────────────────────
 const controller = new Controller({ echoConsole: false }).bootstrap();
 const cfg        = controller.cfg;
 const logger     = controller.logger;
 const security   = controller.security;
 const updater    = controller.updater;
+const antiDdos   = controller.antiDdos;
+const lockdown   = controller.lockdown;
+const firewall   = controller.firewall;
+
+// SSE: cap berapa client per IP (anti DoS via SSE)
+const SSE_MAX_CLIENTS_TOTAL  = 50;
+const SSE_MAX_CLIENTS_PER_IP = 3;
 
 // ─────────────────────────────────────────────────
-//  MIME map
+//  MIME map (whitelist ketat)
 // ─────────────────────────────────────────────────
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css" : "text/css; charset=utf-8",
   ".js"  : "application/javascript; charset=utf-8",
-  ".mjs" : "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".svg" : "image/svg+xml",
   ".png" : "image/png",
@@ -67,75 +69,81 @@ const MIME = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
   ".txt" : "text/plain; charset=utf-8",
-  ".map" : "application/json",
 };
 
 // ─────────────────────────────────────────────────
 //  Helpers HTTP
 // ─────────────────────────────────────────────────
 function sendJson(res, status, data, extraHeaders = {}) {
-  res.writeHead(status, {
+  if (res.headersSent) return;
+  // Always re-apply security headers
+  const headers = {
+    ...buildSecurityHeaders(),
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store",
+    "Cache-Control": "no-store, no-cache, must-revalidate, private",
+    "Pragma": "no-cache",
     "X-Content-Type-Options": "nosniff",
     ...extraHeaders,
-  });
-  res.end(JSON.stringify(data));
+  };
+  res.writeHead(status, headers);
+  let body;
+  try { body = JSON.stringify(data); }
+  catch (_) { body = '{"error":"serialize"}'; }
+  res.end(body);
 }
 
 function sendText(res, status, text, contentType = "text/plain; charset=utf-8") {
-  res.writeHead(status, { "Content-Type": contentType, "Cache-Control": "no-store",
-                          "X-Content-Type-Options": "nosniff" });
+  if (res.headersSent) return;
+  res.writeHead(status, {
+    ...buildSecurityHeaders(),
+    "Content-Type": contentType,
+    "Cache-Control": "no-store",
+  });
   res.end(text);
 }
 
 function sendFile(res, file, status = 200) {
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return sendText(res, 404, "Not found");
+    if (st.size > 8 * 1024 * 1024) return sendText(res, 413, "File too large");
     const ext = path.extname(file).toLowerCase();
-    const ct  = MIME[ext] || "application/octet-stream";
+    const ct  = MIME[ext];
+    if (!ct) return sendText(res, 415, "Unsupported");
     res.writeHead(status, {
-      "Content-Type": ct,
-      "Cache-Control": "no-cache",
-      "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'",
+      ...buildSecurityHeaders({
+        // CSP: izinkan inline style untuk halaman index.html (kita butuh)
+        csp: "default-src 'self'; style-src 'self' 'unsafe-inline'; " +
+             "script-src 'self'; img-src 'self' data:; " +
+             "connect-src 'self'; font-src 'self' data:; " +
+             "object-src 'none'; base-uri 'self'; " +
+             "frame-ancestors 'none'; form-action 'self'",
+      }),
+      "Content-Type" : ct,
+      "Cache-Control": "no-cache, must-revalidate",
       "Content-Length": st.size,
     });
     fs.createReadStream(file).pipe(res);
   });
 }
 
-function readBody(req, maxBytes = 256 * 1024) {
-  return new Promise((resolve, reject) => {
-    let total = 0;
-    const chunks = [];
-    req.on("data", (chunk) => {
-      total += chunk.length;
-      if (total > maxBytes) { req.destroy(); reject(new Error("Body terlalu besar")); return; }
-      chunks.push(chunk);
-    });
-    req.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8");
-      try { resolve(raw ? JSON.parse(raw) : {}); }
-      catch (_) { resolve({}); }
-    });
-    req.on("error", reject);
-  });
-}
-
 // ─────────────────────────────────────────────────
-//  Static dir
+//  Static dir — path traversal proof
 // ─────────────────────────────────────────────────
-const PUBLIC_DIR = path.join(__dirname, "public");
+const PUBLIC_DIR = path.resolve(path.join(__dirname, "public"));
 
 function serveStatic(req, res, p) {
-  // Security: cegah path traversal
-  const safe = path.normalize(p).replace(/^([\\/]+)/, "");
-  if (safe.includes("..")) return sendText(res, 400, "Bad path");
-  const file = path.join(PUBLIC_DIR, safe);
-  if (!file.startsWith(PUBLIC_DIR)) return sendText(res, 400, "Bad path");
-  if (!fs.existsSync(file)) return sendText(res, 404, "Not found");
-  return sendFile(res, file);
+  // Reject suspect early
+  if (typeof p !== "string" || p.length > 256) return sendText(res, 400, "Bad path");
+  if (p.includes("\0")) return sendText(res, 400, "Bad path");
+  // Strip leading slash (jangan biarkan absolute path masuk)
+  const safe = p.replace(/^[\\/]+/, "");
+  // Kompak: gabung lalu resolve, lalu cek prefix
+  const candidate = path.resolve(path.join(PUBLIC_DIR, safe));
+  if (!candidate.startsWith(PUBLIC_DIR + path.sep) && candidate !== PUBLIC_DIR) {
+    logger.security(`Path traversal attempt: ${p}`, { ip: getIp(req) });
+    return sendText(res, 400, "Bad path");
+  }
+  return sendFile(res, candidate);
 }
 
 // ─────────────────────────────────────────────────
@@ -144,13 +152,16 @@ function serveStatic(req, res, p) {
 function getSession(req) {
   const cookies = parseCookies(req.headers.cookie || "");
   if (!cookies.tz_sid) return null;
-  return security.validateSession(cookies.tz_sid, getIp(req));
+  return security.validateSession(cookies.tz_sid, getIp(req), req.headers["user-agent"] || "");
+}
+
+function isLocalOnly() {
+  return cfg.GUI_BIND === "127.0.0.1" || cfg.GUI_BIND === "localhost" || cfg.GUI_BIND === "::1";
 }
 
 function requireAuth(req, res) {
-  // Kalau GUI_PASSWORD kosong dan bind hanya 127.0.0.1, auth opsional
-  const localOnly = cfg.GUI_BIND === "127.0.0.1" || cfg.GUI_BIND === "localhost";
-  if (!cfg.GUI_PASSWORD && localOnly) return { ok: true, anon: true };
+  // Kalau GUI_PASSWORD kosong dan bind hanya ke loopback → boleh anonim
+  if (!cfg.GUI_PASSWORD && isLocalOnly()) return { ok: true, anon: true };
 
   const session = getSession(req);
   if (!session) {
@@ -164,74 +175,108 @@ function requireAuth(req, res) {
 //  SSE clients
 // ─────────────────────────────────────────────────
 const sseClients = new Set();
+const sseByIp    = new Map(); // ip -> count
 
 function broadcastSse(eventName, payload) {
-  const data = `event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`;
+  let data;
+  try {
+    data = `event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`;
+  } catch (_) { return; }
   for (const client of sseClients) {
     try { client.write(data); } catch (_) {}
   }
 }
 
-logger.on("entry", (e) => broadcastSse("log", e));
-controller.on("phase", (phase, state) => broadcastSse("phase", { phase, state }));
+logger.on("entry",        (e) => broadcastSse("log",      e));
+controller.on("phase",    (phase, state) => broadcastSse("phase",  { phase, state }));
+controller.on("lockdown", (entry) => broadcastSse("lockdown", entry));
+controller.on("ddos",     (info)  => broadcastSse("ddos",     info));
 
-// Heartbeat tiap 25s biar koneksi gak ditutup proxy
-setInterval(() => broadcastSse("ping", { t: Date.now() }), 25000);
+// Heartbeat
+const heartbeat = setInterval(() => broadcastSse("ping", { t: Date.now() }), 25000);
+if (heartbeat.unref) heartbeat.unref();
 
 // ─────────────────────────────────────────────────
 //  ROUTES
 // ─────────────────────────────────────────────────
-const routes = {};
+const routes = Object.create(null);
 
 function route(method, p, handler) {
   routes[`${method} ${p}`] = handler;
 }
 
-// --- Static & root ---
+// ─── Static & root ──────────────────────────────
 route("GET", "/", (req, res) => sendFile(res, path.join(PUBLIC_DIR, "index.html")));
 route("GET", "/login", (req, res) => sendFile(res, path.join(PUBLIC_DIR, "login.html")));
 route("GET", "/favicon.ico", (req, res) => {
-  // Tampilkan logo TopZone kalau ada
   const ico = path.join(PUBLIC_DIR, "favicon.ico");
-  const png = path.join(__dirname, "Login", "logotopzone.png");
   if (fs.existsSync(ico)) return sendFile(res, ico);
-  if (fs.existsSync(png)) return sendFile(res, png);
   return sendText(res, 204, "");
 });
 
-// --- Health (no auth) ---
+// ─── Health (always-on) ─────────────────────────
 route("GET", "/api/health", (req, res) => sendJson(res, 200, {
-  ok: true, version: "3.0.0", t: Date.now(),
+  ok: true, version: "3.1.0", t: Date.now(),
+  lockdownLevel: lockdown.level,
 }));
 
-// --- Login ---
+// ─── Whoami ─────────────────────────────────────
+route("GET", "/api/whoami", (req, res) => {
+  const session = getSession(req);
+  return sendJson(res, 200, {
+    authenticated: !!session || (!cfg.GUI_PASSWORD && isLocalOnly()),
+    needPassword : !!cfg.GUI_PASSWORD,
+    csrf         : session ? session.csrf : null,
+    bind         : cfg.GUI_BIND,
+    isConfigured : config.isConfigured(),
+    lockdownLevel: lockdown.level,
+    // Sembunyikan host info kalau panel terbuka ke jaringan tanpa auth
+    host         : (!session && !isLocalOnly()) ? null : getHostInfo(),
+  });
+});
+
+// ─── Login (no CSRF — login itu sendiri yang membuat sesi) ─
 route("POST", "/api/login", async (req, res) => {
   const ip = getIp(req);
   if (security.isBlocked(ip)) {
     return sendJson(res, 429, {
-      error: "IP kamu diblokir sementara karena terlalu banyak login gagal. Tunggu beberapa menit.",
+      error: "IP kamu diblokir sementara karena terlalu banyak login gagal.",
     });
   }
-  const body = await readBody(req);
+  let body;
+  try { body = await firewall.readJsonBody(req, { maxBytes: 8 * 1024 }); }
+  catch (e) { return sendJson(res, 413, { error: "Body invalid: " + e.message }); }
+
   const password = String(body.password || "");
-  // Cek OTP token (CLI auto-login)
+  // OTP token (auto-login dari CLI)
   if (body.otp && security.consumeOtp(body.otp)) {
-    const { sid, csrf } = security.createSession(ip);
-    res.setHeader("Set-Cookie", buildCookie("tz_sid", sid, { maxAge: 12 * 3600 }));
+    const ua = req.headers["user-agent"] || "";
+    const { sid, csrf } = security.createSession(ip, ua);
+    res.setHeader("Set-Cookie", buildCookie("tz_sid", sid, {
+      maxAge: 12 * 3600, sameSite: "Strict",
+    }));
     return sendJson(res, 200, { ok: true, csrf });
   }
   if (!cfg.GUI_PASSWORD) {
     return sendJson(res, 400, { error: "GUI_PASSWORD belum diset, tapi auth diminta. Edit .env." });
   }
-  const ok = SecurityManager.verifyPassword(password, cfg.GUI_PASSWORD)
-          || password === cfg.GUI_PASSWORD; // backward-compat plain
+  // Constant-time delay (anti timing attack & throttle login)
+  const delayMs = 250 + Math.floor(Math.random() * 250);
+  await new Promise((r) => setTimeout(r, delayMs));
+
+  const ok = SecurityManager.verifyPassword(password, cfg.GUI_PASSWORD);
   if (!ok) {
     security.recordFailedLogin(ip);
+    controller.lockdown.reportIncident({ ip, weight: 2, reason: "login-fail" });
+    // Generic error — jangan beda antara user-not-found & wrong-password
     return sendJson(res, 401, { error: "Password salah." });
   }
   security.recordSuccessLogin(ip);
-  const { sid, csrf } = security.createSession(ip);
-  res.setHeader("Set-Cookie", buildCookie("tz_sid", sid, { maxAge: 12 * 3600 }));
+  const ua = req.headers["user-agent"] || "";
+  const { sid, csrf } = security.createSession(ip, ua);
+  res.setHeader("Set-Cookie", buildCookie("tz_sid", sid, {
+    maxAge: 12 * 3600, sameSite: "Strict",
+  }));
   logger.security(`Login GUI sukses dari ${ip}`, { ip });
   return sendJson(res, 200, { ok: true, csrf });
 });
@@ -243,31 +288,17 @@ route("POST", "/api/logout", async (req, res) => {
   return sendJson(res, 200, { ok: true });
 });
 
-// --- Whoami ---
-route("GET", "/api/whoami", (req, res) => {
-  const session = getSession(req);
-  const localOnly = cfg.GUI_BIND === "127.0.0.1" || cfg.GUI_BIND === "localhost";
-  return sendJson(res, 200, {
-    authenticated: !!session || (!cfg.GUI_PASSWORD && localOnly),
-    needPassword : !!cfg.GUI_PASSWORD,
-    csrf         : session ? session.csrf : null,
-    bind         : cfg.GUI_BIND,
-    isConfigured : config.isConfigured(),
-    host         : getHostInfo(),
-  });
-});
-
-// --- Status snapshot ---
+// ─── Status snapshot ────────────────────────────
 route("GET", "/api/status", (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   return sendJson(res, 200, controller.snapshot());
 });
 
-// --- Logs ---
+// ─── Logs ───────────────────────────────────────
 route("GET", "/api/logs", (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   const u = url.parse(req.url, true);
-  const level = u.query.level || "all";
+  const level = String(u.query.level || "all");
   const count = Math.min(parseInt(u.query.count, 10) || 200, 1000);
   return sendJson(res, 200, {
     entries: logger.recent(count, level === "all" ? null : level),
@@ -279,9 +310,9 @@ route("GET", "/api/logs", (req, res) => {
 route("GET", "/api/logs/archive", (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   const u = url.parse(req.url, true);
-  const level = u.query.level || "common";
-  const date  = u.query.date  || undefined;
-  return sendJson(res, 200, { entries: logger.readArchive(level, date, 1000) });
+  const level = String(u.query.level || "common").replace(/[^a-z]/g, "").slice(0, 20);
+  const date  = String(u.query.date || "").match(/^\d{4}-\d{2}-\d{2}$/)?.[0];
+  return sendJson(res, 200, { entries: logger.readArchive(level || "common", date, 1000) });
 });
 
 route("POST", "/api/logs/clear", async (req, res) => {
@@ -293,45 +324,61 @@ route("POST", "/api/logs/clear", async (req, res) => {
 
 route("POST", "/api/logs/prune", async (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
-  const body = await readBody(req);
-  const days = Math.max(1, parseInt(body.days, 10) || cfg.LOG_RETENTION_DAYS);
+  let body;
+  try { body = await firewall.readJsonBody(req, { maxBytes: 1024 }); }
+  catch (e) { return sendJson(res, 413, { error: e.message }); }
+  const days = Math.max(1, Math.min(365, parseInt(body.days, 10) || cfg.LOG_RETENTION_DAYS));
   const removed = logger.prune(days);
   logger.uncommon(`Pruning log ${days} hari: ${removed} file dihapus.`);
   return sendJson(res, 200, { ok: true, removed });
 });
 
-// --- SSE log stream ---
+// ─── SSE log stream ─────────────────────────────
 route("GET", "/api/stream", (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
+
+  const ip = getIp(req);
+  if (sseClients.size >= SSE_MAX_CLIENTS_TOTAL) {
+    return sendJson(res, 503, { error: "Terlalu banyak SSE client global." });
+  }
+  const ipCount = sseByIp.get(ip) || 0;
+  if (ipCount >= SSE_MAX_CLIENTS_PER_IP) {
+    return sendJson(res, 429, { error: "Terlalu banyak SSE client dari IP ini." });
+  }
+
   res.writeHead(200, {
     "Content-Type"     : "text/event-stream",
     "Cache-Control"    : "no-cache, no-transform",
     "Connection"       : "keep-alive",
     "X-Accel-Buffering": "no",
+    "X-Content-Type-Options": "nosniff",
   });
   res.write("retry: 5000\n\n");
   res.write(`event: hello\ndata: ${JSON.stringify({ t: Date.now() })}\n\n`);
   sseClients.add(res);
-  req.on("close", () => sseClients.delete(res));
+  sseByIp.set(ip, ipCount + 1);
+  req.on("close", () => {
+    sseClients.delete(res);
+    const cur = (sseByIp.get(ip) || 1) - 1;
+    if (cur <= 0) sseByIp.delete(ip);
+    else sseByIp.set(ip, cur);
+  });
 });
 
-// --- Diagnose ---
+// ─── Diagnose ───────────────────────────────────
 route("GET", "/api/diagnose", async (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   const d = await detector.diagnose();
   return sendJson(res, 200, d);
 });
 
-// --- Server lifecycle ---
+// ─── Server lifecycle ───────────────────────────
 route("POST", "/api/server/start", async (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   if (controller.state.phase === "online") {
     return sendJson(res, 409, { error: "Server sudah online." });
   }
-  // Jangan blok HTTP — jalankan async, klien dapat update via SSE
-  controller.startAll().catch((e) => {
-    logger.error("startAll gagal: " + e.message);
-  });
+  controller.startAll().catch((e) => logger.error("startAll gagal: " + e.message));
   return sendJson(res, 202, { ok: true, phase: controller.state.phase });
 });
 
@@ -350,19 +397,25 @@ route("POST", "/api/server/restart", async (req, res) => {
   return sendJson(res, 202, { ok: true });
 });
 
-// --- Setup wizard ---
+// ─── Setup wizard ───────────────────────────────
 route("POST", "/api/setup/save", async (req, res) => {
-  // Ini boleh dipanggil sebelum auth karena belum dikonfigurasi
+  // Boleh dipanggil sebelum auth karena belum dikonfigurasi
   const ip = getIp(req);
-  const body = await readBody(req);
+  // Reject kalau sudah configured + tidak ada session — anti hijack
+  if (config.isConfigured()) {
+    const auth = requireAuth(req, res); if (!auth.ok) return;
+  }
 
-  // Validasi
+  let body;
+  try { body = await firewall.readJsonBody(req, { maxBytes: 16 * 1024 }); }
+  catch (e) { return sendJson(res, 413, { error: e.message }); }
+
   const errs = [];
   const provider = String(body.provider || "ngrok").toLowerCase();
   if (!["ngrok","cloudflared","localtunnel","serveo","pinggy","none"].includes(provider))
     errs.push("Provider tidak dikenal.");
   if (provider === "ngrok" && !looksLikeNgrokToken(body.ngrokToken || "")) {
-    errs.push("Token ngrok tidak valid (panjang >= 30, hanya huruf/angka/underscore).");
+    errs.push("Token ngrok tidak valid.");
   }
   const mode = String(body.mode || "auto").toLowerCase();
   if (!["auto","xampp","laragon","wamp","mamp","ampps","openserver","usbwebserver","easyphp","php","custom"].includes(mode))
@@ -371,23 +424,25 @@ route("POST", "/api/setup/save", async (req, res) => {
 
   if (errs.length) return sendJson(res, 400, { error: errs.join(" ") });
 
-  // Hash password kalau diisi
   let pwd = body.guiPassword ? String(body.guiPassword) : "";
-  if (pwd && pwd.length < 6) return sendJson(res, 400, { error: "Password minimal 6 karakter." });
+  if (pwd && pwd.length < 8) return sendJson(res, 400, { error: "Password minimal 8 karakter." });
   if (pwd) pwd = SecurityManager.hashPassword(pwd);
 
-  // Tulis .env
+  // Sanitasi PHP_ROOT — harus folder relatif/absolut, bukan URL
+  let phpRoot = body.phpRoot ? String(body.phpRoot).trim() : path.join(__dirname, "Home");
+  if (/^https?:\/\//i.test(phpRoot)) phpRoot = path.join(__dirname, "Home");
+
   const updates = {
-    NGROK_AUTHTOKEN : body.ngrokToken || "",
-    NGROK_DOMAIN    : body.ngrokDomain || "",
+    NGROK_AUTHTOKEN : String(body.ngrokToken || "").slice(0, 200),
+    NGROK_DOMAIN    : String(body.ngrokDomain || "").slice(0, 200),
     SERVER_MODE     : mode,
-    LOCAL_PORT      : mode === "custom" ? String(body.localPort) : "0",
-    PHP_PORT        : body.phpPort || "8080",
-    PHP_ROOT        : body.phpRoot || path.join(__dirname, "Home"),
+    LOCAL_PORT      : mode === "custom" ? String(parseInt(body.localPort, 10) || 0) : "0",
+    PHP_PORT        : String(parseInt(body.phpPort, 10) || 8080),
+    PHP_ROOT        : phpRoot,
     TUNNEL_PROVIDER : provider,
     TUNNEL_FALLBACK : body.tunnelFallback ? "true" : "false",
     GUI_PASSWORD    : pwd,
-    GUI_PORT        : isValidPort(body.guiPort) ? String(body.guiPort) : String(cfg.GUI_PORT),
+    GUI_PORT        : isValidPort(body.guiPort) ? String(parseInt(body.guiPort, 10)) : String(cfg.GUI_PORT),
     AUTO_UPDATE     : ["ask","true","false"].includes(body.autoUpdate) ? body.autoUpdate : "ask",
     LOG_REQUESTS    : body.logRequests === false ? "false" : "true",
   };
@@ -398,7 +453,7 @@ route("POST", "/api/setup/save", async (req, res) => {
   return sendJson(res, 200, { ok: true, restart: true });
 });
 
-// --- Settings ---
+// ─── Settings ───────────────────────────────────
 route("GET", "/api/settings", (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   return sendJson(res, 200, controller._publicConfig());
@@ -406,19 +461,24 @@ route("GET", "/api/settings", (req, res) => {
 
 route("POST", "/api/settings", async (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
-  const body = await readBody(req);
+  let body;
+  try { body = await firewall.readJsonBody(req, { maxBytes: 16 * 1024 }); }
+  catch (e) { return sendJson(res, 413, { error: e.message }); }
 
-  // Hanya keys yang di-whitelist boleh diubah dari GUI
-  const allowed = ["NGROK_AUTHTOKEN","NGROK_DOMAIN","SERVER_MODE","LOCAL_PORT",
+  const allowed = new Set(["NGROK_AUTHTOKEN","NGROK_DOMAIN","SERVER_MODE","LOCAL_PORT",
                    "PHP_PORT","PHP_ROOT","TUNNEL_PROVIDER","TUNNEL_FALLBACK",
                    "AUTO_UPDATE","LOG_REQUESTS","LOG_MIN_LEVEL","LOG_RETENTION_DAYS",
-                   "GUI_AUTO_OPEN","SEC_RATE_LIMIT","SEC_BLOCK_ON_FAIL","SEC_BLOCK_DURATION"];
-  const patch = {};
-  for (const k of allowed) if (body[k] !== undefined) patch[k] = String(body[k]);
-
-  // Token sensitif
-  if (body.ngrokToken && looksLikeNgrokToken(body.ngrokToken)) patch.NGROK_AUTHTOKEN = body.ngrokToken;
-  if (body.guiPassword && String(body.guiPassword).length >= 6) {
+                   "GUI_AUTO_OPEN","SEC_RATE_LIMIT","SEC_BLOCK_ON_FAIL","SEC_BLOCK_DURATION"]);
+  const patch = Object.create(null);
+  for (const k of Object.keys(body)) {
+    if (k === "__proto__" || k === "constructor") continue;
+    if (!allowed.has(k)) continue;
+    patch[k] = String(body[k] ?? "").slice(0, 256);
+  }
+  if (body.ngrokToken && looksLikeNgrokToken(body.ngrokToken)) {
+    patch.NGROK_AUTHTOKEN = String(body.ngrokToken).slice(0, 200);
+  }
+  if (body.guiPassword && String(body.guiPassword).length >= 8) {
     patch.GUI_PASSWORD = SecurityManager.hashPassword(String(body.guiPassword));
   }
 
@@ -427,7 +487,7 @@ route("POST", "/api/settings", async (req, res) => {
   return sendJson(res, 200, { ok: true, restart: true });
 });
 
-// --- Update via GitHub ---
+// ─── Update GitHub ──────────────────────────────
 route("GET", "/api/update/check", async (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   if (!updater.isGitRepo()) {
@@ -457,56 +517,78 @@ route("GET", "/api/update/backups", (req, res) => {
   return sendJson(res, 200, { backups: updater.listBackups() });
 });
 
-// --- Active sessions / security ---
+// ─── Security stats ─────────────────────────────
 route("GET", "/api/security", (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
   return sendJson(res, 200, security.stats());
 });
 
+route("GET", "/api/firewall/stats", (req, res) => {
+  const auth = requireAuth(req, res); if (!auth.ok) return;
+  return sendJson(res, 200, firewall.stats());
+});
+
 route("POST", "/api/security/unblock", async (req, res) => {
   const auth = requireAuth(req, res); if (!auth.ok) return;
-  const body = await readBody(req);
-  const ip = String(body.ip || "");
-  if (!ip) return sendJson(res, 400, { error: "ip required" });
+  let body;
+  try { body = await firewall.readJsonBody(req, { maxBytes: 1024 }); }
+  catch (e) { return sendJson(res, 413, { error: e.message }); }
+  const ip = String(body.ip || "").slice(0, 64);
+  if (!ip || !/^[0-9a-f.:\[\]]+$/i.test(ip)) return sendJson(res, 400, { error: "IP invalid" });
   security.failedLogins.delete(ip);
+  antiDdos.unblock(ip);
   logger.security(`IP ${ip} di-unblock manual`, { ip });
   return sendJson(res, 200, { ok: true });
 });
 
+// ─── Lockdown control ───────────────────────────
+route("GET", "/api/lockdown/status", (req, res) => {
+  // Public — supaya UI banner masih bisa baca level walau request lain di-deny
+  return sendJson(res, 200, lockdown.status());
+});
+
+route("POST", "/api/lockdown/activate", async (req, res) => {
+  const auth = requireAuth(req, res); if (!auth.ok) return;
+  let body;
+  try { body = await firewall.readJsonBody(req, { maxBytes: 1024 }); }
+  catch (e) { return sendJson(res, 413, { error: e.message }); }
+  const level = String(body.level || "lockdown");
+  const result = lockdown.activate(level, {
+    reason: String(body.reason || "manual").slice(0, 200),
+    durationMs: parseInt(body.durationMs, 10) || 0,
+    by: "admin@" + getIp(req),
+  });
+  if (!result.ok) return sendJson(res, 400, result);
+  return sendJson(res, 200, { ok: true, status: lockdown.status() });
+});
+
+route("POST", "/api/lockdown/deactivate", async (req, res) => {
+  const auth = requireAuth(req, res); if (!auth.ok) return;
+  const result = lockdown.deactivate("admin@" + getIp(req));
+  return sendJson(res, 200, { ok: true, ...result, status: lockdown.status() });
+});
+
 // ─────────────────────────────────────────────────
-//  HTTP server
+//  HTTP request handler
 // ─────────────────────────────────────────────────
 function handler(req, res) {
   const startTs = Date.now();
+
+  // 1) Firewall: handles connection caps, WAF, lockdown gate, host check
+  if (!firewall.handle(req, res, {})) return;
+
   const u  = url.parse(req.url, true);
   const ip = getIp(req);
+  const pathOnly = u.pathname || "/";
 
-  // Security: rate limit
-  const rl = security.rateLimit(ip);
-  if (!rl.ok) {
-    res.setHeader("Retry-After", String(rl.retryAfter || 60));
-    return sendJson(res, 429, { error: "Terlalu banyak request. Coba lagi sebentar." });
-  }
-
-  // Security: cek host header (anti DNS rebinding)
-  const ho = security.checkOrigin(req);
-  if (!ho.ok) {
-    return sendJson(res, 400, { error: "Host/Origin tidak diizinkan." });
-  }
-
-  // Security: scan pola mencurigakan
-  const sc = security.scanSuspicious(req);
-  if (sc.suspicious) {
-    return sendJson(res, 403, { error: "Request mengandung pola berbahaya: " + sc.pattern });
-  }
-
-  // CSRF: untuk POST/PUT/DELETE wajib X-CSRF-Token (kecuali endpoint setup awal & login)
+  // 2) CSRF check untuk state-changing (kecuali endpoint yang exempt)
   if (["POST","PUT","DELETE","PATCH"].includes(req.method)) {
-    const exempt = ["/api/login", "/api/logout", "/api/setup/save", "/api/health"];
-    if (!exempt.includes(u.pathname)) {
+    const exempt = new Set(["/api/login", "/api/logout", "/api/setup/save", "/api/health"]);
+    if (!exempt.has(pathOnly)) {
       const session = getSession(req);
-      const localOnly = cfg.GUI_BIND === "127.0.0.1" || cfg.GUI_BIND === "localhost";
-      if (cfg.GUI_PASSWORD || !localOnly) {
+      // CSRF wajib KALAU kita pakai sesi (password aktif). Tanpa password & local-only,
+      // CSRF dilewati karena tidak ada cookie sesi.
+      if (cfg.GUI_PASSWORD || !isLocalOnly()) {
         const tok = req.headers["x-csrf-token"];
         if (!session || !security.validateCsrf(session, tok)) {
           return sendJson(res, 403, { error: "CSRF token tidak valid. Refresh halaman dan login lagi." });
@@ -515,14 +597,14 @@ function handler(req, res) {
     }
   }
 
-  // Routing
-  const key = `${req.method} ${u.pathname}`;
+  // 3) Routing
+  const key = `${req.method} ${pathOnly}`;
   const handlerFn = routes[key];
   if (handlerFn) {
     Promise.resolve(handlerFn(req, res, u))
       .catch((e) => {
-        logger.error(`Route ${key} error: ${e.message}`, { stack: e.stack });
-        if (!res.headersSent) sendJson(res, 500, { error: "Internal: " + e.message });
+        logger.error(`Route ${key} error: ${e.message}`, { stack: (e.stack || "").slice(0, 800) });
+        if (!res.headersSent) sendJson(res, 500, { error: "Terjadi kesalahan internal." });
       })
       .finally(() => {
         const dur = Date.now() - startTs;
@@ -531,13 +613,9 @@ function handler(req, res) {
     return;
   }
 
-  // Static fallback
+  // 4) Static fallback (path-traversal-proof)
   if (req.method === "GET") {
-    const safe = u.pathname.replace(/^\/+/, "");
-    const candidate = path.join(PUBLIC_DIR, safe);
-    if (candidate.startsWith(PUBLIC_DIR) && fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-      return sendFile(res, candidate);
-    }
+    return serveStatic(req, res, pathOnly);
   }
 
   sendText(res, 404, "Not found");
@@ -546,17 +624,59 @@ function handler(req, res) {
 // ─────────────────────────────────────────────────
 //  Boot
 // ─────────────────────────────────────────────────
-function openInBrowser(url) {
-  const cmd = process.platform === "win32" ? `start "" "${url}"`
-            : process.platform === "darwin" ? `open "${url}"`
-            : `xdg-open "${url}"`;
-  exec(cmd, () => {});
+function openInBrowser(target) {
+  // Validasi URL — hanya boleh http://localhost / 127.0.0.1
+  if (!/^https?:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):\d+(\/|$)/i.test(target)) {
+    logger.warning("openInBrowser: URL tidak valid untuk auto-open.");
+    return;
+  }
+  // Pakai args array, bukan template-shell
+  const { spawn } = require("child_process");
+  const cmd = process.platform === "win32" ? "cmd"
+            : process.platform === "darwin" ? "open"
+            : "xdg-open";
+  const args = process.platform === "win32" ? ["/c", "start", "", target] : [target];
+  try {
+    const child = spawn(cmd, args, { stdio: "ignore", detached: true, shell: false });
+    child.unref();
+  } catch (_) {}
 }
 
 const port = isValidPort(flags.port || cfg.GUI_PORT) ? parseInt(flags.port || cfg.GUI_PORT, 10) : 4747;
 const bind = flags.bind || cfg.GUI_BIND || "127.0.0.1";
 
-const server = http.createServer(handler);
+// Sinkronisasi cfg.GUI_PORT/BIND ke port aktual supaya host-check di
+// security.checkOrigin tidak salah tolak request yang sah.
+cfg.GUI_PORT = port;
+cfg.GUI_BIND = bind;
+
+const server = http.createServer({
+  // Header timeouts — anti slowloris di tingkat HTTP server
+  requestTimeout : 30000,
+  headersTimeout : 15000,
+  keepAliveTimeout: 5000,
+  maxHeadersCount: 60,
+  // Body limit at protocol level (Node 18+: receivedShutdown handled separately)
+}, handler);
+
+// Connection-level guard: anti SYN flood / DDoS connection burst
+server.on("connection", (socket) => {
+  if (!firewall.guardConnection(socket)) return;
+  socket.setNoDelay(true);
+  // Defense in depth: kill idle long-running socket
+  socket.setTimeout(60000);
+});
+
+server.on("clientError", (err, socket) => {
+  // Slowloris / malformed request — tutup socket cepat
+  try {
+    socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+  } catch (_) {}
+  logger.security(`clientError: ${err.code || err.message}`, {
+    ip: socket?.remoteAddress, code: err.code });
+  antiDdos.bumpSuspicion(socket?.remoteAddress || "?", 2, "client-error");
+});
+
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(badge.fail(`Port ${port} sudah dipakai. Edit GUI_PORT di .env atau pakai --port=N.`));
@@ -566,7 +686,6 @@ server.on("error", (err) => {
 });
 
 server.listen(port, bind, () => {
-  // Generate one-time token, lalu print URL auto-login
   let openUrl = `http://${bind}:${port}/`;
   if (cfg.GUI_PASSWORD) {
     const otp = security.oneTimeToken();
@@ -575,12 +694,14 @@ server.listen(port, bind, () => {
 
   const sep = c.cyan("═".repeat(64));
   console.log("\n" + sep);
-  console.log("  " + c.bgGreen(c.bold("  🎛️  TopZone GUI Control Panel ONLINE  ")));
+  console.log("  " + c.bgGreen(c.bold("  🛡️  TopZone GUI Control Panel ONLINE  ")));
   console.log("");
   console.log("  " + c.bold("URL          ") + ": " + c.cyan(c.bold(openUrl)));
   console.log("  " + c.bold("Bind         ") + ": " + bind + ":" + port);
   if (cfg.GUI_PASSWORD) console.log("  " + c.bold("Auth         ") + ": " + c.green("password aktif (token sekali pakai sudah di-URL)"));
   else                  console.log("  " + c.bold("Auth         ") + ": " + c.yellow("tanpa password (aman karena 127.0.0.1)"));
+  console.log("  " + c.bold("Firewall     ") + ": " + c.green("AKTIF") +
+                       " (anti-DDoS, WAF, lockdown otomatis)");
   console.log("  " + c.bold("Log folder   ") + ": " + path.join(__dirname, "logs"));
   console.log(sep);
   console.log(c.dim("\n  Ctrl+C untuk berhenti.\n"));
@@ -599,9 +720,10 @@ let shutting = false;
 async function shutdown(sig) {
   if (shutting) return;
   shutting = true;
-  console.log(`\n${c.yellow(`🛑 ${sig} — shutdown GUI...`)}`);
-  for (const c of sseClients) { try { c.end(); } catch (_) {} }
+  process.stderr.write(`\n${c.yellow(`🛑 ${sig} — shutdown GUI...`)}\n`);
+  for (const cl of sseClients) { try { cl.end(); } catch (_) {} }
   sseClients.clear();
+  sseByIp.clear();
   try { server.close(); } catch (_) {}
   try { await controller.shutdown(sig); } catch (_) {}
   logger.common(`GUI dimatikan (${sig}).`);
@@ -609,5 +731,5 @@ async function shutdown(sig) {
 }
 process.on("SIGINT",  () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("uncaughtException", (e) => { logger.critical("uncaught: " + e.message); shutdown("uncaught"); });
+process.on("uncaughtException", (e) => { logger.critical("uncaught: " + e.message, { stack: (e.stack||"").slice(0,500) }); shutdown("uncaught"); });
 process.on("unhandledRejection", (r) => { logger.error("unhandled: " + (r && r.message || r)); });

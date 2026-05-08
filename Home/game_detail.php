@@ -1,58 +1,92 @@
 <?php
 /**
- * TOPZONE - Game Topup Detail Page
- * Author: Gemini AI
- * Date: 2026-05-02
+ * game_detail.php — HARDENED v3.1
+ *   • Prepared SQL untuk slug, id_game (sebelumnya: SQLi langsung)
+ *   • Slug dibatasi pattern + length
+ *   • Output HTML escaped lewat tz_e di template di bawah
  */
 
-session_start();
-include 'koneksi.php'; 
+require_once __DIR__ . '/_security.php';
+tz_security_init();
 
 // ==========================================
-// 1. AMBIL DATA GAME BERDASARKAN SLUG
+// 1. AMBIL DATA GAME BERDASARKAN SLUG (PREPARED)
 // ==========================================
-$slug = $_GET['game'] ?? '';
-$query = mysqli_query($koneksi, "SELECT * FROM games WHERE slug = '$slug'");
-$g = mysqli_fetch_assoc($query);
-
-if (!$g) { 
-    die("Game tidak ditemukan mprruy! Balik lagi ke <a href='index.php'>Home</a>"); 
+$slug_raw = (string)($_GET['game'] ?? '');
+$slug = preg_replace('/[^a-z0-9\-]/i', '', substr($slug_raw, 0, 64));
+if ($slug === '') {
+    http_response_code(404);
+    die("Game tidak ditemukan. <a href='index.php'>Home</a>");
 }
 
-$id_g = $g['id'];
+$g = tz_db()->fetchOne('SELECT * FROM games WHERE slug = ? LIMIT 1', [$slug]);
+if (!$g) {
+    http_response_code(404);
+    die("Game tidak ditemukan. <a href='index.php'>Home</a>");
+}
+
+$id_g = (int)$g['id'];
 
 // ==========================================
-// 2. HITUNG STATISTIK RATING & ULASAN
+// 2. STATISTIK RATING & ULASAN (PREPARED)
 // ==========================================
-// Gunakan $koneksi sesuai file koneksi.php lu
-$q_avg = mysqli_query($koneksi, "SELECT AVG(rating) as rata_rata, COUNT(id) as total_review FROM reviews WHERE id_game = '$id_g'");
-$res_avg = mysqli_fetch_assoc($q_avg);
+$res_avg = tz_db()->fetchOne(
+    'SELECT AVG(rating) AS rata_rata, COUNT(id) AS total_review
+     FROM reviews WHERE id_game = ?',
+    [$id_g]
+) ?: ['rata_rata' => 0, 'total_review' => 0];
 
-$rating_rata = ($res_avg['total_review'] > 0) ? round($res_avg['rata_rata'], 1) : 0;
-$total_review = $res_avg['total_review'];
-$terjual = $g['terjual'] ?? 0;
-
-// ==========================================
-// 3. AMBIL DAFTAR ULASAN TERBARU
-// ==========================================
-$q_rev = mysqli_query($koneksi, "SELECT * FROM reviews WHERE id_game = '$id_g' ORDER BY id DESC");
+$rating_rata  = ($res_avg['total_review'] > 0) ? round((float)$res_avg['rata_rata'], 1) : 0;
+$total_review = (int)$res_avg['total_review'];
+$terjual      = (int)($g['terjual'] ?? 0);
 
 // ==========================================
-// 4. LOGIKA IDENTITAS USER (SESSION/GUEST)
+// 3. DAFTAR ULASAN (PREPARED)
 // ==========================================
-$nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . rand(100, 999));
+$reviews = tz_db()->fetchAll(
+    'SELECT * FROM reviews WHERE id_game = ? ORDER BY id DESC LIMIT 50',
+    [$id_g]
+);
 
-// Tangkap data dari keranjang jika ada
-$selected_produk = $_GET['select_produk'] ?? '';
-$qty_cart = $_GET['qty'] ?? 1;
-$from_cart = $_GET['from_cart'] ?? false;
+// Backward compat: kode di bawah masih pakai $q_rev → buat iterator dari array
+class TZ_ReviewIter implements \Iterator {
+    private array $items;
+    private int   $idx = 0;
+    public function __construct(array $items) { $this->items = $items; }
+    public function current(): mixed { return $this->items[$this->idx] ?? false; }
+    public function key(): mixed     { return $this->idx; }
+    public function next(): void     { $this->idx++; }
+    public function rewind(): void   { $this->idx = 0; }
+    public function valid(): bool    { return $this->idx < count($this->items); }
+}
+// Tetap pakai mysqli_fetch_assoc-compatible loop di template:
+function tz_review_fetch(&$state) {
+    if ($state === null) return false;
+    if (!isset($state['i'])) $state['i'] = 0;
+    if ($state['i'] >= count($state['rows'])) return false;
+    return $state['rows'][$state['i']++];
+}
+$q_rev = ['rows' => $reviews];
+
+// ==========================================
+// 4. IDENTITAS USER (SESSION/GUEST)
+// ==========================================
+$nama_tampil = (string)($_SESSION['nama_user'] ?? "User" . random_int(100, 999));
+
+$selected_produk = substr((string)($_GET['select_produk'] ?? ''), 0, 64);
+$qty_cart        = (int)($_GET['qty'] ?? 1);
+if ($qty_cart < 1 || $qty_cart > 999) $qty_cart = 1;
+$from_cart       = !empty($_GET['from_cart']);
+
+// Sediakan $koneksi untuk kode template lama yang masih iterasi mysqli (none in this file after patch)
+$koneksi = tz_legacy_mysqli();
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Up <?php echo $g['nama_game']; ?> - TOPZONE OFFICIAL</title>
+    <title>Top Up <?= tz_e($g['nama_game']) ?> - TOPZONE OFFICIAL</title>
     
     <!-- CSS STYLING -->
     <style>
@@ -273,10 +307,10 @@ $from_cart = $_GET['from_cart'] ?? false;
                  Kembali ke Home
         </a>
         <div style="display: flex; gap: 20px; align-items: center;">
-            <div class="tp-img" style="background-image:url('<?php echo $g['gambar']; ?>')"></div>
+            <div class="tp-img" style="background-image:url('<?= tz_attr($g['gambar']) ?>')"></div>
             <div>
-                <h1 style="margin: 0; font-size: 28px;"><?php echo htmlspecialchars($g['nama_game']); ?></h1>
-                <p style="color: #666; margin: 5px 0;">Kategori: <strong><?php echo $g['kategori']; ?></strong></p>
+                <h1 style="margin: 0; font-size: 28px;"><?= tz_e($g['nama_game']) ?></h1>
+                <p style="color: #666; margin: 5px 0;">Kategori: <strong><?= tz_e($g['kategori']) ?></strong></p>
                 <div style="color: #ffca08; font-size: 20px;">
                     <?php for($i=1; $i<=5; $i++) echo ($i <= $rating_rata) ? "★" : "☆"; ?>
                     <span style="color: #888; font-size: 15px;"> (<?php echo $rating_rata; ?>/5.0) | <?php echo $terjual; ?> Terjual</span>
@@ -301,21 +335,23 @@ $from_cart = $_GET['from_cart'] ?? false;
         <?php endif; ?>
 
         <div class="item-grid" id="product-list">
-            <?php 
-            $q_produk = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_g' ORDER BY harga ASC");
-            if(mysqli_num_rows($q_produk) > 0): 
-                while($p = mysqli_fetch_assoc($q_produk)): 
-                    // Tambahkan class tipe produk di sini
-                    $tipe_p = $p['tipe'] ?? 'default'; 
+            <?php
+            $produk_list = tz_db()->fetchAll(
+                'SELECT * FROM produk_game WHERE id_game = ? ORDER BY harga ASC',
+                [$id_g]
+            );
+            if (count($produk_list) > 0):
+                foreach ($produk_list as $p):
+                    $tipe_p = (string)($p['tipe'] ?? 'default');
             ?>
-                <div class="item-card produk-item" 
-                    data-tipe="<?= $tipe_p ?>" 
-                    onclick="selectProduct(this, <?= $p['harga']; ?>, '<?= addslashes($p['nama_produk']); ?>')"
+                <div class="item-card produk-item"
+                    data-tipe="<?= tz_attr($tipe_p) ?>"
+                    onclick="selectProduct(this, <?= (int)$p['harga'] ?>, <?= tz_js((string)$p['nama_produk']) ?>)"
                     style="display: <?= ($gn_check == 'roblox' && $tipe_p != 'roblox_login') ? 'none' : 'block' ?>;">
-                    <div style="font-size: 14px; font-weight: 600; color: #444;"><?= $p['nama_produk']; ?></div>
-                    <div class="price">Rp <?= number_format($p['harga'], 0, ',', '.'); ?></div>
+                    <div style="font-size: 14px; font-weight: 600; color: #444;"><?= tz_e($p['nama_produk']) ?></div>
+                    <div class="price">Rp <?= tz_e(number_format((int)$p['harga'], 0, ',', '.')) ?></div>
                 </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
 
             <?php else: ?>
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa;">
@@ -330,11 +366,12 @@ $from_cart = $_GET['from_cart'] ?? false;
             
             <!-- Form Kirim Ulasan -->
             <div style="background: #fdfdfd; padding: 25px; border-radius: 15px; border: 1px solid #eee; margin-bottom: 30px;">
+                <?php if (tz_is_logged_in()): ?>
                 <form action="simpan_ulasan.php" method="POST">
-                    <input type="hidden" name="id_game" value="<?php echo $id_g; ?>">
-                    <input type="hidden" name="slug" value="<?php echo $g['slug']; ?>">
-                    <input type="hidden" name="user_name" value="<?php echo $nama_tampil; ?>">
-                    
+                    <?= tz_csrf_field() ?>
+                    <input type="hidden" name="id_game" value="<?= (int)$id_g ?>">
+                    <input type="hidden" name="slug"    value="<?= tz_attr($g['slug']) ?>">
+
                     <label style="font-weight: bold; display: block; margin-bottom: 5px;">Beri Rating:</label>
                     <div class="rating-stars">
                         <input type="radio" name="rating" value="5" id="star5" required><label for="star5">★</label>
@@ -344,29 +381,33 @@ $from_cart = $_GET['from_cart'] ?? false;
                         <input type="radio" name="rating" value="1" id="star1"><label for="star1">★</label>
                     </div>
 
-                    <textarea name="komentar" placeholder="Gimana layanannya mprruy? Tulis di sini..." required 
+                    <textarea name="komentar" placeholder="Gimana layanannya? Tulis di sini..." required
+                              maxlength="500"
                               style="width: 100%; height: 100px; border-radius: 12px; padding: 15px; border: 1.5px solid #eee; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px;"></textarea>
                     <button type="submit" style="background:var(--dark); color:white; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
                 </form>
+                <?php else: ?>
+                <p style="color:#666;">Silakan <a href="../Login/tampilanlogin.php">login</a> dulu untuk memberi ulasan.</p>
+                <?php endif; ?>
             </div>
 
             <!-- List Ulasan yang sudah ada -->
             <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
-                <?php if(mysqli_num_rows($q_rev) > 0): ?>
-                    <?php while($rev = mysqli_fetch_assoc($q_rev)): ?>
+                <?php if (count($q_rev['rows']) > 0): ?>
+                    <?php foreach ($q_rev['rows'] as $rev): ?>
                         <div class="rev-item">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong>👤 <?php echo htmlspecialchars($rev['user_name']); ?></strong>
-                                <span style="font-size: 11px; color: #999;"><?php echo date('d M Y', strtotime($rev['created_at'] ?? 'now')); ?></span>
+                                <strong>👤 <?= tz_e($rev['user_name']) ?></strong>
+                                <span style="font-size: 11px; color: #999;"><?= tz_e(date('d M Y', strtotime((string)($rev['created_at'] ?? 'now')))) ?></span>
                             </div>
                             <div style="color: #ffca08; font-size: 14px; margin: 5px 0;">
-                                <?php for($k=1; $k<=5; $k++) echo ($k <= $rev['rating']) ? "★" : "☆"; ?>
+                                <?php $rt = (int)$rev['rating']; for ($k=1; $k<=5; $k++) echo ($k <= $rt) ? "★" : "☆"; ?>
                             </div>
                             <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">
-                                "<?php echo nl2br(htmlspecialchars($rev['komentar'])); ?>"
+                                "<?= nl2br(tz_e($rev['komentar'])) ?>"
                             </p>
                         </div>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <p style="text-align: center; color: #bbb; padding: 20px;">Belum ada ulasan. Jadilah yang pertama! 🔥</p>
                 <?php endif; ?>
@@ -619,7 +660,7 @@ $from_cart = $_GET['from_cart'] ?? false;
 
         // 3. NOTIF SURUH ISI DATA (VALIDASI INPUT)
         let userDataRaw = "";
-        const gameName = "<?php echo strtolower($g['nama_game']); ?>";
+        const gameName = <?= tz_js(strtolower((string)$g['nama_game'])) ?>;
 
         try {
             if (gameName.includes('roblox')) {

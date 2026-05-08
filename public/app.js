@@ -149,8 +149,14 @@ async function boot() {
   // 5. Subscribe SSE
   startSse();
 
-  // 6. Periodic refresh
+  // 6. Periodic refresh (status + lockdown)
   setInterval(refreshStatus, 5000);
+  // Lockdown poll lebih jarang (10s) — SSE biasanya yang push duluan
+  setInterval(() => {
+    api("/api/lockdown/status").then(renderLockdown).catch(() => {});
+  }, 10000);
+  // Polling pertama untuk lockdown banner
+  api("/api/lockdown/status").then(renderLockdown).catch(() => {});
 
   // 7. Uptime ticker
   TZ.uptimeTimer = setInterval(updateUptime, 1000);
@@ -387,6 +393,20 @@ function startSse() {
       try {
         const e = JSON.parse(ev.data);
         if (TZ.logs && TZ.logs.append) TZ.logs.append(e);
+      } catch (_) {}
+    });
+    src.addEventListener("lockdown", (ev) => {
+      try {
+        const entry = JSON.parse(ev.data);
+        if (TZ.handleLockdownEvent) TZ.handleLockdownEvent(entry);
+      } catch (_) {}
+    });
+    src.addEventListener("ddos", (ev) => {
+      try {
+        const info = JSON.parse(ev.data);
+        if (info && info.type === "attack-start") {
+          toast("⚠️ Lonjakan RPS terdeteksi", `${info.rps} req/detik`, "warning");
+        }
       } catch (_) {}
     });
     src.onerror = () => {
@@ -639,27 +659,152 @@ function renderDiagnose(d) {
 }
 
 // ─── Security ─────────────────────────────────────
-function bindSecurity() {}
+function bindSecurity() {
+  // Lockdown buttons
+  $$(".lockdown-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const level = btn.dataset.level;
+      const permanent = $("#lockdown-permanent")?.checked || false;
+      const durationMin = parseInt($("#lockdown-duration")?.value, 10) || 30;
+      const ok = await confirmDialog({
+        title: `Aktifkan Lockdown ${level}?`,
+        message: level === "lockdown"
+          ? "Mode FULL LOCKDOWN akan menutup semua endpoint kecuali /api/health. Pengguna lain tidak akan bisa pakai panel sampai dimatikan."
+          : level === "restricted"
+          ? "Mode RESTRICTED hanya mengizinkan GET + login/logout. Semua aksi state-changing diblokir."
+          : "Mode GUARDED memperketat limit & memaksa CSRF. Pengguna normal masih bisa pakai panel.",
+        icon: level === "lockdown" ? "🔴" : level === "restricted" ? "🟠" : "🟡",
+        okText: "Aktifkan",
+      });
+      if (!ok) return;
+      try {
+        const body = { level };
+        if (permanent) body.permanent = true;
+        else body.durationMs = durationMin * 60 * 1000;
+        await api("/api/lockdown/activate", { method: "POST", body });
+        toast("Lockdown aktif", `Level: ${level}`, "warning");
+        refreshSecurity();
+      } catch (e) {
+        toast("Gagal aktifkan lockdown", e.message, "error");
+      }
+    });
+  });
+
+  // Deactivate button
+  $("#lockdown-deactivate")?.addEventListener("click", async () => {
+    const ok = await confirmDialog({
+      title: "Nonaktifkan Lockdown?",
+      message: "Panel kembali ke mode normal.",
+      icon: "✅", okText: "Ya, nonaktifkan",
+    });
+    if (!ok) return;
+    try {
+      await api("/api/lockdown/deactivate", { method: "POST" });
+      toast("Lockdown dinonaktifkan", "", "success");
+      refreshSecurity();
+    } catch (e) {
+      toast("Gagal nonaktifkan", e.message, "error");
+    }
+  });
+}
+
+// Render lockdown level → strip & banner
+function renderLockdown(status) {
+  if (!status) return;
+  const lvl = status.level || "none";
+
+  const strip = $("#lockdown-strip");
+  if (strip) {
+    if (lvl === "none") {
+      strip.hidden = true;
+    } else {
+      strip.hidden = false;
+      strip.dataset.level = lvl;
+      const lvlEl = $("#lockdown-strip-level");
+      if (lvlEl) lvlEl.textContent = lvl.toUpperCase();
+      const reasonEl = $("#lockdown-strip-reason");
+      if (reasonEl) reasonEl.textContent = status.reason ? `— ${status.reason}` : "";
+    }
+  }
+
+  const banner = $("#lockdown-banner");
+  if (banner) {
+    banner.hidden = false;
+    banner.dataset.level = lvl;
+    const titleMap = {
+      none: "Mode Normal",
+      guarded: "🟡 GUARDED — limit ketat aktif",
+      restricted: "🟠 RESTRICTED — semua state-change diblokir",
+      lockdown: "🔴 FULL LOCKDOWN — panel tertutup",
+    };
+    const subMap = {
+      none: "Tidak ada serangan terdeteksi.",
+      guarded: `Reason: ${status.reason || "-"} | Score: ${status.windowScore || 0}`,
+      restricted: `Reason: ${status.reason || "-"} | IPs: ${status.distinctIps || 0}`,
+      lockdown: `Reason: ${status.reason || "-"} | Score: ${status.windowScore || 0}`,
+    };
+    $("#lockdown-title").textContent = titleMap[lvl] || lvl;
+    $("#lockdown-sub").textContent   = subMap[lvl]  || "";
+    const deactivateBtn = $("#lockdown-deactivate");
+    if (deactivateBtn) deactivateBtn.hidden = (lvl === "none");
+  }
+
+  // Trigger log
+  const list = $("#lockdown-triggers");
+  if (list) {
+    const recent = status.recentTriggers || [];
+    if (recent.length === 0) {
+      list.innerHTML = `<div class="empty-state muted">Belum ada lockdown.</div>`;
+    } else {
+      list.innerHTML = recent.slice().reverse().map((t) => {
+        const ts = new Date(t.ts).toLocaleString("id-ID");
+        return `<div class="backup-row">
+          <span><strong>${escapeHtml(t.from)}</strong> → <strong>${escapeHtml(t.to)}</strong></span>
+          <span class="muted">${escapeHtml(ts)} · ${escapeHtml(t.reason || "")}</span>
+        </div>`;
+      }).join("");
+    }
+  }
+}
 
 async function refreshSecurity() {
   try {
-    const s = await api("/api/security");
+    // Fetch security + firewall stats + lockdown status secara paralel
+    const [s, fw] = await Promise.all([
+      api("/api/security"),
+      api("/api/firewall/stats"),
+    ]);
+
+    // Sec stats
     $("#sec-sessions")  && ($("#sec-sessions").textContent  = s.activeSessions || 0);
-    $("#sec-blocked")   && ($("#sec-blocked").textContent   = (s.blockedIps || []).length);
+    $("#sec-blocked")   && ($("#sec-blocked").textContent   = (fw.ddos?.blocked || []).length);
     $("#sec-suspicion") && ($("#sec-suspicion").textContent = s.suspicionCount || 0);
 
+    // DDoS stats
+    if (fw.ddos) {
+      $("#sec-conn")      && ($("#sec-conn").textContent      = fw.ddos.globalConn || 0);
+      $("#sec-rps")       && ($("#sec-rps").textContent       = fw.ddos.lastGlobalRps || 0);
+      $("#sec-subnets")   && ($("#sec-subnets").textContent   = fw.ddos.activeSubnets || 0);
+      $("#sec-adaptive")  && ($("#sec-adaptive").textContent  = fw.ddos.underAttack ? "AKTIF" : "off");
+    }
+
+    // Lockdown
+    if (fw.lockdown) renderLockdown(fw.lockdown);
+
+    // Blocked list
     const blocked = $("#blocked-list");
     if (blocked) {
-      if (!s.blockedIps?.length) {
+      const list = fw.ddos?.blocked || [];
+      if (!list.length) {
         blocked.innerHTML = `<div class="empty-state muted">Tidak ada IP terblokir.</div>`;
       } else {
-        blocked.innerHTML = s.blockedIps.map((b) => {
+        blocked.innerHTML = list.map((b) => {
           const until = new Date(b.until).toLocaleString("id-ID");
           return `<div class="diag-row warn">
             <span class="ico">🚫</span>
             <div class="body">
               <div class="label">${escapeHtml(b.ip)}</div>
-              <div class="desc">Diblokir sampai ${escapeHtml(until)}</div>
+              <div class="desc">Diblokir sampai ${escapeHtml(until)} — ${escapeHtml(b.reason || "")}</div>
             </div>
             <button class="btn btn-sm btn-ghost" data-unblock="${escapeHtml(b.ip)}">Unblock</button>
           </div>`;
@@ -678,6 +823,27 @@ async function refreshSecurity() {
       }
     }
 
+    // Graylist
+    const gl = $("#graylist-list");
+    if (gl) {
+      const list = fw.ddos?.graylisted || [];
+      if (!list.length) {
+        gl.innerHTML = `<div class="empty-state muted">Tidak ada IP di graylist.</div>`;
+      } else {
+        gl.innerHTML = list.map((b) => {
+          const until = new Date(b.until).toLocaleString("id-ID");
+          return `<div class="diag-row info">
+            <span class="ico">⏳</span>
+            <div class="body">
+              <div class="label">${escapeHtml(b.ip)}</div>
+              <div class="desc">Limit dipotong sampai ${escapeHtml(until)}</div>
+            </div>
+          </div>`;
+        }).join("");
+      }
+    }
+
+    // Suspicion
     const susp = $("#suspicion-list");
     if (susp) {
       if (!s.lastSuspicions?.length) {
@@ -685,10 +851,11 @@ async function refreshSecurity() {
       } else {
         susp.innerHTML = s.lastSuspicions.map((x) => {
           const t = new Date(x.at).toLocaleString("id-ID");
+          const patterns = Array.isArray(x.patterns) ? x.patterns.join(",") : (x.pattern || "");
           return `<div class="diag-row err">
             <span class="ico">⚠</span>
             <div class="body">
-              <div class="label">${escapeHtml(x.pattern)} dari ${escapeHtml(x.ip)}</div>
+              <div class="label">${escapeHtml(patterns)} dari ${escapeHtml(x.ip)}</div>
               <div class="desc">${escapeHtml(t)} — ${escapeHtml(x.url || "")}</div>
             </div>
           </div>`;
@@ -697,6 +864,18 @@ async function refreshSecurity() {
     }
   } catch (_) {}
 }
+
+// Lockdown status terus diupdate via SSE (kalau backend kirim 'lockdown' event)
+TZ.handleLockdownEvent = function (entry) {
+  // entry punya { from, to, reason } — refresh status panel
+  refreshSecurity();
+  if (entry && entry.to && entry.to !== "none") {
+    toast(`Lockdown ${entry.to.toUpperCase()}`,
+          `Reason: ${entry.reason || "auto-trigger"}`, "warning");
+  } else if (entry && entry.to === "none") {
+    toast("Lockdown dinonaktifkan", "Panel kembali normal", "success");
+  }
+};
 
 // ─── Boot kick-off ────────────────────────────────
 document.addEventListener("DOMContentLoaded", boot);

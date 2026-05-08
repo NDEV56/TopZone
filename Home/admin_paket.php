@@ -1,22 +1,30 @@
 <?php
-include 'koneksi.php';
+/**
+ * admin_paket.php — HARDENED v3.1
+ *   • require_admin
+ *   • Prepared SQL semua
+ *   • Hapus sekarang via POST + CSRF (sebelumnya GET ?hapus=ID — CSRFable)
+ *   • XSS-safe
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
+tz_require_admin();
 
-// --- 1. LOGIKA HAPUS PAKET ---
-if (isset($_GET['hapus'])) {
-    $id_paket = mysqli_real_escape_string($koneksi, $_GET['hapus']);
-    
-    // GANTI 'id_produk' di bawah ini dengan nama kolom kunci di database lu!
-    $query_hapus = mysqli_query($koneksi, "DELETE FROM produk_game WHERE id_produk = '$id_paket'");
-    
-    if($query_hapus) {
-        echo "<script>window.location='admin_paket.php';</script>";
-        exit();
-    } else {
-        echo "Error: " . mysqli_error($koneksi);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_id'])) {
+    tz_csrf_verify();
+    $id_paket = (int)$_POST['hapus_id'];
+    if ($id_paket > 0) {
+        try {
+            tz_db()->exec('DELETE FROM produk_game WHERE id_produk = ?', [$id_paket]);
+        } catch (\Throwable $e) {
+            error_log('[topzone-admin-paket] ' . $e->getMessage());
+        }
     }
+    tz_safe_redirect('/Home/admin_paket.php');
 }
-?>
 
+$games = tz_db()->fetchAll('SELECT * FROM games ORDER BY nama_game ASC');
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -25,74 +33,31 @@ if (isset($_GET['hapus'])) {
     <title>Management Paket - TopZone</title>
     <style>
         :root { --primary: #00ff88; --dark: #121212; --card: #1e1e1e; --text: #eee; --accent: #252525; }
-        
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: var(--text); margin: 0; display: flex; }
-        
-        /* Sidebar */
         .sidebar { width: 250px; height: 100vh; background: #000; padding: 20px; position: fixed; border-right: 1px solid #333; z-index: 100; box-sizing: border-box; }
         .sidebar h1 { color: var(--primary); font-size: 24px; margin-bottom: 30px; letter-spacing: 1px; }
         .nav-link { display: block; color: #888; text-decoration: none; padding: 12px; border-radius: 8px; margin-bottom: 5px; transition: 0.3s; font-size: 14px; }
         .nav-link:hover, .nav-link.active { background: #222; color: var(--primary); }
-
-        /* Main Content */
         .content { margin-left: 250px; padding: 40px; width: calc(100% - 250px); box-sizing: border-box; min-height: 100vh; }
-        
-        .game-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-            gap: 25px;
-            align-items: start;
-        }
-
-        .game-card {
-            background: var(--card);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #333;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: transform 0.3s ease, border-color 0.3s ease;
-        }
-        
-        .game-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary);
-        }
-
-        .game-header {
-            background: var(--accent);
-            padding: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #333;
-        }
-
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 25px; align-items: start; }
+        .game-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .game-header { background: var(--accent); padding: 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
         .game-info { display: flex; align-items: center; gap: 12px; }
         .game-info img { width: 45px; height: 45px; border-radius: 10px; object-fit: cover; border: 1px solid #444; }
         .game-info h3 { margin: 0; font-size: 16px; color: #fff; font-weight: 600; }
         .slug-tag { display: block; font-size: 10px; color: var(--primary); opacity: 0.7; font-family: 'Consolas', monospace; margin-top: 2px; }
-
         .paket-table { width: 100%; border-collapse: collapse; }
         .paket-table th { background: #181818; padding: 12px 15px; color: var(--primary); text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
         .paket-table td { padding: 14px 15px; border-bottom: 1px solid #2a2a2a; color: #ccc; font-size: 13.5px; }
         .paket-table tr:last-child td { border-bottom: none; }
-
-        .btn-add-item { background: var(--primary); color: #000; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 800; transition: 0.3s; }
-        .btn-add-item:hover { background: #fff; transform: scale(1.05); }
-        
-        .action-btns { display: flex; gap: 15px; }
-        .btn-edit-item { color: var(--primary); text-decoration: none; font-size: 12px; font-weight: bold; transition: 0.2s; }
-        .btn-del-item { color: #ff4d4d; text-decoration: none; font-size: 12px; font-weight: bold; transition: 0.2s; }
+        .btn-add-item { background: var(--primary); color: #000; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+        .btn-add-item:hover { background: #fff; }
+        .action-btns { display: flex; gap: 15px; align-items: center; justify-content: flex-end; }
+        .btn-edit-item { color: var(--primary); text-decoration: none; font-size: 12px; font-weight: bold; }
+        .btn-del-item { background: none; border: none; color: #ff4d4d; font-size: 12px; font-weight: bold; cursor: pointer; padding: 0; font-family: inherit; }
         .btn-edit-item:hover { color: #fff; }
         .btn-del-item:hover { color: #fff; text-shadow: 0 0 5px #ff4d4d; }
-
         .empty-state { padding: 40px; text-align: center; color: #666; font-style: italic; font-size: 13px; }
-
-        /* Scrollbar biar makin cakep */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--dark); }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
     </style>
 </head>
 <body>
@@ -102,7 +67,7 @@ if (isset($_GET['hapus'])) {
         <a href="admin_orders.php" class="nav-link">📦 Pesanan Masuk</a>
         <a href="admin_tambah_game.php" class="nav-link">🎮 Kelola Game</a>
         <a href="admin_paket.php" class="nav-link active">💎 Kelola Paket</a>
-        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
+        <a href="Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
         <a href="index.php" class="nav-link">🏠 Lihat Website</a>
     </div>
 
@@ -110,22 +75,23 @@ if (isset($_GET['hapus'])) {
         <h2 style="margin-bottom: 30px; font-weight: 700;">💎 Management Paket Produk</h2>
 
         <div class="game-grid">
-            <?php
-            $q_game = mysqli_query($koneksi, "SELECT * FROM games ORDER BY nama_game ASC");
-            while($g = mysqli_fetch_assoc($q_game)):
-                $id_game = $g['id'];
-                $slug_game = $g['slug']; 
+            <?php foreach ($games as $g):
+                $id_game    = (int)$g['id'];
+                $paket_list = tz_db()->fetchAll(
+                    'SELECT * FROM produk_game WHERE id_game = ? ORDER BY tipe ASC, harga ASC',
+                    [$id_game]
+                );
             ?>
                 <div class="game-card">
                     <div class="game-header">
                         <div class="game-info">
-                            <img src="<?= $g['gambar'] ?>" alt="<?= $g['nama_game'] ?>">
+                            <img src="<?= tz_attr($g['gambar']) ?>" alt="">
                             <div>
-                                <h3><?= $g['nama_game'] ?></h3>
-                                <span class="slug-tag">/<?= $slug_game ?></span>
+                                <h3><?= tz_e($g['nama_game']) ?></h3>
+                                <span class="slug-tag">/<?= tz_e($g['slug']) ?></span>
                             </div>
                         </div>
-                        <a href="admin_tambah_paket.php?game=<?= $slug_game ?>" class="btn-add-item">+ ITEM</a>
+                        <a href="admin_tambah_paket.php?game=<?= rawurlencode((string)$g['slug']) ?>" class="btn-add-item">+ ITEM</a>
                     </div>
 
                     <table class="paket-table">
@@ -137,73 +103,45 @@ if (isset($_GET['hapus'])) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php
-                            // 1. Tambahkan 'tipe ASC' di ORDER BY supaya paket yang setipe ngumpul jadi satu
-                            $q_paket = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_game' ORDER BY tipe ASC, harga ASC");
-                            
-                            if(mysqli_num_rows($q_paket) > 0) {
-                                $current_tipe = ""; // Variabel pembantu buat cek perubahan tipe
-
-                                while($p = mysqli_fetch_assoc($q_paket)) {
-                                    $id_p = $p['id_produk']; 
-                                    $nama_p = htmlspecialchars($p['nama_produk']);
-                                    $harga_p = number_format($p['harga'], 0, ',', '.');
-                                    $tipe_p = $p['tipe']; // Ambil kolom tipe
-
-                                    // 2. LOGIKA PEMISAH (Hanya muncul jika tipe berubah)
+                            <?php if (count($paket_list) > 0):
+                                $current_tipe = '';
+                                foreach ($paket_list as $p):
+                                    $tipe_p = (string)$p['tipe'];
                                     if ($tipe_p !== $current_tipe) {
                                         $current_tipe = $tipe_p;
-                                        
-                                        // Tentukan label Header berdasarkan tipe
-                                        $header_label = "";
-                                        $header_color = "";
-
-                                        if ($tipe_p == 'roblox_login') {
-                                            $header_label = "--- KATEGORI: VIA LOGIN (ROBLOX) ---";
-                                            $header_color = "#ff4d4d"; // Merah
-                                        } elseif ($tipe_p == 'roblox_5hari') {
-                                            $header_label = "--- KATEGORI: 5 HARI / GIFT (ROBLOX) ---";
-                                            $header_color = "#2ecc71"; // Hijau
-                                        }
-
-                                        // Tampilkan baris header pemisah jika ini produk roblox
-                                        if ($header_label !== "") {
-                                            echo "<tr>
-                                                    <td colspan='3' style='background: rgba(255,255,255,0.05); color: $header_color; font-weight: bold; text-align: center; font-size: 12px; letter-spacing: 1px; padding: 10px 0;'>
-                                                        $header_label
-                                                    </td>
-                                                </tr>";
+                                        $hl = ''; $hc = '';
+                                        if ($tipe_p === 'roblox_login')      { $hl = '--- KATEGORI: VIA LOGIN (ROBLOX) ---'; $hc = '#ff4d4d'; }
+                                        elseif ($tipe_p === 'roblox_5hari')  { $hl = '--- KATEGORI: 5 HARI / GIFT (ROBLOX) ---'; $hc = '#2ecc71'; }
+                                        if ($hl !== '') {
+                                            echo "<tr><td colspan='3' style='background: rgba(255,255,255,0.05); color: " . tz_attr($hc) . "; font-weight: bold; text-align: center; font-size: 12px; letter-spacing: 1px; padding: 10px 0;'>" . tz_e($hl) . "</td></tr>";
                                         }
                                     }
                             ?>
                                     <tr>
-                                        <td><strong style="color: #fff;"><?php echo $nama_p; ?></strong></td>
+                                        <td><strong style="color: #fff;"><?= tz_e($p['nama_produk']) ?></strong></td>
                                         <td style="color: var(--primary); font-family: monospace; font-weight: bold;">
-                                            Rp <?php echo $harga_p; ?>
+                                            Rp <?= tz_e(number_format((int)$p['harga'], 0, ',', '.')) ?>
                                         </td>
                                         <td style="text-align:right; padding-right:15px;">
-                                            <div class="action-btns" style="justify-content: flex-end;">
-                                                <a href="admin_edit_paket.php?id=<?php echo $id_p; ?>" class="btn-edit-item">Edit</a>
-                                                <a href="admin_paket.php?hapus=<?php echo $id_p; ?>" 
-                                                class="btn-del-item" 
-                                                onclick="return confirm('Hapus paket <?php echo $nama_p; ?>?')">
-                                                Hapus
-                                                </a>
+                                            <div class="action-btns">
+                                                <a href="admin_edit_paket.php?id=<?= (int)$p['id_produk'] ?>" class="btn-edit-item">Edit</a>
+                                                <form method="POST" style="display:inline" onsubmit="return confirm('Hapus paket ini?')">
+                                                    <?= tz_csrf_field() ?>
+                                                    <input type="hidden" name="hapus_id" value="<?= (int)$p['id_produk'] ?>">
+                                                    <button type="submit" class="btn-del-item">Hapus</button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
-                            <?php 
-                                }
-                            } else {
-                            ?>
+                            <?php endforeach; else: ?>
                                 <tr>
                                     <td colspan="3" class="empty-state">Belum ada paket tersedia.</td>
                                 </tr>
-                            <?php } ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     </div>
 

@@ -31,6 +31,13 @@
   </div>
 </header>
 
+<div id="lockdown-strip" class="lockdown-strip" data-level="none" hidden>
+  <span class="lockdown-strip-icon">🚨</span>
+  <strong>Lockdown <span id="lockdown-strip-level">none</span> AKTIF</strong>
+  <span class="muted" id="lockdown-strip-reason"></span>
+  <button class="btn-link" data-tab-link="security">Buka tab Keamanan →</button>
+</div>
+
 <!-- ╔══════════════════════════════════════════════════════════╗ -->
 <!-- ║          WIZARD (cuma muncul kalau belum di-setup)       ║ -->
 <!-- ╚══════════════════════════════════════════════════════════╝ -->
@@ -522,9 +529,21 @@
 
   <!-- SECURITY -->
   <section class="tab-panel" data-tab-panel="security" hidden>
+    <!-- Lockdown banner global -->
+    <div id="lockdown-banner" class="lockdown-banner" data-level="none" hidden>
+      <div class="lockdown-icon" id="lockdown-icon">🛡️</div>
+      <div class="lockdown-text">
+        <div class="lockdown-title" id="lockdown-title">Mode Normal</div>
+        <div class="lockdown-sub" id="lockdown-sub">Tidak ada serangan terdeteksi.</div>
+      </div>
+      <button id="lockdown-deactivate" class="btn btn-ghost btn-sm" hidden>↩ Nonaktifkan</button>
+    </div>
+
+    <!-- Anti-DDoS / firewall stats -->
     <div class="card">
-      <h2>🛡️  Keamanan</h2>
-      <div class="grid grid-3">
+      <h2>🛡️ Keamanan & Anti-DDoS</h2>
+      <p class="muted">Statistik hidup dari firewall multi-layer. Semua angka akan turun dengan sendirinya saat tidak ada serangan.</p>
+      <div class="grid grid-4">
         <div class="mini-card">
           <div class="mini-label">Sesi Aktif</div>
           <div class="mini-value" id="sec-sessions">—</div>
@@ -537,13 +556,82 @@
           <div class="mini-label">Pola Mencurigakan</div>
           <div class="mini-value" id="sec-suspicion">—</div>
         </div>
+        <div class="mini-card">
+          <div class="mini-label">Koneksi Aktif</div>
+          <div class="mini-value" id="sec-conn">—</div>
+        </div>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="mini-card">
+          <div class="mini-label">RPS Saat Ini</div>
+          <div class="mini-value" id="sec-rps">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">Subnet Berbeda</div>
+          <div class="mini-value" id="sec-subnets">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">Mode Adaptif</div>
+          <div class="mini-value" id="sec-adaptive">—</div>
+        </div>
       </div>
 
       <h3>IP Yang Sedang Diblokir</h3>
       <div id="blocked-list"><div class="empty-state muted">Tidak ada IP terblokir.</div></div>
 
-      <h3>10 Aktivitas Mencurigakan Terbaru</h3>
+      <h3>IP Graylist (Limit Dipotong)</h3>
+      <div id="graylist-list"><div class="empty-state muted">Tidak ada IP di graylist.</div></div>
+
+      <h3>15 Aktivitas Mencurigakan Terbaru</h3>
       <div id="suspicion-list"><div class="empty-state muted">Belum ada aktivitas mencurigakan.</div></div>
+    </div>
+
+    <!-- Emergency Lockdown -->
+    <div class="card lockdown-card">
+      <h2>🚨 Emergency Lockdown</h2>
+      <p class="muted">
+        Aktifkan kalau panel kontrol sedang dalam serangan berat. Mode <code>guarded</code>
+        cuma memperketat limit; <code>restricted</code> mematikan semua aksi state-changing
+        kecuali login/logout; <code>lockdown</code> mematikan semuanya kecuali endpoint health.
+      </p>
+      <div class="lockdown-buttons">
+        <button class="btn lockdown-btn guarded" data-level="guarded">
+          <span class="lvl-icon">🟡</span>
+          <span class="lvl-name">Guarded</span>
+          <span class="lvl-desc">Limit ketat, semua POST minta CSRF</span>
+        </button>
+        <button class="btn lockdown-btn restricted" data-level="restricted">
+          <span class="lvl-icon">🟠</span>
+          <span class="lvl-name">Restricted</span>
+          <span class="lvl-desc">Hanya GET + login/logout yang aktif</span>
+        </button>
+        <button class="btn lockdown-btn lockdown" data-level="lockdown">
+          <span class="lvl-icon">🔴</span>
+          <span class="lvl-name">Full Lockdown</span>
+          <span class="lvl-desc">Tutup total kecuali /api/health</span>
+        </button>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="lockdown-permanent" />
+          <span>Permanen (tanpa auto-expire)</span>
+        </label>
+        <label class="checkbox-label">
+          <span style="margin-right:8px">Durasi (menit):</span>
+          <input type="number" id="lockdown-duration" min="1" max="1440" value="30" style="width:90px" />
+        </label>
+      </div>
+      <div class="info-banner warning">
+        ⚠️ <strong>Cara kerja auto-trigger:</strong> kalau banyak indikator serangan
+        (SQLi attempt, brute force, RPS spike, banyak IP berbeda) tertangkap dalam 60 detik,
+        sistem otomatis naik tingkat — mulai dari guarded → restricted → full lockdown.
+        Mode normal kembali setelah 2 menit "tenang".
+      </div>
+      <h3>10 Trigger Lockdown Terakhir</h3>
+      <div id="lockdown-triggers" class="backup-list">
+        <div class="empty-state muted">Belum ada lockdown.</div>
+      </div>
     </div>
   </section>
 

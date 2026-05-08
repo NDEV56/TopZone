@@ -1,41 +1,44 @@
 <?php
-include 'koneksi.php';
+/**
+ * admin_edit_paket.php — HARDENED v3.1
+ *   • require_admin
+ *   • Prepared statements
+ *   • CSRF
+ *   • XSS-safe
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
+tz_require_admin();
 
-// 1. Ambil ID dari URL dengan aman
-$id_get = isset($_GET['id']) ? mysqli_real_escape_string($koneksi, $_GET['id']) : '';
+$id = (int)($_GET['id'] ?? 0);
+if ($id <= 0) tz_safe_redirect('/Home/admin_paket.php');
 
-// 2. Ambil data paket berdasarkan ID
-// PENTING: Ganti 'id_produk' kalau nama kolom di database lu beda!
-$query = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_produk = '$id_get'");
-$data = mysqli_fetch_assoc($query);
+$data = tz_db()->fetchOne('SELECT * FROM produk_game WHERE id_produk = ?', [$id]);
+if (!$data) tz_safe_redirect('/Home/admin_paket.php');
 
-// Proteksi kalau ID ngasal atau data gak ada
-if (!$data) {
-    header("Location: admin_paket.php");
-    exit();
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
+    tz_csrf_verify();
+    $nama  = trim((string)($_POST['nama_produk'] ?? ''));
+    $harga = (int)($_POST['harga'] ?? 0);
 
-// 3. Logika Update data
-if (isset($_POST['update'])) {
-    $nama = mysqli_real_escape_string($koneksi, $_POST['nama_produk']);
-    $harga = mysqli_real_escape_string($koneksi, $_POST['harga']);
-
-    // Gunakan nama kolom yang sama ('id_produk') untuk WHERE clause
-    $sql_update = "UPDATE produk_game SET 
-                   nama_produk = '$nama', 
-                   harga = '$harga' 
-                   WHERE id_produk = '$id_get'";
-    
-    $update = mysqli_query($koneksi, $sql_update);
-
-    if ($update) {
+    if ($nama === '' || strlen($nama) > 64 || $harga < 0 || $harga > 100000000) {
+        echo "<script>alert('Input tidak valid'); history.back();</script>";
+        exit;
+    }
+    try {
+        tz_db()->exec(
+            'UPDATE produk_game SET nama_produk = ?, harga = ? WHERE id_produk = ?',
+            [$nama, $harga, $id]
+        );
         echo "<script>alert('Berhasil diupdate!'); window.location='admin_paket.php';</script>";
-    } else {
-        echo "Gagal update: " . mysqli_error($koneksi);
+        exit;
+    } catch (\Throwable $e) {
+        error_log('[topzone-edit-paket] ' . $e->getMessage());
+        echo "<script>alert('Gagal update'); history.back();</script>";
+        exit;
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -57,11 +60,14 @@ if (isset($_POST['update'])) {
 <div class="form-card">
     <h2>Edit Paket</h2>
     <form method="POST">
+        <?= tz_csrf_field() ?>
         <label>Nama Item/Produk</label>
-        <input type="text" name="nama_produk" value="<?php echo htmlspecialchars($data['nama_produk']); ?>" required>
+        <input type="text" name="nama_produk" maxlength="64"
+               value="<?= tz_attr($data['nama_produk']) ?>" required>
 
         <label>Harga (Rp)</label>
-        <input type="number" name="harga" value="<?php echo htmlspecialchars($data['harga']); ?>" required>
+        <input type="number" name="harga" min="0" max="100000000"
+               value="<?= tz_attr($data['harga']) ?>" required>
 
         <button type="submit" name="update" class="btn-update">SIMPAN PERUBAHAN</button>
         <a href="admin_paket.php" class="btn-back"> Kembali</a>

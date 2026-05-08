@@ -958,6 +958,78 @@ code {
   to   { transform: rotate(360deg); }
 }
 
+/* ─── Lockdown UI ─── */
+.lockdown-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--danger);
+  color: #fff;
+  font-size: .95rem;
+  position: sticky;
+  top: 56px;
+  z-index: 49;
+  animation: pulse-soft 2s infinite;
+  flex-wrap: wrap;
+}
+.lockdown-strip[data-level="guarded"]    { background: var(--warning); }
+.lockdown-strip[data-level="restricted"] { background: #ea580c; }
+.lockdown-strip[data-level="lockdown"]   { background: var(--danger); }
+.lockdown-strip .btn-link { color: #fff; text-decoration: underline; }
+.lockdown-strip .muted     { color: rgba(255,255,255,.85); }
+
+.lockdown-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  margin-bottom: 16px;
+  transition: all var(--transition);
+}
+.lockdown-banner[data-level="guarded"]    { border-color: var(--warning); background: rgba(217,119,6,.08); }
+.lockdown-banner[data-level="restricted"] { border-color: #ea580c;       background: rgba(234,88,12,.08); }
+.lockdown-banner[data-level="lockdown"]   { border-color: var(--danger);  background: rgba(220,38,38,.10); }
+.lockdown-icon  { font-size: 2.4rem; }
+.lockdown-text  { flex: 1; }
+.lockdown-title { font-weight: 700; font-size: 1.1rem; }
+.lockdown-sub   { color: var(--text-muted); font-size: .9rem; }
+
+.lockdown-card {
+  border-left: 4px solid var(--danger);
+}
+
+.lockdown-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.lockdown-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 14px;
+  text-align: center;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition);
+}
+.lockdown-btn:hover { transform: translateY(-2px); }
+.lockdown-btn.guarded:hover    { border-color: var(--warning); background: rgba(217,119,6,.06); }
+.lockdown-btn.restricted:hover { border-color: #ea580c;        background: rgba(234,88,12,.06); }
+.lockdown-btn.lockdown:hover   { border-color: var(--danger);  background: rgba(220,38,38,.06); }
+.lockdown-btn .lvl-icon { font-size: 1.6rem; }
+.lockdown-btn .lvl-name { font-weight: 700; }
+.lockdown-btn .lvl-desc { font-size: .82rem; color: var(--text-muted); line-height: 1.4; }
+
 /* ─── Utility ─── */
 [hidden] { display: none !important; }
 
