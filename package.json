@@ -1,37 +1,28 @@
 {
   "name": "topzone-server",
-  "version": "2.0.0",
-  "description": "TopZone — gaming top-up platform with PHP backend, Xendit gateway, and ngrok tunnel for local webhook testing.",
+  "version": "3.0.0",
+  "description": "TopZone Universal Launcher — multi-tunnel (ngrok/cloudflared/localtunnel/serveo/pinggy), beginner-friendly GUI control panel, auto-update from GitHub, and 6-category logging.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "setup": "node -e \"require('fs').existsSync('.env')||require('fs').copyFileSync('.env.example','.env');console.log('✔ .env ready — edit isi tokennya')\"",
-    "db:setup": "mysql -u root -p < database/schema.sql && mysql -u root -p topzone < database/seed.sql",
-    "db:schema": "mysql -u root -p < database/schema.sql",
-    "db:seed": "mysql -u root -p topzone < database/seed.sql",
-    "db:reset": "mysql -u root -p -e \"DROP DATABASE IF EXISTS topzone\" && npm run db:setup",
-    "lint:php": "find Home Login includes -name '*.php' -exec php -l {} \\;",
-    "clean:logs": "rm -f *.log Home/*.log",
-    "clean:uploads": "find Home/uploads -type f ! -name '.htaccess' ! -name '.gitkeep' -delete"
+    "start"   : "node server.js",
+    "gui"     : "node gui.js",
+    "dev"     : "node server.js",
+    "setup"   : "node server.js --setup",
+    "doctor"  : "node server.js --doctor",
+    "update"  : "node server.js --update",
+    "no-tunnel": "node server.js --no-tunnel",
+    "check"   : "node -c server.js && node -c gui.js && node -e \"['./lib/colors.js','./lib/utils.js','./lib/config.js','./lib/logger.js','./lib/detector.js','./lib/tunnels.js','./lib/security.js','./lib/updater.js','./lib/phpServer.js','./lib/controller.js'].forEach(f=>{require('child_process').execSync('node -c '+f);console.log('ok',f)})\""
   },
   "keywords": [
-    "topup",
-    "gaming",
-    "xendit",
-    "php",
-    "ngrok",
-    "mobile-legends",
-    "free-fire"
+    "ngrok","cloudflared","localtunnel","tunnel","xampp","laragon","wamp",
+    "mamp","ampps","openserver","php","webhook","midtrans","gui","control-panel"
   ],
-  "author": "TopZone Team",
-  "license": "GPL-2.0",
+  "license": "MIT",
   "dependencies": {
     "@ngrok/ngrok": "^1.4.0",
     "dotenv": "^16.4.5"
   },
   "engines": {
-    "node": ">=16",
-    "npm": ">=8"
+    "node": ">=16"
   }
 }

@@ -1,59 +1,22 @@
-# ─── Environment & Secrets ─────────────────────────────────────────
+# Konfigurasi rahasia
 .env
-.env.local
-.env.*.local
-*.key
-*.pem
-secrets.json
+.topzone-state.json
 
-# ─── Dependencies ──────────────────────────────────────────────────
+# Dependency
 node_modules/
-vendor/
-composer.lock
 
-# ─── Logs ──────────────────────────────────────────────────────────
-*.log
-logs/
-npm-debug.log*
-callback_error.log
-debug.log
-error.log
-
-# ─── User-uploaded content (jangan commit foto user) ───────────────
-Home/uploads/*
-!Home/uploads/.htaccess
-!Home/uploads/.gitkeep
-
-# ─── Database backups ──────────────────────────────────────────────
-*.sql.bak
-*.dump
+# Log & backup
+logs/*.log
+logs/*.bak
+logs/update-log.txt
 backups/
 
-# ─── OS / Editor ───────────────────────────────────────────────────
+# OS / IDE
 .DS_Store
 Thumbs.db
-desktop.ini
-.idea/
 .vscode/
-*.swp
-*.swo
-*~
-.history/
+.idea/
 
-# ─── Build artifacts ───────────────────────────────────────────────
-dist/
-build/
+# Build / cache
 *.tmp
-*.cache
-
-# ─── PHP / Composer ────────────────────────────────────────────────
-.phpunit.result.cache
-.php-cs-fixer.cache
-
-# ─── Ngrok ─────────────────────────────────────────────────────────
-ngrok.yml
-.ngrok2/
-
-# ─── Local config overrides ────────────────────────────────────────
-config.local.php
-*.local.php
+*.tmp.*
