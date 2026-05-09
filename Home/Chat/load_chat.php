@@ -8,15 +8,21 @@ if(isset($_SESSION['id_user'])){
     
     while($row = mysqli_fetch_assoc($chats)):
         $is_me = ($row['pengirim'] == 'user');
+        $pesan = $row['pesan'];
+        $is_image = preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $pesan);
 ?>
-    <div style="margin-bottom:15px; display:flex; flex-direction:column; <?= $is_me ? 'align-items:flex-end;' : 'align-items:flex-start;' ?>">
-        <div style="padding:10px; border-radius:12px; max-width:80%; font-size:13px; <?= $is_me ? 'background:#007bff; color:white;' : 'background:#eee; color:#333;' ?>">
-            <?= htmlspecialchars($row['pesan']) ?>
+    <div style="margin-bottom:10px; display:flex; flex-direction:column; <?= $is_me ? 'align-items:flex-end;' : 'align-items:flex-start;' ?>">
+        <div style="padding:10px; border-radius:12px; max-width:75%; font-size:13px; <?= $is_me ? 'background:#007bff; color:white; border-bottom-right-radius:2px;' : 'background:#333; color:#eee; border-bottom-left-radius:2px;' ?>">
+            <?php if($is_image): ?>
+                <img src="uploads/<?= $pesan ?>" style="max-width:100%; border-radius:8px; cursor:pointer;" onclick="zoomImage(this.src)">
+            <?php else: ?>
+                <?= htmlspecialchars($pesan) ?>
+            <?php endif; ?>
         </div>
-        <div style="font-size:10px; color:#999; margin-top:4px;">
+        <div style="font-size:9px; color:#666; margin-top:4px; display:flex; align-items:center; gap:3px;">
             <?= date('H:i', strtotime($row['waktu'])) ?>
             <?php if($is_me): ?>
-                <span style="margin-left:3px; color:<?= $row['is_read'] == 1 ? '#4fc3f7' : '#ccc' ?>;">
+                <span style="color:<?= $row['is_read'] == 1 ? '#4fc3f7' : '#888' ?>;">
                     <?= $row['is_read'] == 1 ? '✓✓' : '✓' ?>
                 </span>
             <?php endif; ?>

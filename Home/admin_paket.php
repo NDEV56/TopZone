@@ -29,9 +29,9 @@ if (isset($_GET['hapus'])) {
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: var(--text); margin: 0; display: flex; }
         
         /* Sidebar */
-        .sidebar { width: 250px; height: 100vh; background: #000; padding: 20px; position: fixed; border-right: 1px solid #333; z-index: 100; box-sizing: border-box; }
-        .sidebar h1 { color: var(--primary); font-size: 24px; margin-bottom: 30px; letter-spacing: 1px; }
-        .nav-link { display: block; color: #888; text-decoration: none; padding: 12px; border-radius: 8px; margin-bottom: 5px; transition: 0.3s; font-size: 14px; }
+        .sidebar { width: 220px; height: 100vh; background: #000; padding: 15px; position: fixed; border-right: 1px solid #333; z-index: 100; }
+        .sidebar h1 { color: var(--primary); font-size: 20px; margin-bottom: 25px; letter-spacing: 1px; }
+        .nav-link { display: block; color: #888; text-decoration: none; padding: 10px 15px; border-radius: 8px; transition: 0.3s; margin-bottom: 5px; font-size: 14px; }
         .nav-link:hover, .nav-link.active { background: #222; color: var(--primary); }
 
         /* Main Content */
@@ -107,7 +107,7 @@ if (isset($_GET['hapus'])) {
     </div>
 
     <div class="content">
-        <h2 style="margin-bottom: 30px; font-weight: 700;">💎 Management Paket Produk</h2>
+        <h2 style="margin-bottom: 30px; font-weight: 700;">Management Paket Produk</h2>
 
         <div class="game-grid">
             <?php
