@@ -75,7 +75,9 @@ if ($is_real_user) {
     <title>TOPZONE - Pusat Game</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Taruh ini di paling atas file atau di dalam <head> -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -444,17 +446,163 @@ if ($is_real_user) {
     </div>
     <div class="footer-bottom">© 2026 TOPZONE • All Rights Reserved</div>
 </footer>
+<!-- AREA MODAL & FLOATING BUTTON CHAT -->
+<?php if(isset($_SESSION['id_user'])): ?>
+<div id="btnChatFloating" style="position:fixed; bottom:20px; right:20px; z-index:9999;">
+    <button onclick="bukaModalChat()" style="width:60px; height:60px; background:#007bff; border-radius:50%; color:white; border:none; cursor:pointer; font-size:24px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; transition: 0.3s;">
+        💬
+    </button>
+</div>
+<?php endif; ?>
+
+<div id="modalChatMprruy" style="display:none; position:fixed; z-index:10000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+    <div style="background:white; width:95%; max-width:450px; border-radius:15px; overflow:hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); animation: zoomIn 0.2s ease-out;">
+        
+        <!-- Header Chat -->
+        <div style="padding:15px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:10px; background:#fff;">
+            <div style="position:relative;">
+                <img src="../Login/logotopzone.png" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" onerror="this.src='https://ui-avatars.com/api/?name=Top+Zone'">
+                <div id="onlineIndicator" style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#ccc; border:2px solid white; border-radius:50%;"></div>
+            </div>
+            <div style="flex:1;">
+                <div style="font-weight:bold; font-size:14px; color:#333;">TOPZONE OFFICIAL</div>
+                <div id="onlineText" style="font-size:11px; color:#888;">Memuat status...</div>
+            </div>
+            <button onclick="tutupModalChat()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button>
+        </div>
+
+        <!-- Body Chat -->
+        <div id="chatBodyContainer" style="height:400px; overflow-y:auto; padding:15px; background:#f9f9f9;">
+            <!-- Pesan akan dimuat di sini secara live -->
+        </div>
+
+        <!-- Area Preview Gambar -->
+        <div id="previewPanel" style="display:none; padding:10px; background:#fff; border-top:1px solid #eee; position:relative;">
+            <span onclick="cancelPreview()" style="position:absolute; top:5px; right:15px; color:#ff4444; cursor:pointer; font-size:20px; font-weight:bold;">&times;</span>
+            <img id="imgPreview" style="max-height:80px; border-radius:8px; border:1px solid #007bff; display:block; margin:auto;">
+        </div>
+
+        <!-- Input Area dengan Tombol + Animasi -->
+        <!-- Input Area dengan Tombol + Animasi & Tombol Kirim -->
+        <div style="padding:10px; background:#fff; border-top:1px solid #ddd; display:flex; gap:8px; align-items:center;">
+            
+            <!-- Tombol Plus -->
+            <div style="position:relative;">
+                <button type="button" id="btnPlusMenu" onclick="toggleMenuPlus()" style="background:#f0f0f0; color:#007bff; border:1px solid #ddd; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-plus" id="plusIcon" style="font-size: 18px; color:#007bff !important;"></i>
+                </button>
+                
+                <!-- Menu Melayang -->
+                <div id="menuOptionsPlus">
+                    <!-- Ikon Galeri -->
+                    <button onclick="document.getElementById('fileInput').click(); toggleMenuPlus()" 
+                            style="background:none; border:none; cursor:pointer; padding:5px; transition: transform 0.2s;">
+                        <i class="fa-solid fa-image" style="color: #007bff; font-size: 20px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+                    </button>
+                    
+                    <!-- Divider Halus -->
+                    <div style="width: 20px; height: 1px; background: rgba(255,255,255,0.1);"></div>
+
+                    <!-- Ikon Kamera -->
+                    <button onclick="openWebcamModal(); toggleMenuPlus()" 
+                            style="background:none; border:none; cursor:pointer; padding:5px; transition: transform 0.2s;">
+                        <i class="fa-solid fa-camera" style="color: #28a745; font-size: 20px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input File (Hidden) -->
+            <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleImageSelectModal(this)">
+            
+            <!-- Input Teks -->
+            <input type="text" id="inputPesanAjax" placeholder="Tulis pesan..." style="flex:1; padding:10px 15px; border-radius:20px; border:1px solid #ddd; outline:none;">
+
+            <!-- TOMBOL KIRIM (Gue Tambahin di Sini) -->
+            <!-- GANTI WARNA TOMBOL KIRIM DI background:#007bff -->
+            <button onclick="kirimPesanAjax()" style="background:#007bff; color:white; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <i class="fa-solid fa-paper-plane" style="color:white !important; font-size: 16px;"></i>
+            </button>
+        </div>
+    </div>
+</div>
+<!-- Modal Zoom - Harus di luar container chat manapun -->
+<div id="imageModal" onclick="$(this).fadeOut(200)" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100%; height:100%; background:rgba(0, 0, 0, 0.25); align-items:center; justify-content:center; cursor:zoom-out;">
+    <span style="position:absolute; top:20px; right:35px; color:#fff; font-size:40px; cursor:pointer;">&times;</span>
+    <!-- Pastikan id imgZoom ini yang dipanggil di JS -->
+    <img id="imgZoom" style="max-width:90%; max-height:90%; border-radius:10px; border: 2px solid #00ff88; box-shadow: 0 0 30px rgba(0, 0, 0, 0.09);">
+</div>
+<!-- Modal Kamera -->
+<div id="cameraModal" style="display:none; position:fixed; z-index:10001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); align-items:center; justify-content:center; flex-direction:column;">
+    <div style="background:#fff; padding:15px; border-radius:15px; text-align:center;">
+        <video id="webcam" autoplay playsinline style="width:100%; max-width:400px; border-radius:10px; background:#000;"></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+            <button onclick="takeSnapshot()" style="background:#28a745; color:; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; cursor:pointer;">FOTO</button>
+            <button onclick="closeCamera()" style="background:#dc3545; color:#fff; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; cursor:pointer;">BATAL</button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.fa-rotate-45 { transform: rotate(45deg); transition: 0.2s; }
+/* Animasi muncul dari bawah */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Rotasi ikon plus jadi silang */
+.fa-rotate-45 { 
+    transform: rotate(45deg); 
+    transition: 0.3s; 
+}
+#menuOptionsPlus button:hover {
+    transform: scale(1.2); /* Ikon membesar saat didekati mouse */
+}
+#menuOptionsPlus {
+    display: none;
+    position: absolute;
+    bottom: 55px;
+    left: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 10px;
+    width: 50px;
+    
+    /* Efek Kaca Transparan */
+    background: rgba(255, 255, 255, 0.15); 
+    backdrop-filter: blur(12px); /* Membuat efek blur di belakang kaca */
+    -webkit-backdrop-filter: blur(12px);
+    
+    /* Border halus transparan */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    
+    /* Bayangan lembut */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+#btnPlusMenu:hover {
+    background: #000000;
+}
+</style>
+
+<!-- JAVASCRIPT MASTER -->
 <script>
 let croppie_instance;
-// Tambahkan ini di deretan fungsi JS lo
+let selectedFile = null;
+let stream = null;
+
+// --- FUNGSI GENERAL & SIDEBAR ---
 function toggleDetail(id) {
     var x = document.getElementById(id);
-    if (x.style.display === "none") {
-        x.style.display = "block";
-    } else {
-        x.style.display = "none";
-    }
+    x.style.display = (x.style.display === "none") ? "block" : "none";
 }
+
 function confirmSelesai(idOrder) {
     if (confirm("Beneran pesanan ini udah masuk, bre?")) {
         fetch('update_status.php', {
@@ -473,6 +621,7 @@ function confirmSelesai(idOrder) {
         });
     }
 }
+
 function toggleProfileSidebar() {
     closeSidebar("cartSidebar");
     const sidebar = document.getElementById("profileSidebar");
@@ -487,23 +636,23 @@ function toggleCartSidebar() {
     const overlay = document.getElementById("panelOverlay");
     sidebar.classList.toggle("active");
     overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
-    if(sidebar.classList.contains("active")) {
-        // Panggil fungsi muat keranjang lo di sini (jika ada di javascript.js)
-    }
 }
 
 function closeSidebar(id) {
-    document.getElementById(id).classList.remove("active");
+    const el = document.getElementById(id);
+    if(el) el.classList.remove("active");
 }
 
 function closeAllSidebars() {
     closeSidebar("profileSidebar");
     closeSidebar("cartSidebar");
-    document.getElementById("panelOverlay").style.display = "none";
+    const overlay = document.getElementById("panelOverlay");
+    if(overlay) overlay.style.display = "none";
     resetCroppie();
     disableEditMode();
 }
 
+// --- FUNGSI PROFILE & CROPPIE ---
 function enableEditMode() {
     document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'block');
@@ -517,42 +666,189 @@ function disableEditMode() {
 
 function resetCroppie() {
     if (croppie_instance) { croppie_instance.destroy(); croppie_instance = null; }
-    document.getElementById('crop_wrapper').style.display = 'none';
-    document.getElementById('prev_foto').style.display = 'inline-block';
+    const wrapper = document.getElementById('crop_wrapper');
+    if(wrapper) wrapper.style.display = 'none';
+    const prev = document.getElementById('prev_foto');
+    if(prev) prev.style.display = 'inline-block';
 }
 
-// Logic Input File & Croppie
-document.getElementById('input_foto')?.addEventListener('change', function() {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('prev_foto').style.display = 'none';
-        document.getElementById('crop_wrapper').style.display = 'block';
-        if (croppie_instance) croppie_instance.destroy();
-        croppie_instance = new Croppie(document.getElementById('crop_area'), {
-            viewport: { width: 150, height: 150, type: 'circle' },
-            boundary: { width: 250, height: 250 },
-            showZoomer: true
+// --- FUNGSI CHAT LIVE MPRRUY ---
+function bukaModalChat() {
+    document.getElementById("modalChatMprruy").style.display = "flex";
+    document.body.style.overflow = "hidden";
+    scrollKeBawah();
+    muatChatLive();
+}
+
+function tutupModalChat() {
+    document.getElementById("modalChatMprruy").style.display = "none";
+    document.body.style.overflow = "auto";
+    closeCamera();
+}
+
+function toggleMenuChat() {
+    $('#menuOptionsModal').fadeToggle(150).css('display', 'flex');
+    $('#plusIconModal').toggleClass('fa-rotate-45');
+}
+
+function scrollKeBawah() {
+    var chatBox = document.getElementById("chatBodyContainer");
+    if(chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function muatChatLive() {
+    if($('#modalChatMprruy').is(':visible')) {
+        $.ajax({
+            url: 'Chat/load_chat.php',
+            type: 'GET',
+            success: function(data) {
+                $('#chatBodyContainer').html(data);
+            }
         });
-        croppie_instance.bind({ url: e.target.result });
     }
-    reader.readAsDataURL(this.files[0]);
-});
-
-document.getElementById('btn_crop')?.addEventListener('click', function() {
-    croppie_instance.result({ type: 'base64', size: 'viewport', circle: true }).then(function(hasil) {
-        document.getElementById('prev_foto').src = hasil;
-        document.getElementById('nav_avatar').src = hasil; // Update navbar otomatis
-        document.getElementById('foto_base64').value = hasil;
-        document.getElementById('crop_wrapper').style.display = 'none';
-        document.getElementById('prev_foto').style.display = 'inline-block';
-    });
-});
-
-document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
-
-document.addEventListener('DOMContentLoaded', function() {
-    const btnP = document.getElementById('btnPromo');
+}
+function zoomImage(src) {
+    // 1. Masukkan gambar ke tag img di dalam modal
+    $('#imgZoom').attr('src', src);
     
+    // 2. Munculkan modal dengan display flex biar ketengah
+    $('#imageModal').css('display', 'flex').hide().fadeIn(200);
+}
+function kirimPesanAjax() {
+    var pesan = $('#inputPesanAjax').val();
+    
+    // Cek apakah ada pesan atau file yang dipilih
+    if(pesan.trim() == "" && !selectedFile) {
+        return; 
+    }
+
+    let formData = new FormData();
+    formData.append('pesan', pesan);
+    
+    // Jika ada gambar hasil foto kamera atau pilih file
+    if(selectedFile) {
+        formData.append('gambar', selectedFile);
+    }
+
+    $.ajax({
+        url: 'Chat/kirim_chat.php', // Pastikan path file ini benar
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            // Reset input setelah berhasil
+            $('#inputPesanAjax').val('');
+            cancelPreview(); // Tutup preview gambar jika ada
+            
+            // Refresh chat dan scroll ke bawah
+            muatChatLive();
+            setTimeout(scrollKeBawah, 200);
+        },
+        error: function(err) {
+            alert("Gagal kirim chat, coba lagi!");
+        }
+    });
+}
+function toggleMenuPlus() {
+    $('#menuOptionsPlus').fadeToggle(150).css('display', 'flex');
+    $('#plusIcon').toggleClass('fa-rotate-45');
+}
+// --- IMAGE & KAMERA HANDLER ---
+function handleImageSelectModal(input) {
+    const file = input.files[0];
+    if (file) {
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = e => {
+            $('#imgPreview').attr('src', e.target.result);
+            $('#previewPanel').slideDown();
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function cancelPreview() {
+    selectedFile = null;
+    $('#previewPanel').hide(); // Pakai hide() biar langsung ilang
+    $('#fileInput').val(''); // Reset input file
+}
+
+function openWebcamModal() {
+    $('#cameraModal').css('display', 'flex');
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(s => { 
+        stream = s; 
+        document.getElementById('webcam').srcObject = stream; 
+    })
+    .catch(err => { 
+        alert("Kamera tidak diizinkan atau error: " + err); 
+        closeCamera(); 
+    });
+}
+
+function takeSnapshot() {
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+        selectedFile = new File([blob], "snap.jpg", {type:"image/jpeg"});
+        $('#imgPreview').attr('src', canvas.toDataURL('image/jpeg'));
+        $('#previewPanel').slideDown();
+        closeCamera();
+    }, 'image/jpeg');
+}
+
+function closeCamera() {
+    if(stream) stream.getTracks().forEach(t => t.stop());
+    $('#cameraModal').hide();
+}
+
+// --- EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', function() {
+    // Jalankan auto-update tiap 2 detik biar gak berat
+    setInterval(muatChatLive, 2000);
+
+    // Support Enter key
+    const inputAjax = document.getElementById('inputPesanAjax');
+    if(inputAjax) {
+        inputAjax.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') { kirimChatLive(); }
+        });
+    }
+
+    // Input File Croppie
+    document.getElementById('input_foto')?.addEventListener('change', function() {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('prev_foto').style.display = 'none';
+            document.getElementById('crop_wrapper').style.display = 'block';
+            if (croppie_instance) croppie_instance.destroy();
+            croppie_instance = new Croppie(document.getElementById('crop_area'), {
+                viewport: { width: 150, height: 150, type: 'circle' },
+                boundary: { width: 250, height: 250 },
+                showZoomer: true
+            });
+            croppie_instance.bind({ url: e.target.result });
+        }
+        reader.readAsDataURL(this.files[0]);
+    });
+
+    // Button Crop
+    document.getElementById('btn_crop')?.addEventListener('click', function() {
+        croppie_instance.result({ type: 'base64', size: 'viewport', circle: true }).then(function(hasil) {
+            document.getElementById('prev_foto').src = hasil;
+            document.getElementById('nav_avatar').src = hasil;
+            document.getElementById('foto_base64').value = hasil;
+            document.getElementById('crop_wrapper').style.display = 'none';
+            document.getElementById('prev_foto').style.display = 'inline-block';
+        });
+    });
+
+    // SweetAlert Promo
+    const btnP = document.getElementById('btnPromo');
     if (btnP) {
         btnP.addEventListener('click', function() {
             if (typeof Swal !== 'undefined') {
@@ -560,27 +856,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: 'Promo Spesial mprruy!',
                     // Path folder sesuai gambar yang lo kasih
                     html: '<iframe src="../Home/806/index.html" style="width:100%; height:450px; border:none; border-radius:10px;"></iframe>',
-                    
-                    // BAGIAN TIMER DIHAPUS BIAR GAK NUTUP OTOMATIS
                     showConfirmButton: false, 
-                    showCloseButton: true, // Tombol silang (X) tetep ada biar user bisa tutup manual
-                    
+                    showCloseButton: true,
                     width: '700px',
                     background: '#ff748d',
                     color: '#fff',
-                    
-                    // Biar user bisa tutup dengan klik di luar kotak (opsional)
                     allowOutsideClick: true 
                 });
-            } else {
-                console.error("SweetAlert2 belum muat mprruy!");
-                alert("Sabar mprruy, lagi loading library-nya!");
             }
         });
     }
 });
-</script>
 
-<script src="javascript.js"></script>
+// Global Click Handler (Tutup menu/sidebar)
+document.addEventListener('click', function(event) {
+    let menu = $('#menuOptionsPlus');
+    let btnPlus = $('#btnPlusMenu');
+    if (menu.is(':visible')) {
+        // Jika klik di luar tombol plus dan di luar menu, maka tutup
+        if (!btnPlus.is(event.target) && btnPlus.has(event.target).length === 0 && !menu.is(event.target) && menu.has(event.target).length === 0) {
+            menu.fadeOut(150);
+            $('#plusIcon').removeClass('fa-rotate-45');
+        }
+    }
+});
+
+document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
+</script>
 </body>
 </html>

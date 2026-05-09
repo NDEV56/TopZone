@@ -9,9 +9,9 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: var(--text); margin: 0; display: flex; }
         
         /* Sidebar */
-        .sidebar { width: 250px; height: 100vh; background: #000; padding: 20px; position: fixed; border-right: 1px solid #333; }
-        .sidebar h1 { color: var(--primary); font-size: 24px; margin-bottom: 30px; }
-        .nav-link { display: block; color: #888; text-decoration: none; padding: 12px; border-radius: 8px; margin-bottom: 5px; transition: 0.3s; }
+        .sidebar { width: 220px; height: 100vh; background: #000; padding: 15px; position: fixed; border-right: 1px solid #333; z-index: 100; }
+        .sidebar h1 { color: var(--primary); font-size: 20px; margin-bottom: 25px; letter-spacing: 1px; }
+        .nav-link { display: block; color: #888; text-decoration: none; padding: 10px 15px; border-radius: 8px; transition: 0.3s; margin-bottom: 5px; font-size: 14px; }
         .nav-link:hover, .nav-link.active { background: #222; color: var(--primary); }
 
         /* Main Content */
@@ -50,12 +50,12 @@
         <a href="admin_orders.php" class="nav-link">📦 Pesanan Masuk</a>
         <a href="admin_tambah_game.php" class="nav-link active">🎮 Kelola Game</a>
         <a href="admin_paket.php" class="nav-link">💎 Kelola Paket</a>
-        <hr style="border: 0.1px solid #222; margin: 20px 0;">
-        <a href="../index.php" class="nav-link">🏠 Lihat Website</a>
+        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
+        <a href="index.php" class="nav-link">🏠 Lihat Website</a>
     </div>
 
     <div class="content">
-        <h2 style="margin-top: 0;">🚀 Kelola & Tambah Game Baru</h2>
+        <h2 style="margin-top: 0;">Kelola & Tambah Game Baru</h2>
         
         <div class="form-card">
             <form action="proses_tambah_game.php" method="POST" enctype="multipart/form-data">
