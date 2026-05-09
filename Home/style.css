@@ -1582,3 +1582,109 @@ body.detail-page { background-color: #f4f6f9; font-family: 'Inter', system-ui, s
 @media screen and (max-height: 700px) {
     .chat-container { height: 400px; }
 }
+/* --- TOPZONE TOAST NOTIF (SOLID & CLEAN) --- */
+/* --- TOPZONE LIQUID FROST NOTIF --- */
+/* --- TOPZONE INTERACTIVE LIQUID GLASS --- */
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --text-white: #ffffff;
+    --frost-blue: #a5d8ff; /* Biru muda pucat */
+}
+
+/* ==========================================================
+   TOPZONE LIQUID GLASS TOAST - BRUTE FORCE EDITION
+   ========================================================== */
+
+/* Pastikan container luar tidak menahan animasi */
+.swal2-container.swal2-top-end {
+    overflow-x: hidden !important;
+    padding-right: 10px !important;
+}
+
+/* Container Toast Utama */
+body .swal2-container.swal2-top-end .tz-toast-popup {
+    position: relative;
+    overflow: hidden !important;
+    display: flex !important; /* Paksa layout flex */
+    align-items: center !important;
+
+    /* LIQUID GLASS BACKGROUND */
+    background: linear-gradient(
+        135deg,
+        rgb(255, 255, 255) 0%,
+        rgba(0, 170, 255, 0.452) 30%,
+        rgba(43, 138, 255, 0.566) 70%,
+        rgba(255, 255, 255, 0.545) 100%
+    ) !important;
+
+    backdrop-filter: blur(28px) saturate(220%) brightness(1.15) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(220%) brightness(1.15) !important;
+    border: 1.8px solid rgba(255, 255, 255, 0.55) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.55) !important;
+
+    min-width: 360px !important;
+    padding: 18px 24px !important;
+    margin-top: 20px !important;
+    margin-right: 20px !important;
+
+    /* ANIMASI GESER PAKSA */
+    animation: tzSlideInRight 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+/* PAKSA TEKS JADI PUTIH (BRUTE FORCE) */
+body .swal2-container.swal2-top-end .tz-toast-popup .swal2-title,
+body .swal2-container.swal2-top-end .tz-toast-popup .swal2-html-container,
+.tz-toast-title, 
+.tz-toast-content {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    text-align: left !important;
+}
+
+/* Judul Spesifik */
+.tz-toast-title {
+    font-weight: 900 !important;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Content Spesifik */
+.tz-toast-content {
+    font-weight: 600 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Reflection Layer */
+body .swal2-container.swal2-top-end .tz-toast-popup::before {
+    content: "";
+    position: absolute;
+    top: -60%; left: -30%; width: 80%; height: 220%;
+    background: linear-gradient(115deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0) 100%);
+    transform: rotate(18deg);
+    animation: tzShineSweep 4.5s linear infinite !important;
+    pointer-events: none;
+}
+
+/* Timer Bar */
+body .swal2-container.swal2-top-end .tz-toast-popup .swal2-timer-progress-bar {
+    background: #ffffff !important;
+    height: 4px !important;
+}
+
+/* ANIMASI GESER DARI KANAN LUAR */
+@keyframes tzSlideInRight {
+    0% { transform: translateX(150%) scale(0.9); opacity: 0; }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+@keyframes tzShineSweep {
+    0% { transform: translateX(-180%) rotate(18deg); }
+    100% { transform: translateX(260%) rotate(18deg); }
+}
+/* Paksa SweetAlert jadi kasta tertinggi */
+.swal2-container {
+    z-index: 999999 !important;
+}

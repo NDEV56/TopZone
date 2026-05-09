@@ -1,7 +1,16 @@
-/* ============================================================
-    TOPZONE ULTIMATE JS - CLEAN & GACOR VERSION
-    Fitur: Search, Slider, Cart (MySQL), Profile, & Checkout
-   ============================================================ */
+const swalConfig = {
+        target: 'body',
+        background: 'rgba(20, 20, 20, 0.95)',
+        color: '#fff',
+        customClass: {
+            container: 'tz-swal-container'
+        },
+        didOpen: () => {
+            // Paksa container Swal ke kasta tertinggi (Z-Index 1M)
+            const container = document.querySelector('.swal2-container');
+            if (container) container.style.zIndex = '9999999';
+        }
+    };
 
 /* ===== A. GLOBAL VARIABLES ===== */
 let kategoriAktif = "";
@@ -142,11 +151,71 @@ function ubahQty(id, delta) {
 }
 
 function hapusItemDB(id) {
-    if(!confirm("Yakin mau buang item ini mprruy?")) return;
-    fetch(`hapus_keranjang_db.php?id=${id}`)
-    .then(res => res.json())
-    .then(data => {
-        if(data.status === 'sukses') updateCartDisplay();
+    Swal.fire({
+        title: 'BUANG ITEM?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Hapus!',
+        confirmButtonColor: '#d33',
+        background: 'rgba(20, 20, 20, 0.95)',
+        color: '#fff',
+        didOpen: () => {
+            const container = document.querySelector('.swal2-container');
+            if (container) container.style.zIndex = '9999999';
+        }
+    }).then((res) => {
+        if (res.isConfirmed) {
+            // 1. ILANGIN ITEMNYA DULU
+            const allCards = document.querySelectorAll('.cart-card');
+            allCards.forEach(card => {
+                const cb = card.querySelector('.cart-checkbox');
+                if (cb && cb.value == id) {
+                    card.style.transition = '0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    
+                    setTimeout(() => {
+                        card.remove();
+
+                        // 2. CEK APAKAH KERANJANG BENERAN ABIS (LIVE CHECK)
+                        const remainingItems = document.querySelectorAll('.cart-card');
+                        if (remainingItems.length === 0) {
+                            // --- KUNCI: ANIMASIIN PANEL CHECKOUT BIAR ILANG ---
+                            // Cari container bawah (tempat total tagihan & tombol bayar)
+                            const listContainer = document.getElementById("cartItemsList");
+                            
+                            if (listContainer) {
+                                listContainer.style.transition = '0.5s ease';
+                                listContainer.style.opacity = '0';
+                                
+                                setTimeout(() => {
+                                    // Ganti isinya jadi pesan kosong
+                                    listContainer.innerHTML = `
+                                        <div style="text-align:center; padding:40px 20px; opacity:0; transform:translateY(10px); transition:0.5s;" id="emptyMsg">
+                                            <p style="color:#888;">Keranjang kosong mprruy!</p>
+                                        </div>
+                                    `;
+                                    listContainer.style.opacity = '1';
+                                    setTimeout(() => {
+                                        document.getElementById('emptyMsg').style.opacity = '1';
+                                        document.getElementById('emptyMsg').style.transform = 'translateY(0)';
+                                    }, 50);
+                                }, 500);
+                            }
+                        }
+                        
+                        // Update angka badge & hitung ulang total
+                        if (typeof hitungTotal === "function") hitungTotal();
+                        const cartCount = document.getElementById("cartCount");
+                        if(cartCount) cartCount.innerText = remainingItems.length;
+
+                    }, 300);
+                }
+            });
+
+            // 3. TETEP TEMBAK DB BIAR SINKRON
+            fetch(`hapus_keranjang_db.php?id=${id}`).catch(err => console.log(err));
+        }
     });
 }
 
@@ -231,7 +300,10 @@ function eksekusiTambah(id_game) {
     })
     .then(res => res.text())
     .then(hasil => {
-        alert("Mantap! Masuk keranjang ya mprruy!");
+             Toast.fire({
+                icon: 'success',
+                html: `<span class="tz-toast-title">BERHASIL</span><p class="tz-toast-content"><b>${currentSelectedProduct}</b> masuk keranjang!</p>`
+            })
         updateCartDisplay();
     });
 }
@@ -240,7 +312,10 @@ function prosesCheckout() {
     const dipilih = document.querySelectorAll('.cart-checkbox:checked');
     
     if (dipilih.length === 0) {
-        alert("Pilih dulu barangnya mprruy!");
+            Toast.fire({
+                icon: 'error',
+                html: `<span class="tz-toast-title">LAU PILIH PRODUK DULU NAPA!</span><p class="tz-toast-content">Pilih dulu sono!</p>`
+            })
         return;
     }
 
@@ -281,3 +356,26 @@ if(overlay) {
         this.style.display = "none";
     };
 }
+const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3500,
+    timerProgressBar: true,
+    background: 'transparent',
+    showClass: {
+        popup: 'animate__none' // MATIKAN animasi bawaan Swal agar CSS kita yang handle
+    },
+    hideClass: {
+        popup: 'animate__animated animate__fadeOutRight animate__faster'
+    },
+    customClass: {
+        popup: 'tz-toast-popup',
+        timerProgressBar: 'tz-toast-timer'
+    },
+    didOpen: (toast) => {
+        // Paksa ulang warna via JS kalau CSS masih kalah (Jaga-jaga)
+        toast.querySelector('.swal2-title').style.setProperty('color', '#ffffff', 'important');
+        toast.querySelector('.swal2-html-container').style.setProperty('color', '#ffffff', 'important');
+    }
+});
