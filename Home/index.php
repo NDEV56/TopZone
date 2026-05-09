@@ -460,7 +460,7 @@ if ($is_real_user) {
     <div style="background:white; width:95%; max-width:450px; border-radius:15px; overflow:hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); animation: zoomIn 0.2s ease-out;">
         
         <!-- Header Chat -->
-        <div style="padding:15px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:10px; background:#fff;">
+        <div style="padding:15px; border-bottom:1px solid #d0ff00; display:flex; align-items:center; gap:10px; background:#fff;">
             <div style="position:relative;">
                 <img src="../Login/logotopzone.png" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" onerror="this.src='https://ui-avatars.com/api/?name=Top+Zone'">
                 <div id="onlineIndicator" style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#ccc; border:2px solid white; border-radius:50%;"></div>
@@ -478,18 +478,18 @@ if ($is_real_user) {
         </div>
 
         <!-- Area Preview Gambar -->
-        <div id="previewPanel" style="display:none; padding:10px; background:#fff; border-top:1px solid #eee; position:relative;">
+        <div id="previewPanel" style="display:none; padding:10px; background:#4400ff09; border-top:1px solid #4400ff09; position:relative;">
             <span onclick="cancelPreview()" style="position:absolute; top:5px; right:15px; color:#ff4444; cursor:pointer; font-size:20px; font-weight:bold;">&times;</span>
             <img id="imgPreview" style="max-height:80px; border-radius:8px; border:1px solid #007bff; display:block; margin:auto;">
         </div>
 
         <!-- Input Area dengan Tombol + Animasi -->
         <!-- Input Area dengan Tombol + Animasi & Tombol Kirim -->
-        <div style="padding:10px; background:#fff; border-top:1px solid #ddd; display:flex; gap:8px; align-items:center;">
+        <div style="padding:10px; background:#fff; border-top:1px solid #d0ff00; display:flex; gap:8px; align-items:center;">
             
             <!-- Tombol Plus -->
             <div style="position:relative;">
-                <button type="button" id="btnPlusMenu" onclick="toggleMenuPlus()" style="background:#f0f0f0; color:#007bff; border:1px solid #ddd; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <button type="button" id="btnPlusMenu" onclick="toggleMenuPlus()" style="background:#f0f0f0; color:#007bff; border:1px solid #4400ff09; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-plus" id="plusIcon" style="font-size: 18px; color:#007bff !important;"></i>
                 </button>
                 
@@ -534,7 +534,7 @@ if ($is_real_user) {
 </div>
 <!-- Modal Kamera -->
 <div id="cameraModal" style="display:none; position:fixed; z-index:10001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); align-items:center; justify-content:center; flex-direction:column;">
-    <div style="background:#fff; padding:15px; border-radius:15px; text-align:center;">
+    <div style="background:rgba(8, 0, 255, 0.09); padding:15px; border-radius:15px; text-align:center;">
         <video id="webcam" autoplay playsinline style="width:100%; max-width:400px; border-radius:10px; background:#000;"></video>
         <canvas id="canvas" style="display:none;"></canvas>
         <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
@@ -545,50 +545,141 @@ if ($is_real_user) {
 </div>
 
 <style>
-@keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.fa-rotate-45 { transform: rotate(45deg); transition: 0.2s; }
-/* Animasi muncul dari bawah */
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+/* --- ANIMASI PREMIUM --- */
+@keyframes liquidShow {
+    from { transform: scale(0.9) translateY(20px); opacity: 0; filter: blur(10px); }
+    to { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); }
 }
 
-/* Rotasi ikon plus jadi silang */
-.fa-rotate-45 { 
-    transform: rotate(45deg); 
-    transition: 0.3s; 
+@keyframes floatAnim {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+    100% { transform: translateY(0px); }
 }
-#menuOptionsPlus button:hover {
-    transform: scale(1.2); /* Ikon membesar saat didekati mouse */
+
+/* --- ANIMASI TAMBAHAN --- */
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(0, 210, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 210, 255, 0); }
 }
-#menuOptionsPlus {
-    display: none;
-    position: absolute;
-    bottom: 55px;
-    left: 0;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    padding: 15px 10px;
-    width: 50px;
-    
-    /* Efek Kaca Transparan */
-    background: rgba(255, 255, 255, 0.15); 
-    backdrop-filter: blur(12px); /* Membuat efek blur di belakang kaca */
+
+#btnChatFloating button {
+    background: rgba(10, 25, 47, 0.75) !important;
+    backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 210, 255, 0.3) !important;
+    color: #00d2ff !important;
     
-    /* Border halus transparan */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 30px;
+    /* Gabungan Animasi: Melayang + Denyut Cahaya */
+    animation: floatAnim 3s ease-in-out infinite, pulseGlow 2s infinite;
     
-    /* Bayangan lembut */
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    outline: none;
 }
 
-#btnPlusMenu:hover {
-    background: #000000;
+/* Efek saat kursor mendekat (Hover) */
+#btnChatFloating button:hover {
+    transform: scale(1.1) rotate(5deg); /* Membesar & miring dikit */
+    background: rgba(0, 210, 255, 0.2) !important; /* Warna biru liquid naik */
+    border-color: rgba(0, 210, 255, 0.8) !important;
+    color: #fff !important;
+    box-shadow: 0 12px 35px rgba(0, 210, 255, 0.3);
+}
+
+/* Efek saat diklik (Active) */
+#btnChatFloating button:active {
+    transform: scale(0.9); /* Efek membal/mendekat saat ditekan */
+}
+
+/* --- MODAL CHAT (TRUE NAVY LIQUID) --- */
+#modalChatMprruy > div {
+    /* Gradasi Navy Gelap, bukan Hitam */
+    background: linear-gradient(165deg, rgba(10, 25, 47, 0.9), rgba(8, 0, 255, 0.35)) !important;
+    backdrop-filter: blur(35px) saturate(210%);
+    -webkit-backdrop-filter: blur(35px) saturate(210%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 25px 80px rgba(8, 0, 255, 0.35);
+    animation: liquidShow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    color: #2200ff7c;
+}
+
+/* Header & Body Glass Effect */
+#modalChatMprruy div[style*="background:#fff"], 
+#modalChatMprruy div[style*="background:white"],
+#chatBodyContainer {
+    background: rgba(8, 0, 255, 0.09) !important;
+    color: #0000ff40 !important;
+}
+
+/* --- INPUT AREA --- */
+#inputPesanAjax {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #1100ff47 !important;
+    border-radius: 20px !important;
+}
+
+#inputPesanAjax::placeholder { color: rgba(168, 178, 209, 0.4); }
+
+/* --- MENU PLUS (VERTICAL UP) --- */
+#menuOptionsPlus {
+    display: none; /* Dikontrol JS */
+    position: absolute;
+    bottom: 55px; /* Di atas tombol plus */
+    left: 0;
+    flex-direction: column; /* VERTIKAL */
+    align-items: center;
+    gap: 12px;
+    padding: 15px 8px;
+    width: 42px;
+    background: rgba(10, 25, 47, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(0, 210, 255, 0.25) !important;
+    border-radius: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    animation: liquidShow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#menuOptionsPlus button {
+    background: rgba(255, 255, 255, 0.05) !important;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+#menuOptionsPlus button:hover {
+    transform: scale(1.2);
+    background: rgba(0, 210, 255, 0.2) !important;
+    border-color: rgba(0, 210, 255, 0.5) !important;
+}
+
+/* Tombol Utama (+) */
+#btnPlusMenu {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fa-rotate-45 { 
+    transform: rotate(135deg); 
+    color: #ff4d4d !important; 
+}
+
+/* Scrollbar Style */
+#chatBodyContainer::-webkit-scrollbar { width: 3px; }
+#chatBodyContainer::-webkit-scrollbar-thumb { 
+    background: rgba(0, 210, 255, 0.3); 
+    border-radius: 10px; 
 }
 </style>
 
