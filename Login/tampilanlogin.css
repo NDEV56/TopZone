@@ -19,7 +19,7 @@ body {
   font-family: 'Rajdhani', sans-serif;
   width: 100%; height: 100vh;
   overflow: hidden;
-  background: #03091a;
+  background: #1205a5;
 }
  
   /* ── Aurora orb layer ── */
@@ -44,37 +44,37 @@ body {
   /* 4 warna: darkest navy → deep blue → mid blue → bright blue */
 .o1 {
   width: 70vw; height: 55vh;
-  background: radial-gradient(ellipse, rgba(10,50,160,0.72) 0%, rgba(5,20,80,0.0) 70%);
+  background: radial-gradient(ellipse, rgba(10,50,160,0.72) 0%, #050e2e 50%);
   top: -10vh; left: -10vw;
   animation: drift1 18s ease-in-out infinite alternate;
 }
 .o2 {
   width: 60vw; height: 50vh;
-  background: radial-gradient(ellipse, rgba(30,100,220,0.60) 0%, rgba(10,40,120,0.0) 70%);
+  background: radial-gradient(ellipse, rgba(30,100,220,0.60) 0%, #050e2e 50%);
   top: 10vh; right: -15vw;
   animation: drift2 22s ease-in-out infinite alternate;
 }
 .o3 {
   width: 55vw; height: 45vh;
-  background: radial-gradient(ellipse, rgba(55,148,255,0.45) 0%, rgba(20,70,180,0.0) 70%);
+  background: radial-gradient(ellipse, rgba(55,148,255,0.45) 0%, rgba(20,70,180,0.0) 50%);
   top: 30vh; left: 15vw;
   animation: drift3 26s ease-in-out infinite alternate;
 }
 .o4 {
   width: 50vw; height: 40vh;
-  background: radial-gradient(ellipse, rgba(90,190,255,0.35) 0%, rgba(30,100,210,0.0) 70%);
+  background: radial-gradient(ellipse, rgba(90,190,255,0.35) 0%, rgba(30,100,210,0.0) 50%);
   bottom: -5vh; right: 5vw;
   animation: drift4 20s ease-in-out infinite alternate;
 }
 .o5 {
   width: 45vw; height: 38vh;
-  background: radial-gradient(ellipse, rgba(15,60,180,0.55) 0%, rgba(5,20,80,0.0) 70%);
+  background: radial-gradient(ellipse, rgba(15,60,180,0.55) 0%, #050e2e 50%);
   bottom: 10vh; left: -5vw;
   animation: drift5 24s ease-in-out infinite alternate;
 }
 .o6 {
   width: 40vw; height: 35vh;
-  background: radial-gradient(ellipse, rgba(70,170,255,0.30) 0%, rgba(20,80,200,0.0) 70%);
+  background: radial-gradient(ellipse, rgba(70,170,255,0.30) 0%, rgba(20,80,200,0.0) 50%);
   top: 20vh; left: 40vw;
   animation: drift6 30s ease-in-out infinite alternate;
 }
@@ -148,12 +148,17 @@ body {
   isolation: isolate;
   width: 360px;
   height: 550px;
-  background: transparent;
-  border-radius: 15px;
-  color: white;
+  border-radius: 20px;
+  color: var(--gold);
   padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: radial-gradient(rgba(0, 7, 71, 0.719));
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-top-color: rgba(255, 255, 255, 0.5);
+  box-shadow:
+  0 8px 32px rgba(0, 0, 0, 0.4),
+  inset 0 1px 0 rgba(255,255,255,0.3);
   transition: 0.5s;
 }
  
@@ -161,12 +166,12 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 15px;
-  padding: 3px; /* Ketebalan border */
+  border-radius: 20px;
+  padding: 4px; /* Ketebalan border */
   background: radial-gradient(
     600px circle at var(--x) var(--y),
     var(--gold),
-    transparent 40%
+    transparent 60%
   );
   -webkit-mask: 
     linear-gradient(#fff 0 0) content-box, 
@@ -182,13 +187,14 @@ body {
 }
 
 .card::after {
+  border-radius: 18px;
   content: "";
   position: absolute;
   inset: 0;
   background: radial-gradient(
     600px circle at var(--x) var(--y),
     rgba(255, 191, 0, 0.15), 
-    transparent 60%
+    transparent 100%
   );
   pointer-events: none;
   opacity: 0;
@@ -197,7 +203,7 @@ body {
 
 .card:hover::before,
 .card:hover::after {
-  opacity: 1;
+  opacity: 4;
 }
 
 .logo-wrap {

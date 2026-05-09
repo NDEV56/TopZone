@@ -24,12 +24,12 @@ function loadData() {
         if (slider) slider.style.display = "none";
         if (mainTitle) {
             mainTitle.innerHTML = search.length > 0 
-                ? `<span style="color:#03ac0e">🔍 Hasil:</span> "${search}"` 
-                : `<span style="color:#03ac0e">📂 Kategori:</span> ${kategoriAktif}`;
+                ? `<span style="color:#gold">Hasil:</span> "${search}"` 
+                : `<span style="color:#gold">Kategori:</span> ${kategoriAktif}`;
         }
     } else {
         if (slider) slider.style.display = "flex";
-        if (mainTitle) mainTitle.innerText = "🔥 Semua Produk";
+        if (mainTitle) mainTitle.innerText = "Semua Produk";
     }
 
     fetch(`search.php?search=${encodeURIComponent(search)}&kategori=${encodeURIComponent(kategoriAktif)}`)
@@ -231,7 +231,7 @@ function eksekusiTambah(id_game) {
     })
     .then(res => res.text())
     .then(hasil => {
-        alert("Mantap! Masuk keranjang 🔥");
+        alert("Mantap! Masuk keranjang ya mprruy!");
         updateCartDisplay();
     });
 }
@@ -240,7 +240,7 @@ function prosesCheckout() {
     const dipilih = document.querySelectorAll('.cart-checkbox:checked');
     
     if (dipilih.length === 0) {
-        alert("Pilih dulu barangnya mprruy! 🙏");
+        alert("Pilih dulu barangnya mprruy!");
         return;
     }
 

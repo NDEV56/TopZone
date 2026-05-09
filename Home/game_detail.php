@@ -66,7 +66,8 @@ $from_cart = $_GET['from_cart'] ?? false;
         }
 
         body { 
-            background: var(--bg); 
+            background:  linear-gradient(135deg, #050e2e, #1205a5, #050e2e);
+            display: flex; 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             margin: 0; 
             color: var(--dark); 
@@ -86,10 +87,16 @@ $from_cart = $_GET['from_cart'] ?? false;
         /* Kolom Kiri - Info Game & Produk */
         .main-info { 
             flex: 2; 
-            background: var(--white); 
+            color:#fff;
+            background: rgba(255,255,255,0.08) ; 
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 1px solid rgba(255,255,255,0.25);
+            border-top-color: rgba(255,255,255,0.5);
+             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
+             inset 0 0 0 1px rgba(255,255,255,0.3); 
             padding: 30px; 
             border-radius: 20px; 
-            box-shadow: var(--shadow); 
         }
 
         .tp-img { 
@@ -101,22 +108,6 @@ $from_cart = $_GET['from_cart'] ?? false;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* Tombol Navigasi */
-        .btn-back-home {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 18px;
-            margin-bottom: 20px;
-            background: var(--dark);
-            color: var(--white);
-            border-radius: 10px;
-            font-size: 14px;
-            text-decoration: none;
-            transition: 0.3s;
-        }
-        .btn-back-home:hover { background: #000; }
-
         /* Grid Produk */
         .item-grid { 
             display: grid; 
@@ -126,8 +117,13 @@ $from_cart = $_GET['from_cart'] ?? false;
         }
 
         .item-card { 
-            background: #fff;
-            border: 1.5px solid #eee; 
+            background: rgba(255, 255, 255, 0.08) ; 
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 1px solid rgba(251, 255, 0, 0.25);
+            border-top-color: rgba(255,255,255,0.5);
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.4),
+             inset 0 0 0 1px rgba(255, 217, 0, 0.3);  
             padding: 20px; 
             border-radius: 15px; 
             cursor: pointer; 
@@ -135,13 +131,13 @@ $from_cart = $_GET['from_cart'] ?? false;
             transition: all 0.2s ease-in-out; 
         }
         .item-card:hover { 
-            border-color: var(--primary); 
+            border-color: #c9a227; 
             transform: translateY(-3px);
             box-shadow: 0 5px 15px rgba(255,77,77,0.1);
         }
         .item-card.selected { 
-            border: 2.5px solid var(--primary); 
-            background: #fff0f0; 
+            border: 2.5px solid #c9a227; 
+            background: rgba(0, 0, 0, 0.5); 
             position: relative;
         }
         .item-card.selected::after {
@@ -149,12 +145,12 @@ $from_cart = $_GET['from_cart'] ?? false;
             position: absolute;
             top: 5px;
             right: 10px;
-            color: var(--primary);
+            color: #c9a227;
             font-weight: bold;
         }
 
         .price { 
-            color: var(--primary); 
+            color: white; 
             font-weight: 800; 
             font-size: 16px; 
             margin-top: 8px; 
@@ -163,54 +159,81 @@ $from_cart = $_GET['from_cart'] ?? false;
         /* Sidebar Kanan */
         .side-buy { flex: 1; position: sticky; top: 20px; }
         .sticky-card { 
-            background: var(--white); 
+            background: rgba(255,255,255,0.08) ; 
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 2px solid rgba(255,255,255,0.25);
+            border-top-color: rgba(255,255,255,0.5);
+             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
+             inset 0 0 0 1px rgba(255,255,255,0.3);  
             padding: 25px; 
             border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            color: #fff;
         }
 
         .form-input { 
             width: 100%; 
             padding: 13px; 
-            border: 1.5px solid #eee; 
+            background: rgba(255,255,255,0.08) ; 
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 1px solid rgba(255,255,255,0.25);
+            border-top-color: rgba(255,255,255,0.5);
+             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
+             inset 0 0 0 1px rgba(255,255,255,0.3);
             border-radius: 12px; 
             font-size: 14px; 
             box-sizing: border-box; 
             margin-bottom: 15px; 
-            outline: none;
             transition: 0.3s;
         }
-        .form-input:focus { border-color: var(--primary); }
+        .form-input:focus { border-color: gold; }
 
         /* Tabs System */
         .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { 
             flex: 1; 
             padding: 12px; 
-            border: 1px solid #ddd; 
+            border: 1px solid gold; 
             border-radius: 10px; 
             cursor: pointer; 
             text-align: center; 
             font-weight: bold; 
-            background: #f9f9f9; 
+            background: rgba(255,255,255,0.08) ;
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 1px solid rgba(251, 255, 0, 0.25);
+            border-top-color: rgba(255,255,255,0.5);
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.4),
+             inset 0 0 0 1px rgba(255, 217, 0, 0.3); 
             font-size: 13px; 
             transition: 0.3s;
         }
-        .tab-btn.active { background: var(--dark); color: var(--white); border-color: var(--dark); }
+        .tab-btn.active { 
+            background: var(--dark); 
+            color: var(--white); 
+            border-color: var(--dark); 
+        }
 
         /* Qty Control */
         .qty-control { 
             display: flex; 
             align-items: center; 
-            border: 2px solid #eee; 
+            background: rgba(255,255,255,0.08) ; 
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 1px solid rgba(255,255,255,0.25);
+            border-top-color: rgba(255,255,255,0.5);
+             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
+             inset 0 0 0 1px rgba(255,255,255,0.3);
             border-radius: 12px; 
             width: fit-content; 
             overflow: hidden; 
             margin: 15px 0;
         }
-        .qty-btn { width: 40px; height: 40px; border: none; background: #f8f9fa; cursor: pointer; font-size: 18px; }
-        .qty-btn:hover { background: #eee; }
-        .qty-input { width: 60px; text-align: center; border: none; font-weight: bold; font-size: 16px; }
+        .qty-btn { color: #fff; width: 40px; height: 40px; border: none; background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25); border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3);cursor: pointer; font-size: 18px; }
+        .qty-btn:hover { color: #fff; background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25);border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3); }
+        .qty-input { width: 60px; color: #fff; text-align: center; border: none; font-weight: bold; font-size: 16px; background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25); border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3);}
 
         /* Star Rating Form */
         .rating-stars { display: flex; flex-direction: row-reverse; justify-content: flex-end; }
@@ -230,8 +253,13 @@ $from_cart = $_GET['from_cart'] ?? false;
         /* Action Buttons */
         .btn-cart {
             width: 60px; height: 60px; 
-            background: #fff; 
-            border: 2px solid #007bff; 
+            background: rgba(255,255,255,0.08) ; 
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 1px solid rgba(255,255,255,0.25);
+            border-top-color: rgba(255,255,255,0.5);
+             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
+             inset 0 0 0 1px rgba(255,255,255,0.3);
             border-radius: 15px; 
             color: #007bff; 
             font-size: 24px; 
@@ -241,11 +269,17 @@ $from_cart = $_GET['from_cart'] ?? false;
             justify-content: center;
             transition: 0.3s;
         }
-        .btn-cart:hover { background: #007bff; color: #fff; }
+        .btn-cart:hover {  background: #007bff; transform: scale(1.02);}
 
         .btn-buy-now {
             flex-grow: 1; height: 60px; 
-            background: #007bff; 
+            background: rgba(255,255,255,0.08) ; 
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%); 
+            border: 1px solid rgba(255,255,255,0.25);
+            border-top-color: rgba(255,255,255,0.5);
+             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
+             inset 0 0 0 1px rgba(255,255,255,0.3);
             color: white; 
             border: none; 
             border-radius: 15px; 
@@ -254,7 +288,7 @@ $from_cart = $_GET['from_cart'] ?? false;
             cursor: pointer;
             transition: 0.3s;
         }
-        .btn-buy-now:hover { background: #0056b3; transform: scale(1.02); }
+        .btn-buy-now:hover { background: #007bff; transform: scale(1.02); }
 
         /* Responsive */
         @media (max-width: 900px) {
@@ -269,17 +303,17 @@ $from_cart = $_GET['from_cart'] ?? false;
     <!-- BAGIAN UTAMA (KIRI) -->
     <div class="main-info">
         <a href="index.php" class="btn-back-home"
-                style="display: inline-flex;align-items: center;gap: 6px;padding: 8px 16px;margin-bottom: 16px;background:#333;color: #ffffff;border: 1.5px solid #ddd;border-radius: 8px;font-size: 13px;font-weight: 500;text-decoration: none;cursor: pointer;transition: all 0.2s ease;">
+                style="display: inline-flex;align-items: center;gap: 6px;padding: 8px 16px;margin-bottom: 16px;background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); color: #ffffff;border: 1px solid rgba(255,255,255,0.25);border-top-color: rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3); border-radius: 8px;font-size: 13px;font-weight: 500;text-decoration: none;cursor: pointer;transition: all 0.2s ease;">
                  Kembali ke Home
         </a>
-        <div style="display: flex; gap: 20px; align-items: center;">
+        <div style="display: flex; gap: 20px; align-items: center; ">
             <div class="tp-img" style="background-image:url('<?php echo $g['gambar']; ?>')"></div>
             <div>
                 <h1 style="margin: 0; font-size: 28px;"><?php echo htmlspecialchars($g['nama_game']); ?></h1>
-                <p style="color: #666; margin: 5px 0;">Kategori: <strong><?php echo $g['kategori']; ?></strong></p>
+                <p style="color: #ffffff; margin: 5px 0;">Kategori: <strong><?php echo $g['kategori']; ?></strong></p>
                 <div style="color: #ffca08; font-size: 20px;">
                     <?php for($i=1; $i<=5; $i++) echo ($i <= $rating_rata) ? "★" : "☆"; ?>
-                    <span style="color: #888; font-size: 15px;"> (<?php echo $rating_rata; ?>/5.0) | <?php echo $terjual; ?> Terjual</span>
+                    <span style="color: #fff; font-size: 15px;"> (<?php echo $rating_rata; ?>/5.0) | <?php echo $terjual; ?> Terjual</span>
                 </div>
             </div>
         </div>
@@ -287,7 +321,7 @@ $from_cart = $_GET['from_cart'] ?? false;
         <hr style="margin: 35px 0; border: 0; border-top: 1.5px solid #f0f0f0;">
 
         <!-- List Produk -->
-        <h3>1. Pilih Nominal Top Up 🔥</h3>
+        <h3>1. Pilih Nominal Top Up</h3>
         
         <?php 
         $gn_check = strtolower($g['nama_game']);
@@ -312,24 +346,24 @@ $from_cart = $_GET['from_cart'] ?? false;
                     data-tipe="<?= $tipe_p ?>" 
                     onclick="selectProduct(this, <?= $p['harga']; ?>, '<?= addslashes($p['nama_produk']); ?>')"
                     style="display: <?= ($gn_check == 'roblox' && $tipe_p != 'roblox_login') ? 'none' : 'block' ?>;">
-                    <div style="font-size: 14px; font-weight: 600; color: #444;"><?= $p['nama_produk']; ?></div>
+                    <div style="font-size: 14px; font-weight: 600; color: #ffffff;"><?= $p['nama_produk']; ?></div>
                     <div class="price">Rp <?= number_format($p['harga'], 0, ',', '.'); ?></div>
                 </div>
             <?php endwhile; ?>
 
             <?php else: ?>
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa;">
-                    <p>Produk belum tersedia untuk game ini mprruy. 🙏</p>
+                    <p>Produk belum tersedia untuk game ini mprruy.</p>
                 </div>
             <?php endif; ?>
         </div>
 
         <!-- Section Ulasan -->
-        <div style="margin-top: 60px; border-top: 2px solid #f4f7f9; padding-top: 30px;">
-            <h3>2. Testimoni Pembeli 🔥</h3>
+        <div style="margin-top: 60px; border-top: 2px solid gold; padding-top: 30px;">
+            <h3>2. Testimoni Pembeli</h3>
             
             <!-- Form Kirim Ulasan -->
-            <div style="background: #fdfdfd; padding: 25px; border-radius: 15px; border: 1px solid #eee; margin-bottom: 30px;">
+            <div style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); padding: 25px; border-radius: 15px; border: 1px solid rgba(251, 255, 0, 0.25); margin-bottom: 30px;">
                 <form action="simpan_ulasan.php" method="POST">
                     <input type="hidden" name="id_game" value="<?php echo $id_g; ?>">
                     <input type="hidden" name="slug" value="<?php echo $g['slug']; ?>">
@@ -346,7 +380,7 @@ $from_cart = $_GET['from_cart'] ?? false;
 
                     <textarea name="komentar" placeholder="Gimana layanannya mprruy? Tulis di sini..." required 
                               style="width: 100%; height: 100px; border-radius: 12px; padding: 15px; border: 1.5px solid #eee; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px;"></textarea>
-                    <button type="submit" style="background:var(--dark); color:white; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
+                    <button type="submit" style="background:var(--dark);color:white; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
                 </form>
             </div>
 
@@ -377,10 +411,10 @@ $from_cart = $_GET['from_cart'] ?? false;
     <!-- SIDEBAR (KANAN) -->
     <div class="side-buy">
         <div class="sticky-card">
-            <h3 style="margin-top:0; border-bottom: 2px solid #f4f7f9; padding-bottom: 10px;">🛒 Detail Pesanan</h3>
+            <h3 style="margin-top:0; border-bottom: 2px solid #f4f7f9; padding-bottom: 10px;">Detail Pesanan</h3>
             
             <!-- Input Data Game Dinamis -->
-            <div id="dynamic-inputs" style="margin-top: 20px;">
+            <div id="dynamic-inputs" style="margin-top: 20px; ">
                 <label style="font-size: 13px; font-weight: bold; margin-bottom: 8px; display: block;">Lengkapi Data Akun:</label>
                 
                 <?php 
@@ -396,7 +430,7 @@ $from_cart = $_GET['from_cart'] ?? false;
                             <input type="text" id="bc2" placeholder="Code 2" class="form-input">
                             <input type="text" id="bc3" placeholder="Code 3" class="form-input">
                         </div>
-                        <small style="color: #ff4d4d; font-size: 10px;">*Wajib sertakan backup codes mprruy!</small>
+                        <small style="color: gold; font-size: 12px;">*Wajib sertakan backup codes mprruy!</small>
                     </div>
                     <div id="roblox-fields-5hari" style="display:none;">
                         <input type="text" id="rblx_id_only" placeholder="Username / Profile Link" class="form-input">
@@ -437,24 +471,24 @@ $from_cart = $_GET['from_cart'] ?? false;
             </div>
 
             <!-- Ringkasan Harga -->
-            <div style="background: #fdf2f2; padding: 15px; border-radius: 12px; margin: 20px 0;">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; color: #888;">
+            <div style="background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25);border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3); padding: 15px; border-radius: 12px; margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; color: #adaaaa;">
                     <span>Produk:</span>
                     <span id="selected-product-name">-</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                     <span style="font-weight: bold;">Total:</span>
-                    <span id="total-price-display" style="font-size: 22px; color: var(--primary); font-weight: 800;">Rp 0</span>
+                    <span id="total-price-display" style="font-size: 22px; color: white; font-weight: 800;">Rp 0</span>
                 </div>
             </div>
 
             <!-- Tombol Aksi -->
             <div style="display: flex; gap: 12px;">
                 <button type="button" class="btn-cart" onclick="addToCart()">🛒</button>
-                <button type="button" class="btn-buy-now" onclick="submitOrder()">⚡ Beli Sekarang</button>
+                <button type="button" class="btn-buy-now" onclick="submitOrder()">Beli Sekarang</button>
             </div>
             
-            <p style="font-size: 11px; color: #999; text-align: center; margin-top: 15px;">
+            <p style="font-size: 12px; color: gold; text-align: center; margin-top: 15px;">
                 Layanan aktif 24 Jam. Proses otomatis & aman 100%.
             </p>
         </div>
