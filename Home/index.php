@@ -73,12 +73,16 @@ if ($is_real_user) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TOPZONE - Pusat Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="javascript.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Taruh ini di paling atas file atau di dalam <head> -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -430,7 +434,7 @@ if ($is_real_user) {
                 <h4>Menu</h4>
                 <ul><li>Home</li><li>Semua Game</li>
             <li class="promo-text">
-                <span id="btnPromo" class="promo-btn">P</span>romo
+                <span id="btnPromo" class="promo-btn" style="z-index: 999; position: relative;">P</span>romo
             </li>
             </ul>
             </div>
@@ -681,6 +685,80 @@ if ($is_real_user) {
     background: rgba(0, 210, 255, 0.3); 
     border-radius: 10px; 
 }
+
+/* --- VALENTINE GOD-TIER OVERLAY --- */
+/* --- VALENTINE GOD-TIER ATMOSPHERE --- */
+.valentine-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 9998;
+    background: radial-gradient(circle, rgba(255, 116, 141, 0) 25%, rgba(255, 20, 147, 0.5) 100%);
+    box-shadow: inset 0 0 350px rgba(255, 20, 147, 0.8);
+    opacity: 0; transition: opacity 1.5s ease-in-out;
+}
+
+/* Container Jantung & Orbit */
+.v-side-heart {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 250px; height: 250px;
+    z-index: 10001; pointer-events: none;
+    opacity: 0; transition: 1.5s ease;
+    display: flex; align-items: center; justify-content: center;
+}
+.heart-left { left: 20px; }
+.heart-right { right: 20px; }
+
+/* Jantung Organik Berdegup */
+.heart-organ {
+    font-size: 150px;
+    filter: drop-shadow(0 0 30px #ff1493);
+    animation: organicBeat 0.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    z-index: 2;
+}
+
+/* Partikel Love yang Berotasi (Banyak) */
+.orbit-love {
+    position: absolute;
+    font-size: 25px;
+    z-index: 1;
+    animation: loveRotation var(--d) infinite linear;
+}
+
+@keyframes loveRotation {
+    from { transform: rotate(var(--r)) translateX(120px) rotate(calc(-1 * var(--r))); }
+    to { transform: rotate(calc(var(--r) + 360deg)) translateX(120px) rotate(calc(-1 * (var(--r) + 360deg))); }
+}
+
+@keyframes organicBeat {
+    0% { transform: scale(0.95); }
+    5% { transform: scale(1.15); }
+    39% { transform: scale(0.85); }
+    45% { transform: scale(1.05); }
+    60% { transform: scale(0.95); }
+    100% { transform: scale(0.9); }
+}
+
+/* Sakura & Others */
+.sakura-branch {
+    position: fixed; top: -30px; width: 550px; height: 450px;
+    background: url('https://www.transparentpng.com/download/cherry-blossom/cherry-blossom-transparent-background-13.png');
+    background-size: contain; background-repeat: no-repeat;
+    z-index: 10002; opacity: 0; pointer-events: none;
+    transition: opacity 2s ease, transform 0.1s ease-out; 
+}
+.sakura-left { left: -100px; transform: rotate(-15deg) translate(var(--x), var(--y)); }
+.sakura-right { right: -100px; transform: scaleX(-1) rotate(-15deg) translate(var(--x), var(--y)); }
+
+.v-active { opacity: 1 !important; transform: translate(0, 0) rotate(0deg) !important; }
+
+/* Kucing di Atas Box */
+.cat-on-box {
+    position: absolute; top: -130px; right: 50px; width: 160px; z-index: 10005;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
+    opacity: 0; transition: 1s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: auto !important;
+}
+.cat-on-box:hover { transform: scale(1.2) rotate(-5deg); cursor: pointer; }
 </style>
 
 <!-- JAVASCRIPT MASTER -->
@@ -696,22 +774,60 @@ function toggleDetail(id) {
 }
 
 function confirmSelesai(idOrder) {
-    if (confirm("Beneran pesanan ini udah masuk, bre?")) {
-        fetch('update_status.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'id_order=' + idOrder
-        })
-        .then(response => response.text())
-        .then(data => {
-            if (data.trim() === "success") {
-                alert("Status Berhasil Diupdate");
-                location.reload(); // Ini kuncinya biar berubah otomatis di layar
-            } else {
-                alert("Gagal update: " + data);
-            }
-        });
-    }
+    // 1. Pake Swal.fire buat nanya (Biar sinkron sama tema web lo)
+    Swal.fire({
+        title: 'YAKIN BRAY?',
+        text: "Pastikan pesanan emang udah masuk ke akun lu!",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Udah Masuk!',
+        cancelButtonText: 'Bentar, Cek Lagi',
+        background: 'rgba(20, 20, 20, 0.8)', // Sesuaikan tema dark glass lo
+        color: '#ffffff'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 2. Jalankan Fetch kalau User klik "Ya"
+            fetch('update_status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id_order=' + idOrder
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data.trim() === "success") {
+                    // 3. Pake TOAST Global lo buat suksesnya
+                    Toast.fire({
+                        icon: 'success',
+                        html: `
+                            <span class="tz-toast-title">MANTAP!</span>
+                            <p class="tz-toast-content">Status pesanan berhasil diupdate.</p>
+                        `
+                    }).then(() => {
+                        location.reload(); 
+                    });
+                } else {
+                    // Notif Gagal
+                    Toast.fire({
+                        icon: 'error',
+                        html: `
+                            <span class="tz-toast-title">GAGAL!</span>
+                            <p class="tz-toast-content">${data}</p>
+                        `
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Waduh!',
+                    text: 'Koneksi ke server ruyam.'
+                });
+            });
+        }
+    });
 }
 
 function toggleProfileSidebar() {
@@ -940,24 +1056,72 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // SweetAlert Promo
+$(document).ready(function() {
+    let isPromoOpen = false;
+
+    // Fungsi buat bikin orbit love banyak
+    const createOrbit = (target) => {
+        for (let i = 0; i < 8; i++) {
+            const angle = i * 45; // Sebarkan love secara merata
+            const duration = 3 + Math.random() * 2; // Kecepatan putar acak
+            $(target).append(`<span class="orbit-love" style="--r:${angle}deg; --d:${duration}s;">💕</span>`);
+        }
+    };
+
+    // Inject Elemen
+    $('body').append(`
+        <div id="v-overlay" class="valentine-overlay"></div>
+        <div id="v-s-left" class="sakura-branch sakura-left"></div>
+        <div id="v-s-right" class="sakura-branch sakura-right"></div>
+        <div class="v-side-heart heart-left" id="l-heart-cont"><span class="heart-organ">🫀</span></div>
+        <div class="v-side-heart heart-right" id="r-heart-cont"><span class="heart-organ">🫀</span></div>
+    `);
+
+    createOrbit('#l-heart-cont');
+    createOrbit('#r-heart-cont');
+
+    // Mouse Move Parallax
+    $(document).on('mousemove', function(e) {
+        if (!isPromoOpen) return;
+        let moveX = (e.pageX - window.innerWidth / 2) / 50;
+        let moveY = (e.pageY - window.innerHeight / 2) / 50;
+        $('.sakura-branch').css({'--x': moveX + 'px', '--y': moveY + 'px'});
+    });
+
     const btnP = document.getElementById('btnPromo');
     if (btnP) {
-        btnP.addEventListener('click', function() {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Promo Spesial mprruy!',
-                    // Path folder sesuai gambar yang lo kasih
-                    html: '<iframe src="../Home/806/index.html" style="width:100%; height:450px; border:none; border-radius:10px;"></iframe>',
-                    showConfirmButton: false, 
-                    showCloseButton: true,
-                    width: '700px',
-                    background: '#ff748d',
-                    color: '#fff',
-                    allowOutsideClick: true 
-                });
-            }
-        });
+        btnP.onclick = function(e) {
+            e.preventDefault(); e.stopPropagation();
+            isPromoOpen = true;
+
+            $('#v-overlay, .sakura-branch, .v-side-heart').addClass('v-active');
+
+            Swal.fire({
+                title: '<span style="font-family: serif; letter-spacing: 2px;">🌸 WHEN DID YOU KNOW? 🌸</span>',
+                html: `
+                    <div style="position:relative;">
+                        <img src="https://www.pngarts.com/files/1/White-Cat-PNG-Transparent-Image.png" class="cat-on-box v-active">
+                        <div style="position:relative; overflow:hidden; border-radius:35px; border: 3px solid rgba(255,255,255,0.5);">
+                            <iframe src="../Home/806/index.html" style="width:100%; height:460px; border:none; border-radius:30px;"></iframe>
+                        </div>
+                    </div>
+                `,
+                showConfirmButton: false, 
+                showCloseButton: true,
+                width: '800px',
+                background: 'rgba(255, 116, 141, 0.85)',
+                backdropFilter: 'blur(35px) saturate(200%)',
+                color: '#fff',
+                padding: '30px',
+                allowOutsideClick: true,
+                willClose: () => {
+                    isPromoOpen = false;
+                    $('#v-overlay, .sakura-branch, .v-side-heart').removeClass('v-active');
+                }
+            });
+        };
     }
+});
 });
 
 // Global Click Handler (Tutup menu/sidebar)

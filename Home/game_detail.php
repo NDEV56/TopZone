@@ -52,6 +52,10 @@ $from_cart = $_GET['from_cart'] ?? false;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="javascript.js"></script>
+    <style src="style.css"></style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <title>Top Up <?php echo $g['nama_game']; ?> - TOPZONE OFFICIAL</title>
     
     <!-- CSS STYLING -->
@@ -497,43 +501,31 @@ $from_cart = $_GET['from_cart'] ?? false;
 
 <!-- JAVASCRIPT LOGIC -->
 <script>
-    // Variabel Global
+    /* ==========================================
+       VARIABLE GLOBAL (Tanpa Re-deklarasi Toast)
+       ========================================== */
     let currentSelectedProduct = null;
     let basePrice = 0;
     let currentQuantity = 1;
-    let robloxTabMode = 'login'; // 'login' atau '5hari'
-    
+    let robloxTabMode = 'login'; 
 
     /**
-     * Fungsi pilih produk dari grid
+     * Pilih Produk
      */
     function selectProduct(element, price, name) {
-        // Reset pilihan sebelumnya
         const cards = document.querySelectorAll('.item-card');
         cards.forEach(c => c.classList.remove('selected'));
-
-        // Aktifkan pilihan baru
         element.classList.add('selected');
         
-        // Simpan ke variabel global agar bisa dibaca fungsi submitOrder
         currentSelectedProduct = name;
         basePrice = price;
 
-        // Update UI
         document.getElementById('selected-product-name').innerText = name;
-        
-        // Pastikan fungsi ini ada di script kamu mprruy
-        if (typeof updatePriceDisplay === "function") {
-            updatePriceDisplay();
-        } else {
-            // Fallback jika updatePriceDisplay belum dibuat
-            const display = document.getElementById('total-price-display');
-            if(display) display.innerText = "Rp " + price.toLocaleString('id-ID');
-        }
+        updatePriceDisplay();
     }
 
     /**
-     * Fungsi ganti jumlah beli
+     * Quantity Control
      */
     function adjustQty(amount) {
         currentQuantity += amount;
@@ -542,38 +534,30 @@ $from_cart = $_GET['from_cart'] ?? false;
         updatePriceDisplay();
     }
 
-    /**
-     * Hitung & tampilkan total harga live
-     */
     function updatePriceDisplay() {
         const total = basePrice * currentQuantity;
-        document.getElementById('total-price-display').innerText = "Rp " + total.toLocaleString('id-ID');
+        const display = document.getElementById('total-price-display');
+        if(display) {
+            display.innerText = "Rp " + total.toLocaleString('id-ID');
+        }
     }
 
     /**
-     * Toggle Tab khusus Roblox
+     * Khusus Roblox Tab & Filter
      */
     function toggleRobloxTab(mode) {
         robloxTabMode = mode;
         const filterKey = (mode === 'login') ? 'roblox_login' : 'roblox_5hari';
         
-        // 1. UI Button & Fields (Udah ada di kode lu)
         document.getElementById('btn-tab-login').classList.toggle('active', mode === 'login');
         document.getElementById('btn-tab-5hari').classList.toggle('active', mode === '5hari');
         document.getElementById('roblox-fields-login').style.display = (mode === 'login' ? 'block' : 'none');
         document.getElementById('roblox-fields-5hari').style.display = (mode === '5hari' ? 'block' : 'none');
 
-        // 2. Filter Produk (Tambahan Baru)
-        const allProducts = document.querySelectorAll('.produk-item');
-        allProducts.forEach(el => {
-            if (el.getAttribute('data-tipe') === filterKey) {
-                el.style.display = 'block';
-            } else {
-                el.style.display = 'none';
-            }
+        document.querySelectorAll('.produk-item').forEach(el => {
+            el.style.display = (el.getAttribute('data-tipe') === filterKey) ? 'block' : 'none';
         });
 
-        // Reset pilihan produk kalau pindah tab biar gak salah harga
         currentSelectedProduct = null;
         basePrice = 0;
         document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
@@ -581,78 +565,69 @@ $from_cart = $_GET['from_cart'] ?? false;
     }
 
     /**
-     * Kirim data ke Keranjang (Fetch API)
+     * Tambah Ke Keranjang (Sinkron DB)
      */
     function addToCart() {
         const isLogged = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
         
         if (!isLogged) {
-            alert("Mprruy, login dulu ya biar pesanan kesimpan di akun lu! 😊");
-            window.location.href = "../Login/tampilanlogin.php";
+            Toast.fire({
+                icon: 'warning',
+                html: '<span class="tz-toast-title">LOGIN DULU!</span><p class="tz-toast-content">Akun lu belum nyangkut mprruy.</p>'
+            }).then(() => { window.location.href = "../Login/tampilanlogin.php"; });
             return;
         }
 
         if (!currentSelectedProduct) {
-            alert("Pilih produknya dulu mprruy! 🔥");
+            Toast.fire({
+                icon: 'info',
+                html: '<span class="tz-toast-title">INFO</span><p class="tz-toast-content">Pilih produk dulu bray!</p>'
+            });
             return;
         }
 
-        const idGameAsli = "<?php echo $id_g; ?>";
-        // Persiapan data
-        let formData = new FormData();
-        // Nama field harus 'id_game' sesuai tabel di phpMyAdmin lu
-        formData.append('id_game', idGameAsli); 
+        const formData = new FormData();
+        formData.append('id_game', "<?php echo $id_g; ?>"); 
         formData.append('nama_produk', currentSelectedProduct);
         formData.append('harga', basePrice);
         formData.append('qty', currentQuantity);
-        fetch('proses_keranjang.php', {
-            method: 'POST',
-            body: formData
-        })
+
+        fetch('proses_keranjang.php', { method: 'POST', body: formData })
         .then(res => res.text())
         .then(data => {
-            alert("Mantap! " + currentSelectedProduct + " masuk keranjang. Cek di menu keranjang ya!");
-            window.location.reload();
+            Toast.fire({
+                icon: 'success',
+                html: `<span class="tz-toast-title">BERHASIL</span><p class="tz-toast-content"><b>${currentSelectedProduct}</b> masuk keranjang!</p>`
+            }).then(() => { window.location.reload(); });
         })
-        .catch(err => alert("Gagal konek database mprruy!"));
+        .catch(err => {
+            Toast.fire({ icon: 'error', html: '<span class="tz-toast-title">ERROR</span><p class="tz-toast-content">Koneksi ruyam!</p>' });
+        });
     }
 
     /**
-     * Proses Beli Langsung (Redirect ke Pembayaran)
+     * Langsung Beli (Checkout)
      */
     function submitOrder() {
-        // 1. CEK LOGIN
         const isLoggedIn = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
+        
         if (!isLoggedIn) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Mpruyy!',
-                    text: 'Login dulu mprruy biar transaksinya aman!',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Gas Login!',
-                    cancelButtonText: 'Nanti Aja'
-                }).then((res) => { if (res.isConfirmed) window.location.href = "../Login/tampilanlogin.php"; });
-            } else {
-                alert("Mpruyy! Login dulu yuk!");
-                window.location.href = "../Login/tampilanlogin.php";
-            }
+            Toast.fire({
+                icon: 'info',
+                html: '<span class="tz-toast-title">LOGIN DULU BRAY</span><p class="tz-toast-content">Biar transaksinya aman & masuk histori.</p>'
+            }).then(() => { window.location.href = "../Login/tampilanlogin.php"; });
             return;
         }
 
-        // 2. NOTIF BELUM PILIH PAKET/NOMINAL
-        // Saya pakai pengecekan ganda supaya gak lolos
-        if (typeof currentSelectedProduct === 'undefined' || currentSelectedProduct === null || currentSelectedProduct === "") {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Mpruyy!', 'Pilih dulu paket/nominal top up-nya mprruy! 💎', 'info');
-            } else {
-                alert("Pilih paketnya dulu mprruy!");
-            }
+        if (!currentSelectedProduct) {
+            Toast.fire({
+                icon: 'warning',
+                html: '<span class="tz-toast-title">PILIH PRODUK!</span><p class="tz-toast-content">Pilih nominalnya dulu mprruy.</p>'
+            });
             return;
         }
 
-        // 3. NOTIF SURUH ISI DATA (VALIDASI INPUT)
-        let userDataRaw = "";
+        let userDataRaw = '';
         const gameName = "<?php echo strtolower($g['nama_game']); ?>";
 
         try {
@@ -660,11 +635,11 @@ $from_cart = $_GET['from_cart'] ?? false;
                 if (robloxTabMode === 'login') {
                     const u = document.getElementById('rblx_user').value.trim();
                     const p = document.getElementById('rblx_pass').value.trim();
-                    if(!u || !p) throw "Isi Username & Password Roblox lu mprruy!";
+                    if(!u || !p) throw "Isi Username & Password Roblox lu!";
                     userDataRaw = `Mode: Login | User: ${u} | Pass: ${p}`;
                 } else {
                     const idOnly = document.getElementById('rblx_id_only').value.trim();
-                    if(!idOnly) throw "Isi Username Roblox-nya mprruy!";
+                    if(!idOnly) throw "Isi Username Roblox-nya!";
                     userDataRaw = `Mode: 5 Hari | Target: ${idOnly}`;
                 }
             } else if (gameName.includes('ml') || gameName.includes('legend')) {
@@ -673,42 +648,21 @@ $from_cart = $_GET['from_cart'] ?? false;
                 if(!id || !zone) throw "User ID & Zone ID MLBB wajib diisi!";
                 userDataRaw = `ID: ${id} (${zone})`;
             } else {
-                // Cek input general (untuk FF, PUBG, dll)
                 const inputGeneral = document.getElementById('general_user_id');
-                if(!inputGeneral || !inputGeneral.value.trim()) throw "Data akun/ID game jangan kosong mprruy!";
+                if(!inputGeneral || !inputGeneral.value.trim()) throw "Data ID game jangan kosong!";
                 userDataRaw = inputGeneral.value.trim();
             }
         } catch (pesanError) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Data Belum Lengkap!', pesanError, 'error');
-            } else {
-                alert(pesanError);
-            }
+            Toast.fire({
+                icon: 'error',
+                html: `<span class="tz-toast-title">DATA KOSONG!</span><p class="tz-toast-content">${pesanError}</p>`
+            });
             return;
         }
 
-        // 4. GAS KE PEMBAYARAN
         const gameId = "<?php echo $id_g; ?>";
-        // Pastikan variabel basePrice & currentQuantity ada nilainya
-        const finalPrice = (typeof basePrice !== 'undefined') ? basePrice : 0;
-        const finalQty = (typeof currentQuantity !== 'undefined') ? currentQuantity : 1;
-        
-        const targetUrl = `Checkout/pembayaran.php?id_game=${gameId}&user=${encodeURIComponent(userDataRaw)}&produk=${encodeURIComponent(currentSelectedProduct)}&harga=${finalPrice}&qty=${finalQty}`;
-        
+        const targetUrl = `Checkout/pembayaran.php?id_game=${gameId}&user=${encodeURIComponent(userDataRaw)}&produk=${encodeURIComponent(currentSelectedProduct)}&harga=${basePrice}&qty=${currentQuantity}`;
         window.location.href = targetUrl;
-    }
-    function cekLoginSebelumBeli() {
-    // Asumsikan kamu menyimpan status login di variabel JS atau mengecek session PHP
-    var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
-
-    if (!isLoggedIn) {
-        alert("Waduh! Login dulu yuk sebelum belanja.");
-        window.location.href = "login.php"; // Arahkan ke halaman login
-        return false;
-    }
-    
-    // Jika sudah login, lanjut ke proses keranjang/beli
-    document.getElementById("form-pembelian").submit();
     }
 </script>
 
