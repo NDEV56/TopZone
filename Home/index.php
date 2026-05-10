@@ -464,16 +464,16 @@ if ($is_real_user) {
     <div style="background:white; width:95%; max-width:450px; border-radius:15px; overflow:hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); animation: zoomIn 0.2s ease-out;">
         
         <!-- Header Chat -->
-        <div style="padding:15px; border-bottom:1px solid #d0ff00; display:flex; align-items:center; gap:10px; background:#fff;">
+        <div style="padding:15px; border-bottom:1px solid rgba(0, 210, 255, 0.3); display:flex; align-items:center; gap:10px; background:rgba(10, 25, 47, 0.2);">
             <div style="position:relative;">
-                <img src="../Login/logotopzone.png" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" onerror="this.src='https://ui-avatars.com/api/?name=Top+Zone'">
-                <div id="onlineIndicator" style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:#ccc; border:2px solid white; border-radius:50%;"></div>
+                <img src="../Login/logotopzone.png" style="width:40px; height:40px; border-radius:50%;">
+                <div id="onlineIndicator" style="position:absolute; bottom:0; right:0; width:12px; height:12px; background:#ccc; border:2px solid #0a192f; border-radius:50%; transition: 0.5s;"></div>
             </div>
             <div style="flex:1;">
-                <div style="font-weight:bold; font-size:14px; color:#333;">TOPZONE OFFICIAL</div>
+                <div style="font-weight:bold; font-size:14px; color:#fff;">TOPZONE OFFICIAL</div>
                 <div id="onlineText" style="font-size:11px; color:#888;">Memuat status...</div>
             </div>
-            <button onclick="tutupModalChat()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button>
+            <button onclick="tutupModalChat()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#00d2ff;">&times;</button>
         </div>
 
         <!-- Body Chat -->
@@ -623,11 +623,11 @@ if ($is_real_user) {
 #inputPesanAjax {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #1100ff47 !important;
+    color: #ffffff !important;
     border-radius: 20px !important;
 }
 
-#inputPesanAjax::placeholder { color: rgba(168, 178, 209, 0.4); }
+#inputPesanAjax::placeholder { color: rgb(255, 255, 255); }
 
 /* --- MENU PLUS (VERTICAL UP) --- */
 #menuOptionsPlus {
@@ -759,6 +759,27 @@ if ($is_real_user) {
     pointer-events: auto !important;
 }
 .cat-on-box:hover { transform: scale(1.2) rotate(-5deg); cursor: pointer; }
+
+
+
+/* Animasi centang meletup */
+@keyframes tickPop {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.tick-anim {
+    animation: tickPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-block;
+}
+
+/* Container buat centang di dalam bubble chat */
+.tick-container {
+    margin-left: 5px;
+    display: inline-flex;
+    align-items: center;
+}
 </style>
 
 <!-- JAVASCRIPT MASTER -->
@@ -1138,6 +1159,47 @@ document.addEventListener('click', function(event) {
 });
 
 document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
+
+function cekStatusAdminLive() {
+    // Jalur ke file update_status.php admin lo
+    fetch('/topzone/Home/Chat/Admin_Chat/update_status.php') 
+        .then(res => res.text())
+        .then(status => {
+            currentAdminStatus = status.trim();
+            const indicator = document.getElementById('onlineIndicator');
+            const statusText = document.getElementById('onlineText');
+
+            if (currentAdminStatus === 'online') {
+                indicator.classList.add('online-glow');
+                statusText.innerText = 'Online';
+                statusText.style.color = '#00ff88';
+            } else {
+                indicator.classList.remove('online-glow');
+                indicator.style.background = '#ff4444';
+                statusText.innerText = 'Offline (Slow Respon)';
+                statusText.style.color = '#888';
+            }
+        })
+        .catch(err => console.log("Status admin kaga kebaca jink"));
+}
+
+// Cek tiap 3 detik biar kerasa live
+setInterval(cekStatusAdminLive, 3000);
+cekStatusAdminLive(); // Panggil pas pertama buka
+
+function getTickHtml(statusAdmin, isRead) {
+    // isRead = 1 (Dibaca), isRead = 0 (Belum dibaca)
+    if (isRead == 1) {
+        // Centang 2 Biru (Sudah Dibaca)
+        return '<i class="fa-solid fa-check-double tick-anim" style="color: #00d2ff; font-size: 10px; margin-left: 5px;"></i>';
+    } else if (statusAdmin === 'online') {
+        // Centang 2 Abu-abu (Admin Online/Pesan Masuk)
+        return '<i class="fa-solid fa-check-double tick-anim" style="color: #888; font-size: 10px; margin-left: 5px;"></i>';
+    } else {
+        // Centang 1 Abu-abu (Admin Offline)
+        return '<i class="fa-solid fa-check tick-anim" style="color: #888; font-size: 10px; margin-left: 5px;"></i>';
+    }
+}
 </script>
 </body>
 </html>
