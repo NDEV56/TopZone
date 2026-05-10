@@ -389,6 +389,27 @@ include '../../koneksi.php';
     document.getElementById('adminMsg').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') { sendAdminChat(); }
     });
+    function updateAdminStatus(checkbox) {
+        const status = checkbox.checked ? 'online' : 'offline';
+        const label = document.getElementById('statusLabel');
+        
+        // Ganti class warna & text dengan animasi
+        label.innerText = status.toUpperCase();
+        if (checkbox.checked) {
+            label.classList.remove('offline-color');
+            label.classList.add('online-color');
+        } else {
+            label.classList.remove('online-color');
+            label.classList.add('offline-color');
+        }
+
+        // Kirim ke database lewat AJAX
+        fetch('update_status.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'status=' + status
+        });
+    }
 </script>
 </body>
 </html>

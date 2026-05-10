@@ -22,7 +22,7 @@ if(isset($_SESSION['id_user'])){
         <div style="font-size:9px; color:#666; margin-top:4px; display:flex; align-items:center; gap:3px;">
             <?= date('H:i', strtotime($row['waktu'])) ?>
             <?php if($is_me): ?>
-                <span style="color:<?= $row['is_read'] == 1 ? '#4fc3f7' : '#888' ?>;">
+                <span class="tick-container" data-read="<?= $row['is_read'] ?>" style="color:<?= $row['is_read'] == 1 ? '#4fc3f7' : '#888' ?>;">
                     <?= $row['is_read'] == 1 ? '✓✓' : '✓' ?>
                 </span>
             <?php endif; ?>
