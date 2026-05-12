@@ -1,18 +1,20 @@
 <?php
 /**
- * load_chat.php — HARDENED v3.1
- *   • Prepared SQL
+ * load_chat.php — HARDENED v3.1 (sync NAFI image-render update)
  *   • require_login
- *   • XSS-safe (htmlspecialchars sudah ada — ditegaskan)
+ *   • Prepared SQL
+ *   • Image detection by extension whitelist
+ *   • src path: sanitize basename, hindari path traversal
+ *   • XSS-safe (tz_e + tz_attr)
  */
 require_once __DIR__ . '/../_security.php';
 tz_security_init();
 
 $id_user = (int)($_SESSION['id_user'] ?? 0);
-if ($id_user <= 0) { exit; }
+if ($id_user <= 0) exit;
 
 try {
-    $rows = tz_db()->fetchAll(
+    $chats = tz_db()->fetchAll(
         'SELECT pesan, pengirim, waktu, is_read FROM chat WHERE id_user = ? ORDER BY waktu ASC LIMIT 500',
         [$id_user]
     );
@@ -21,18 +23,25 @@ try {
     exit;
 }
 
-foreach ($rows as $row):
-    $is_me = ((string)$row['pengirim'] === 'user');
+foreach ($chats as $row):
+    $is_me   = ((string)$row['pengirim'] === 'user');
+    $pesan   = (string)$row['pesan'];
+    $is_img  = (bool)preg_match('/^[\w\-]+\.(jpg|jpeg|png|gif|webp)$/i', $pesan);
+    $isRead  = ((int)($row['is_read'] ?? 0) === 1);
 ?>
-    <div style="margin-bottom:15px; display:flex; flex-direction:column; <?= $is_me ? 'align-items:flex-end;' : 'align-items:flex-start;' ?>">
-        <div style="padding:10px; border-radius:12px; max-width:80%; font-size:13px; <?= $is_me ? 'background:#007bff; color:white;' : 'background:#eee; color:#333;' ?>">
-            <?= tz_e($row['pesan']) ?>
+    <div style="margin-bottom:10px; display:flex; flex-direction:column; <?= $is_me ? 'align-items:flex-end;' : 'align-items:flex-start;' ?>">
+        <div style="padding:10px; border-radius:12px; max-width:75%; font-size:13px; <?= $is_me ? 'background:#007bff; color:white; border-bottom-right-radius:2px;' : 'background:#333; color:#eee; border-bottom-left-radius:2px;' ?>">
+            <?php if ($is_img): ?>
+                <img src="uploads/<?= tz_attr(basename($pesan)) ?>" style="max-width:100%; border-radius:8px; cursor:pointer;" onclick="zoomImage(this.src)">
+            <?php else: ?>
+                <?= tz_e($pesan) ?>
+            <?php endif; ?>
         </div>
-        <div style="font-size:10px; color:#999; margin-top:4px;">
+        <div style="font-size:9px; color:#666; margin-top:4px; display:flex; align-items:center; gap:3px;">
             <?= tz_e(date('H:i', strtotime((string)$row['waktu']))) ?>
             <?php if ($is_me): ?>
-                <span style="margin-left:3px; color:<?= ((int)$row['is_read'] === 1) ? '#4fc3f7' : '#ccc' ?>;">
-                    <?= ((int)$row['is_read'] === 1) ? '✓✓' : '✓' ?>
+                <span class="tick-container" data-read="<?= $isRead ? '1' : '0' ?>" style="color:<?= $isRead ? '#4fc3f7' : '#888' ?>;">
+                    <?= $isRead ? '✓✓' : '✓' ?>
                 </span>
             <?php endif; ?>
         </div>

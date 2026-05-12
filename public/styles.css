@@ -958,6 +958,72 @@ code {
   to   { transform: rotate(360deg); }
 }
 
+/* ─── Storage Janitor UI ─── */
+.storage-cats {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+.storage-cat {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--text-soft);
+  align-items: center;
+  font-size: .9rem;
+}
+.storage-cat .cat-name { font-weight: 500; }
+.storage-cat .cat-count {
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+  font-size: .82rem;
+}
+.storage-cat .cat-size {
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--success);
+}
+.storage-cat[data-empty="true"] {
+  border-left-color: var(--border);
+  opacity: .5;
+}
+.storage-cat[data-empty="true"] .cat-size { color: var(--text-muted); }
+
+.storage-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+.btn-warning {
+  background: var(--warning);
+  color: #fff;
+}
+.btn-warning:hover { background: #b45309; }
+
+.storage-log-preview {
+  margin-top: 18px;
+  background: var(--bg-dark);
+  color: #d8dde6;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, monospace;
+  font-size: .82rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.storage-log-row {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.storage-log-row.removed   { color: #22c55e; }
+.storage-log-row.fail      { color: #f87171; }
+.storage-log-row.skipped   { color: #f59e0b; }
+.storage-log-row.would-remove { color: #38bdf8; }
+
 /* ─── Lockdown UI ─── */
 .lockdown-strip {
   display: flex;

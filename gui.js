@@ -541,6 +541,83 @@ route("POST", "/api/security/unblock", async (req, res) => {
   return sendJson(res, 200, { ok: true });
 });
 
+// ─── Storage Janitor ────────────────────────────
+const cleanup = require("./lib/cleanup");
+const mysql   = (() => {
+  // Lazy require — mysql2 mungkin tidak terinstall (DB optional)
+  try { return require("mysql2/promise"); } catch { return null; }
+})();
+
+/**
+ * Bangun set file uploads yang masih direference di DB.
+ * Tanpa DB / mysql2 → return Set kosong (orphan upload tidak akan dihapus).
+ */
+async function buildUploadsReferenceSet() {
+  // Coba pakai mysql2 (kalau ada) — lebih ringan dari spawn PHP
+  try {
+    if (!mysql) return new Set();
+    const conn = await mysql.createConnection({
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASS || "",
+      database: process.env.DB_NAME || "topzone",
+      connectTimeout: 3000,
+    });
+    const [users]  = await conn.execute("SELECT foto FROM users");
+    const [games]  = await conn.execute("SELECT gambar FROM games");
+    await conn.end();
+    return cleanup.buildReferencedSet([...users, ...games]);
+  } catch (e) {
+    logger.uncommon("DB tidak tersedia untuk cleanup orphan upload: " + e.message);
+    return null; // null = skip orphan scan (safer)
+  }
+}
+
+route("GET", "/api/storage/scan", async (req, res) => {
+  const auth = requireAuth(req, res); if (!auth.ok) return;
+  try {
+    const referencedUploads = await buildUploadsReferenceSet();
+    const report = cleanup.analyze({
+      logsRetentionDays   : cfg.LOG_RETENTION_DAYS || 30,
+      referencedUploads   : referencedUploads || undefined,
+    });
+    return sendJson(res, 200, {
+      ...report,
+      dbAvailable: referencedUploads !== null,
+    });
+  } catch (e) {
+    logger.error("storage scan: " + e.message);
+    return sendJson(res, 500, { error: "Scan gagal: " + e.message });
+  }
+});
+
+route("POST", "/api/storage/clean", async (req, res) => {
+  const auth = requireAuth(req, res); if (!auth.ok) return;
+  let body = {};
+  try { body = await firewall.readJsonBody(req, { maxBytes: 4096 }); }
+  catch (e) { return sendJson(res, 413, { error: e.message }); }
+
+  const dryRun = body.dryRun !== false; // DEFAULT TRUE — paksa user explicit
+  try {
+    const referencedUploads = await buildUploadsReferenceSet();
+    const opts = {
+      dryRun,
+      logsRetentionDays: cfg.LOG_RETENTION_DAYS || 30,
+    };
+    if (referencedUploads) opts.referencedUploads = referencedUploads;
+
+    const result = cleanup.clean(opts);
+    logger.uncommon(
+      `Storage cleanup ${dryRun ? "(dry-run)" : "APPLIED"}: ` +
+      `${result.removedCount} item, ${result.removedHuman}`
+    );
+    return sendJson(res, 200, result);
+  } catch (e) {
+    logger.error("storage clean: " + e.message);
+    return sendJson(res, 500, { error: "Cleanup gagal: " + e.message });
+  }
+});
+
 // ─── Lockdown control ───────────────────────────
 route("GET", "/api/lockdown/status", (req, res) => {
   // Public — supaya UI banner masih bisa baca level walau request lain di-deny
@@ -590,8 +667,21 @@ function handler(req, res) {
       // CSRF dilewati karena tidak ada cookie sesi.
       if (cfg.GUI_PASSWORD || !isLocalOnly()) {
         const tok = req.headers["x-csrf-token"];
-        if (!session || !security.validateCsrf(session, tok)) {
-          return sendJson(res, 403, { error: "CSRF token tidak valid. Refresh halaman dan login lagi." });
+        // Sesi kosong (server restart, cookie stale) → 401, biar frontend redirect ke /login
+        if (!session) {
+          logger.security(`State-change tanpa session: ${req.method} ${pathOnly} dari ${ip}`, { ip });
+          return sendJson(res, 401, {
+            error: "Sesi habis. Silakan login lagi.",
+            needLogin: true,
+          });
+        }
+        // CSRF token salah/kosong → 419 + csrfStale, frontend re-fetch + retry
+        if (!security.validateCsrf(session, tok)) {
+          logger.security(`CSRF fail: ${req.method} ${pathOnly} dari ${ip} (tok=${tok ? "ada" : "kosong"})`, { ip });
+          return sendJson(res, 419, {
+            error: "CSRF token kedaluwarsa. Refresh otomatis…",
+            csrfStale: true,
+          });
         }
       }
     }

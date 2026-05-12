@@ -1,0 +1,5 @@
+[2026-05-09T12:17:13.734Z] Cleanup run: SIMULASI 0 item, 0 B (mode=dryRun)
+[2026-05-09T12:17:13.740Z] Cleanup run: SIMULASI 0 item, 0 B (mode=dryRun)
+[2026-05-09T12:17:50.339Z] Cleanup run: SIMULASI 1 item, 4 B (mode=dryRun)
+[2026-05-09T12:17:50.346Z] Cleanup run: hapus 1 item, 4 B (mode=apply)
+[2026-05-09T12:18:43.999Z] Cleanup run: SIMULASI 0 item, 0 B (mode=dryRun)

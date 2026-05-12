@@ -253,6 +253,57 @@ async function runUpdate() {
 }
 
 // ─────────────────────────────────────────────────
+//  Storage cleanup (CLI)
+// ─────────────────────────────────────────────────
+async function runClean() {
+  const cleanup = require("./lib/cleanup");
+  console.log(header("Storage Janitor", "yellow"));
+
+  const apply = !!flags.apply || flags["dry-run"] === false;
+
+  // Coba ambil referenced uploads dari DB lewat mysql2
+  let referencedUploads = null;
+  try {
+    const mysql = require("mysql2/promise");
+    const conn = await mysql.createConnection({
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASS || "",
+      database: process.env.DB_NAME || "topzone",
+      connectTimeout: 3000,
+    });
+    const [users] = await conn.execute("SELECT foto FROM users");
+    const [games] = await conn.execute("SELECT gambar FROM games");
+    await conn.end();
+    referencedUploads = cleanup.buildReferencedSet([...users, ...games]);
+    console.log(badge.ok(`DB tersambung — ${referencedUploads.size} referensi gambar terdeteksi`));
+  } catch (e) {
+    console.log(badge.warn("DB tidak tersambung (orphan upload tidak akan disentuh): " + e.message));
+  }
+
+  const result = cleanup.clean({
+    dryRun: !apply,
+    referencedUploads,
+  });
+
+  console.log("");
+  for (const cat of Object.keys(result.report.categories)) {
+    const c2 = result.report.categories[cat];
+    if (c2.count === 0) continue;
+    console.log(badge.step(`${cat.padEnd(18)} ${String(c2.count).padStart(4)} file  ${cleanup.formatBytes(c2.bytes).padStart(10)}`));
+  }
+  console.log("");
+  console.log(badge.spark(`Total: ${result.removedCount} item, ${result.removedHuman}`));
+
+  if (apply) {
+    console.log(badge.ok(c.green("APPLIED — file sudah dihapus")));
+  } else {
+    console.log(badge.info(c.dim("DRY-RUN saja. Jalankan dengan --apply untuk benar-benar hapus.")));
+    console.log(c.dim("  Contoh: node server.js --clean --apply"));
+  }
+}
+
+// ─────────────────────────────────────────────────
 //  GUI launcher (delegasi ke gui.js)
 // ─────────────────────────────────────────────────
 function runGui() {
@@ -278,6 +329,8 @@ function runGui() {
   node server.js --setup        Setup wizard ulang
   node server.js --doctor       Diagnosa lingkungan
   node server.js --update       Cek & tarik update dari GitHub
+  node server.js --clean        Scan file sampah (dry-run, tampilkan saja)
+  node server.js --clean --apply  Bersihkan file sampah BENAR-BENAR hapus
   node server.js --no-tunnel    Jalan local-only (tanpa tunnel)
   node server.js --provider=X   Override tunnel (ngrok|cloudflared|localtunnel|serveo|none)
   node server.js --mode=X       Override SERVER_MODE (auto|xampp|laragon|...)
@@ -288,6 +341,7 @@ function runGui() {
 
     if (flags.doctor) { await runDoctor(); return; }
     if (flags.update) { await runUpdate(); return; }
+    if (flags.clean)  { await runClean(); return; }
 
     if (flags.setup || !config.isConfigured()) {
       printBanner();

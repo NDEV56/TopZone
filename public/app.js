@@ -33,6 +33,10 @@ function escapeHtml(s) {
 
 // ─── Network ───────────────────────────────────────
 async function api(path, options = {}) {
+  return apiOnce(path, options, /*allowRetry=*/true);
+}
+
+async function apiOnce(path, options = {}, allowRetry = false) {
   const opts = {
     method: options.method || "GET",
     headers: { "Accept": "application/json" },
@@ -55,10 +59,35 @@ async function api(path, options = {}) {
   try { data = await res.json(); }
   catch (_) { data = null; }
   if (!res.ok) {
-    const msg = (data && data.error) || `HTTP ${res.status}`;
+    // 401 + needLogin → redirect (sesi habis di server)
     if (res.status === 401 && data && data.needLogin) {
-      window.location.href = "/login";
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      throw new Error(data.error || "Sesi habis");
     }
+    // 419 + csrfStale → fetch CSRF baru lalu retry SEKALI
+    if (res.status === 419 && data && data.csrfStale && allowRetry) {
+      try {
+        const w = await fetch("/api/whoami", { credentials: "same-origin" })
+          .then((r) => r.json());
+        if (w && w.csrf) {
+          TZ.csrf = w.csrf;
+          // Retry — JANGAN allowRetry lagi (no infinite loop)
+          return apiOnce(path, options, false);
+        }
+        // Tidak dapat csrf baru → redirect ke login
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      } catch (_) {
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      }
+      throw new Error("Sesi habis, perlu login ulang");
+    }
+    const msg = (data && data.error) || `HTTP ${res.status}`;
     throw new Error(msg);
   }
   return data;
@@ -139,6 +168,7 @@ async function boot() {
   bindSettings();
   bindUpdate();
   bindDiagnose();
+  bindStorage();
   bindSecurity();
   bindLogout();
 
@@ -202,6 +232,7 @@ function switchTab(name) {
   if (name === "update")   refreshUpdateBackups();
   if (name === "security") refreshSecurity();
   if (name === "settings") loadSettings();
+  if (name === "storage")  prepareStorageTab();
 }
 
 // ─── Hero buttons ──────────────────────────────────
@@ -656,6 +687,140 @@ function renderDiagnose(d) {
   out.push(`</div>`);
 
   return out.join("");
+}
+
+// ─── Storage Janitor ──────────────────────────────
+const STORAGE_CAT_LABEL = {
+  oldLogs        : "📜 Log lama (> retention)",
+  logBackups     : "📦 Log rotasi (.bak)",
+  oldBackups     : "💾 Backup pre-update lama",
+  tmpFiles       : "🗑️  File .tmp di root",
+  rateLimitCache : "⏱️  Cache rate-limit (PHP)",
+  nodeCache      : "📦 node_modules/.cache",
+  emptyBackupDirs: "📁 Folder backup kosong",
+  orphanUploads  : "🖼️  Foto upload tidak terpakai (orphan)",
+};
+
+function bindStorage() {
+  $("#storage-scan")?.addEventListener("click", scanStorage);
+  $("#storage-clean-dry")?.addEventListener("click", () => doClean(true));
+  $("#storage-clean-apply")?.addEventListener("click", () => doClean(false));
+}
+
+function prepareStorageTab() {
+  // Set crontab path
+  const pathEl = $("#auto-clean-path");
+  if (pathEl) pathEl.textContent = "(folder TopZone kamu)";
+  // Auto-scan saat tab dibuka pertama kali
+  if (!TZ._storageScanned) {
+    TZ._storageScanned = true;
+    scanStorage();
+  }
+}
+
+async function scanStorage() {
+  const cont = $("#storage-categories");
+  if (cont) cont.innerHTML = `<div class="loading">Memindai…</div>`;
+  $("#storage-summary").hidden = true;
+  $("#storage-actions").hidden = true;
+  $("#storage-log").hidden = true;
+  try {
+    const r = await api("/api/storage/scan");
+    renderStorageReport(r);
+  } catch (e) {
+    cont.innerHTML = `<div class="info-banner danger">❌ ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderStorageReport(report) {
+  $("#storage-total-count").textContent = report.totalCount;
+  $("#storage-total-size").textContent  = report.totalHuman || formatBytes(report.totalBytes || 0);
+  $("#storage-db").textContent = report.dbAvailable === false
+    ? "OFFLINE (orphan upload skip)"
+    : "ONLINE";
+  $("#storage-summary").hidden = false;
+
+  const cont = $("#storage-categories");
+  const cats = report.categories || {};
+  cont.innerHTML = Object.keys(cats).map((k) => {
+    const c2 = cats[k];
+    const empty = c2.count === 0;
+    return `<div class="storage-cat" data-empty="${empty}">
+      <span>${escapeHtml(STORAGE_CAT_LABEL[k] || k).split(" ")[0]}</span>
+      <span class="cat-name">${escapeHtml((STORAGE_CAT_LABEL[k] || k).split(" ").slice(1).join(" "))}</span>
+      <span class="cat-count">${c2.count} file</span>
+      <span class="cat-size">${formatBytes(c2.bytes || 0)}</span>
+    </div>`;
+  }).join("");
+
+  $("#storage-actions").hidden = (report.totalCount === 0);
+  if (report.totalCount === 0) {
+    cont.innerHTML += `<div class="info-banner success" style="margin-top:14px">
+      ✨ Bersih! Tidak ada file sampah yang perlu dihapus.</div>`;
+  }
+}
+
+async function doClean(dryRun) {
+  if (!dryRun) {
+    const ok = await confirmDialog({
+      title: "Hapus File Sampah Beneran?",
+      message: "Aksi ini TIDAK BISA DIBATALKAN. File akan dihapus permanen.\n\n" +
+               "Pastikan kamu sudah liat dulu hasil 'Tampilkan File Yang Akan Dihapus'.",
+      icon: "🗑️",
+      okText: "Ya, hapus permanen",
+    });
+    if (!ok) return;
+  }
+
+  const log = $("#storage-log");
+  log.hidden = false;
+  log.innerHTML = `<div class="loading">${dryRun ? "Menyiapkan preview…" : "Menghapus…"}</div>`;
+
+  try {
+    const r = await api("/api/storage/clean", { method: "POST", body: { dryRun } });
+    renderCleanResult(r, dryRun);
+    if (!dryRun) {
+      toast("Storage dibersihkan", `${r.removedCount} item, ${r.removedHuman}`, "success");
+      // Re-scan to show new state
+      setTimeout(scanStorage, 800);
+    } else {
+      toast("Preview siap", `${r.removedCount} item akan dihapus`, "info");
+    }
+  } catch (e) {
+    log.innerHTML = `<div class="info-banner danger">❌ ${escapeHtml(e.message)}</div>`;
+    toast("Gagal cleanup", e.message, "error");
+  }
+}
+
+function renderCleanResult(r, dryRun) {
+  const log = $("#storage-log");
+  const rows = (r.log || []).map((row) => {
+    const status = row.status || "";
+    const cls = status.includes("removed") ? "removed"
+              : status.includes("would")   ? "would-remove"
+              : status.includes("skipped") ? "skipped"
+              :                              "fail";
+    const sizeStr = row.size ? " (" + formatBytes(row.size) + ")" : "";
+    return `<div class="storage-log-row ${cls}">
+      ${escapeHtml(status.padEnd(16))} ${escapeHtml(row.path)}${escapeHtml(sizeStr)}
+    </div>`;
+  }).join("");
+
+  const head = `<div style="margin-bottom: 10px; padding: 8px 12px; background: rgba(255,255,255,.04); border-radius: 4px;">
+    <strong>${dryRun ? "PREVIEW (dry-run)" : "APPLIED"}</strong> —
+    ${r.removedCount} item, ${escapeHtml(r.removedHuman || formatBytes(r.removedBytes || 0))}
+    ${r.truncatedLog ? " <em>(log dipotong)</em>" : ""}
+  </div>`;
+
+  log.innerHTML = head + rows;
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes < 1024) return (bytes || 0) + " B";
+  const units = ["KB","MB","GB","TB"];
+  let v = bytes / 1024, i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return v.toFixed(2) + " " + units[i];
 }
 
 // ─── Security ─────────────────────────────────────

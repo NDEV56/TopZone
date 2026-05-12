@@ -19,7 +19,7 @@
       <span class="logo-mark">🎛️</span>
       <span class="logo-text"><strong>TopZone</strong> Control Panel</span>
     </div>
-    <span id="version-badge" class="badge badge-soft">v3.0</span>
+    <span id="version-badge" class="badge badge-soft">v3.1</span>
   </div>
   <div class="topbar-right">
     <div id="phase-indicator" class="phase phase-idle" title="Status server saat ini">
@@ -317,6 +317,7 @@
     <button class="tab" data-tab="logs"      role="tab">📜 Log</button>
     <button class="tab" data-tab="diagnose"  role="tab">🔍 Diagnostik</button>
     <button class="tab" data-tab="update"    role="tab">⬆️  Update</button>
+    <button class="tab" data-tab="storage"   role="tab">🧹 Bersihkan</button>
     <button class="tab" data-tab="security"  role="tab">🛡️  Keamanan</button>
     <button class="tab" data-tab="settings"  role="tab">⚙️  Pengaturan</button>
     <button class="tab" data-tab="help"      role="tab">❓ Panduan</button>
@@ -523,6 +524,78 @@
         <div id="backup-list" class="backup-list">
           <div class="empty-state muted">Belum ada backup. Backup dibuat otomatis tiap update.</div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STORAGE -->
+  <section class="tab-panel" data-tab-panel="storage" hidden>
+    <div class="card">
+      <div class="card-header">
+        <h2>🧹 Bersihkan File Sampah</h2>
+        <button class="btn btn-primary btn-sm" id="storage-scan">🔎 Pindai Sekarang</button>
+      </div>
+      <p class="muted">
+        Halaman ini cari & hapus file sampah yang sudah tidak terpakai untuk membebaskan storage.
+        <strong>Aman</strong> — file penting (.env, database, gambar yang masih dipakai, kode website)
+        tidak akan disentuh.
+      </p>
+
+      <div class="info-banner success">
+        🛡️ <strong>Cara kerja aman:</strong>
+        <ul>
+          <li>Hanya hapus dari folder <code>logs/</code>, <code>backups/</code>, <code>uploads/</code> (orphan), dan file <code>*.tmp</code> di root.</li>
+          <li>Default mode <strong>SIMULASI</strong> (dry-run) — kamu lihat dulu apa yang akan dihapus.</li>
+          <li>Klik <strong>HAPUS BENERAN</strong> hanya kalau yakin.</li>
+          <li>Foto profil & gambar game yang masih dipakai user otomatis di-skip (cek DB).</li>
+          <li>Setiap aksi ditulis ke <code>logs/cleanup-log.txt</code>.</li>
+        </ul>
+      </div>
+
+      <!-- Hasil scan total -->
+      <div class="grid grid-3" id="storage-summary" hidden>
+        <div class="mini-card">
+          <div class="mini-label">Total Item</div>
+          <div class="mini-value" id="storage-total-count">—</div>
+        </div>
+        <div class="mini-card highlight" style="background: linear-gradient(135deg, #16a34a, #15803d); color: #fff;">
+          <div class="mini-label" style="color: rgba(255,255,255,.85);">Bisa Dibebaskan</div>
+          <div class="mini-value" id="storage-total-size">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">DB Connection</div>
+          <div class="mini-value" id="storage-db">—</div>
+        </div>
+      </div>
+
+      <!-- Detail per kategori -->
+      <div id="storage-categories" class="storage-cats"></div>
+
+      <!-- Aksi -->
+      <div class="storage-actions" id="storage-actions" hidden>
+        <button class="btn btn-warning btn-large" id="storage-clean-dry">
+          👀 Tampilkan File Yang Akan Dihapus
+        </button>
+        <button class="btn btn-danger btn-large" id="storage-clean-apply">
+          🗑️ HAPUS BENERAN (Tidak Bisa Dibatalkan!)
+        </button>
+      </div>
+
+      <!-- Log preview -->
+      <div id="storage-log" class="storage-log-preview" hidden></div>
+    </div>
+
+    <div class="card">
+      <h3>📅 Auto-cleanup Terjadwal (Opsional)</h3>
+      <p class="muted">
+        Kamu bisa menambahkan task ke crontab/Task Scheduler untuk membersihkan
+        otomatis tiap minggu:
+      </p>
+      <div class="info-banner">
+        <strong>Linux/Mac (crontab):</strong>
+        <pre style="margin: 6px 0; padding: 10px; background: var(--bg-soft); border-radius: 6px; font-size: .85rem; overflow-x: auto;">0 3 * * 0 cd <?= ' ' ?>"<span id="auto-clean-path">/path/ke/TopZone</span>" && node server.js --clean --apply &gt;&gt; logs/cleanup-cron.log 2&gt;&amp;1</pre>
+        <strong>Windows (PowerShell):</strong>
+        <pre style="margin: 6px 0; padding: 10px; background: var(--bg-soft); border-radius: 6px; font-size: .85rem; overflow-x: auto;">schtasks /create /tn "TopZoneClean" /tr "node server.js --clean --apply" /sc weekly /d SUN /st 03:00</pre>
       </div>
     </div>
   </section>
