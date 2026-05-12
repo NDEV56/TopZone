@@ -568,6 +568,42 @@ if ($is_real_user) {
     100% { box-shadow: 0 0 0 0 rgba(0, 210, 255, 0); }
 }
 
+/* --- STATUS INDICATOR CSS --- */
+#onlineIndicator {
+    background: #ccc; /* Default Abu-abu */
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
+
+/* Class ini bakal ditambahin via JS pas admin Online */
+.online-glow {
+    background: #00ff88 !important; /* Hijau Liquid */
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.8) !important;
+    position: relative;
+}
+
+/* Efek Denyut (Pulse) Pas Online */
+.online-glow::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: rgba(0, 255, 136, 0.4);
+    animation: pulseLiquid 1.5s infinite;
+}
+
+@keyframes pulseLiquid {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* Biar transisi warna halus */
+#onlineIndicator, #onlineText {
+    transition: all 0.4s ease-in-out;
+}
+
 #btnChatFloating button {
     background: rgba(10, 25, 47, 0.75) !important;
     backdrop-filter: blur(12px);
@@ -946,36 +982,33 @@ function zoomImage(src) {
 function kirimPesanAjax() {
     var pesan = $('#inputPesanAjax').val();
     
-    // Cek apakah ada pesan atau file yang dipilih
+    console.log("Tombol kirim dipicu. Pesan:", pesan); // Debug log
+
     if(pesan.trim() == "" && !selectedFile) {
+        console.log("Pesan kosong, batal kirim.");
         return; 
     }
 
     let formData = new FormData();
     formData.append('pesan', pesan);
-    
-    // Jika ada gambar hasil foto kamera atau pilih file
-    if(selectedFile) {
-        formData.append('gambar', selectedFile);
-    }
+    if(selectedFile) formData.append('gambar', selectedFile);
 
     $.ajax({
-        url: 'Chat/kirim_chat.php', // Pastikan path file ini benar
+        url: 'Chat/kirim_chat.php', 
         type: 'POST',
         data: formData,
         processData: false,
         contentType: false,
         success: function(response) {
-            // Reset input setelah berhasil
+            console.log("Respon server:", response); // LIHAT DI SINI PAS KIRIM
             $('#inputPesanAjax').val('');
-            cancelPreview(); // Tutup preview gambar jika ada
-            
-            // Refresh chat dan scroll ke bawah
+            cancelPreview(); 
             muatChatLive();
             setTimeout(scrollKeBawah, 200);
         },
-        error: function(err) {
-            alert("Gagal kirim chat, coba lagi!");
+        error: function(xhr, status, error) {
+            console.error("AJAX ERROR:", status, error);
+            alert("Gagal kirim: " + error);
         }
     });
 }
@@ -1036,17 +1069,22 @@ function closeCamera() {
 }
 
 // --- EVENT LISTENERS ---
-document.addEventListener('DOMContentLoaded', function() {
-    // Jalankan auto-update tiap 2 detik biar gak berat
+$(document).ready(function() {
+    // 1. Jalankan auto-update tiap 2 detik
     setInterval(muatChatLive, 2000);
 
-    // Support Enter key
-    const inputAjax = document.getElementById('inputPesanAjax');
-    if(inputAjax) {
-        inputAjax.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') { kirimChatLive(); }
-        });
-    }
+    // 2. Perbaiki Input Enter - Pake JQuery biar sinkron sama fungsi AJAX
+    $(document).on('keypress', '#inputPesanAjax', function(e) {
+        if (e.which === 13) { 
+            e.preventDefault(); 
+            console.log("Enter dideteksi, mengirim..."); // Cek di F12
+            kirimPesanAjax();
+        }
+    });
+
+    // 3. Pastikan fungsi cek admin jalan
+    setInterval(cekStatusAdminLive, 3000);
+    cekStatusAdminLive();
 
     // Input File Croppie
     document.getElementById('input_foto')?.addEventListener('change', function() {
@@ -1161,26 +1199,33 @@ document.addEventListener('click', function(event) {
 document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
 
 function cekStatusAdminLive() {
-    // Jalur ke file update_status.php admin lo
-    fetch('/topzone/Home/Chat/Admin_Chat/update_status.php') 
+    // Sesuaikan path ini dengan letak file update_status.php lo
+    fetch('Chat/Admin_Chat/update_status.php') 
         .then(res => res.text())
         .then(status => {
-            currentAdminStatus = status.trim();
+            const currentStatus = status.trim().toLowerCase();
             const indicator = document.getElementById('onlineIndicator');
             const statusText = document.getElementById('onlineText');
 
-            if (currentAdminStatus === 'online') {
+            if (currentStatus === 'online') {
+                // Tambahkan class animasi & warna hijau
                 indicator.classList.add('online-glow');
                 statusText.innerText = 'Online';
-                statusText.style.color = '#00ff88';
+                statusText.style.color = '#00ff88'; // Hijau nyala
+                statusText.style.textShadow = '0 0 5px rgba(0, 255, 136, 0.3)';
             } else {
+                // Balikin ke merah/abu-abu tanpa animasi
                 indicator.classList.remove('online-glow');
-                indicator.style.background = '#ff4444';
+                indicator.style.background = '#ff4444'; // Merah pas offline
+                indicator.style.boxShadow = '0 0 5px rgba(255, 68, 68, 0.5)';
                 statusText.innerText = 'Offline (Slow Respon)';
                 statusText.style.color = '#888';
+                statusText.style.textShadow = 'none';
             }
         })
-        .catch(err => console.log("Status admin kaga kebaca jink"));
+        .catch(err => {
+            console.log("Admin kaga aktif / File kaga ketemu bray");
+        });
 }
 
 // Cek tiap 3 detik biar kerasa live
