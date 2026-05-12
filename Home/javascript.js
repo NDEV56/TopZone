@@ -96,7 +96,7 @@ function updateCartDisplay() {
 
         listContainer.innerHTML = data.map(item => `
             <div class="cart-card" style="display:flex; gap:10px; border-bottom:1px solid #eee; padding:10px 0; align-items:center;">
-                <input type="checkbox" class="cart-checkbox" value="${item.id_keranjang}" data-price="${item.qty * item.harga}" onchange="hitungTotal()">
+                <input type="checkbox" class="cart-checkbox" value="${item.id}" data-price="${item.qty * item.harga}" onchange="hitungTotal()">
                 
                 <img src="${item.gambar}" onerror="this.src='Default.jpg'" style="width:55px; height:55px; border-radius:8px; object-fit:cover; border:1px solid #ddd;">
                 
@@ -110,11 +110,11 @@ function updateCartDisplay() {
                     
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                         <div style="display:flex; border:1px solid #ddd; border-radius:5px; align-items:center;">
-                            <button onclick="ubahQty(${item.id_keranjang}, -1)" style="border:none; background:#f9f9f9; padding:2px 8px; cursor:pointer;">-</button>
-                            <span id="qty-${item.id_keranjang}" style="padding:0 10px; font-size:12px;">${item.qty}</span>
-                            <button onclick="ubahQty(${item.id_keranjang}, 1)" style="border:none; background:#f9f9f9; padding:2px 8px; cursor:pointer;">+</button>
+                            <button onclick="ubahQty(${item.id}, -1)" style="border:none; background:#f9f9f9; padding:2px 8px; cursor:pointer;">-</button>
+                            <span id="qty-${item.id}" style="padding:0 10px; font-size:12px;">${item.qty}</span>
+                            <button onclick="ubahQty(${item.id}, 1)" style="border:none; background:#f9f9f9; padding:2px 8px; cursor:pointer;">+</button>
                         </div>
-                        <button onclick="hapusItemDB(${item.id_keranjang})" style="border:none; background:none; color:red; cursor:pointer; font-size:16px;">🗑️</button>
+                        <button onclick="hapusItemDB(${item.id})" style="border:none; background:none; color:red; cursor:pointer; font-size:16px;">🗑️</button>
                     </div>
                 </div>
             </div>

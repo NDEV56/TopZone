@@ -64,14 +64,14 @@ if (isset($_FILES['gambar']) && is_array($_FILES['gambar'])
 try {
     if ($gambarTersimpan) {
         tz_db()->exec(
-            "INSERT INTO chat (id_user, pesan, pengirim, waktu) VALUES (?, ?, 'admin', NOW())",
+            "INSERT INTO chat (id_user, pesan, pengirim, created_at) VALUES (?, ?, 'admin', NOW())",
             [$id_user, $gambarTersimpan]
         );
     }
     // 3. Insert pesan teks (kalau ada)
     if ($pesan !== '') {
         tz_db()->exec(
-            "INSERT INTO chat (id_user, pesan, pengirim, waktu) VALUES (?, ?, 'admin', NOW())",
+            "INSERT INTO chat (id_user, pesan, pengirim, created_at) VALUES (?, ?, 'admin', NOW())",
             [$id_user, $pesan]
         );
     }

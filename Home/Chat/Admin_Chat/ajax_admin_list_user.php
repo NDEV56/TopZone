@@ -53,11 +53,11 @@ $is_online = ($current_status === 'online');
 // 2. List user dengan pesan terakhir
 try {
     $rows = tz_db()->fetchAll(
-        "SELECT u.id, u.username, u.foto, c.pesan, c.waktu
+        "SELECT u.id, u.username, u.foto, c.pesan, c.created_at
          FROM users u
          JOIN chat c ON u.id = c.id_user
-         WHERE c.id_chat IN (SELECT MAX(id_chat) FROM chat GROUP BY id_user)
-         ORDER BY c.waktu DESC
+         WHERE c.id IN (SELECT MAX(id) FROM chat GROUP BY id_user)
+         ORDER BY c.created_at DESC
          LIMIT 200"
     );
 } catch (\Throwable $e) {
@@ -71,7 +71,7 @@ foreach ($rows as $row) {
     $pesan     = (string)($row['pesan'] ?? '');
     $foto_user = !empty($row['foto']) ? basename((string)$row['foto']) : 'Default.jpg';
     $singkat   = (mb_strlen($pesan) > 30) ? mb_substr($pesan, 0, 30) . '...' : $pesan;
-    $waktu     = date('H:i', strtotime((string)$row['waktu']));
+    $waktu     = date('H:i', strtotime((string)$row['created_at']));
 ?>
     <div class="user-item" id="user-<?= $id ?>"
          data-id="<?= $id ?>"

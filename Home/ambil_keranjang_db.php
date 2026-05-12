@@ -14,12 +14,12 @@ if ($id_user <= 0) { echo '[]'; exit; }
 
 try {
     $rows = tz_db()->fetchAll(
-        'SELECT k.id_keranjang, k.nama_produk, k.harga, k.qty,
+        'SELECT k.id, k.nama_produk, k.harga, k.qty,
                 g.nama_game, g.gambar
          FROM keranjang k
          LEFT JOIN games g ON k.id_game = g.id
          WHERE k.id_user = ?
-         ORDER BY k.id_keranjang DESC
+         ORDER BY k.id DESC
          LIMIT 200',
         [$id_user]
     );

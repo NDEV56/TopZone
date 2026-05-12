@@ -25,7 +25,7 @@ foreach ($games as $g) {
     $nama_p  = 'Paket Dasar ' . (string)$g['nama_game'];
     $harga_p = (int)$g['harga'];
 
-    $cek = $db->fetchOne('SELECT id_produk FROM produk_game WHERE id_game = ? LIMIT 1', [$id_g]);
+    $cek = $db->fetchOne('SELECT id FROM produk_game WHERE id_game = ? LIMIT 1', [$id_g]);
     if ($cek) continue;
 
     $db->exec(

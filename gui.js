@@ -762,9 +762,13 @@ server.on("clientError", (err, socket) => {
   try {
     socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
   } catch (_) {}
-  logger.security(`clientError: ${err.code || err.message}`, {
-    ip: socket?.remoteAddress, code: err.code });
-  antiDdos.bumpSuspicion(socket?.remoteAddress || "?", 2, "client-error");
+  const ip = socket?.remoteAddress || "?";
+  const isLoopback = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1" || ip.startsWith("127.");
+  // EXEMPT loopback: keep-alive browser bikin clientError wajar (ECONNRESET dll)
+  if (!isLoopback) {
+    logger.security(`clientError: ${err.code || err.message}`, { ip, code: err.code });
+    antiDdos.bumpSuspicion(ip, 2, "client-error");
+  }
 });
 
 server.on("error", (err) => {

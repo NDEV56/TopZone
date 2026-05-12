@@ -20,34 +20,34 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $id_user = (int)($_SESSION['id_user'] ?? 0);
 if ($id_user <= 0) { http_response_code(401); echo json_encode([]); exit; }
 
-// id_produk dari client (id_produk DARI tabel produk_game)
-$id_produk_or_game = (int)($_POST['id'] ?? 0);
-if ($id_produk_or_game <= 0) { http_response_code(400); echo json_encode([]); exit; }
+// id dari client (id DARI tabel produk_game)
+$id_or_game = (int)($_POST['id'] ?? 0);
+if ($id_or_game <= 0) { http_response_code(400); echo json_encode([]); exit; }
 
 try {
     // Cari produk_game yang cocok — sumber kebenaran harga
     $p = tz_db()->fetchOne(
-        'SELECT id_produk, id_game, nama_produk, harga FROM produk_game WHERE id_produk = ? LIMIT 1',
-        [$id_produk_or_game]
+        'SELECT id, id_game, nama_produk, harga FROM produk_game WHERE id = ? LIMIT 1',
+        [$id_or_game]
     );
     // Fallback: kalau yang dikirim id_game (legacy dari front-end lama)
     if (!$p) {
         $p = tz_db()->fetchOne(
-            'SELECT id_produk, id_game, nama_produk, harga FROM produk_game WHERE id_game = ? ORDER BY harga ASC LIMIT 1',
-            [$id_produk_or_game]
+            'SELECT id, id_game, nama_produk, harga FROM produk_game WHERE id_game = ? ORDER BY harga ASC LIMIT 1',
+            [$id_or_game]
         );
     }
     if (!$p) { http_response_code(404); echo json_encode([]); exit; }
 
     tz_db()->exec(
-        'INSERT INTO keranjang (id_user, id_game, nama_produk, harga, qty, tanggal)
-         VALUES (?, ?, ?, ?, 1, NOW())',
+        'INSERT INTO keranjang (id_user, id_game, nama_produk, harga, qty)
+         VALUES (?, ?, ?, ?, 1)',
         [$id_user, (int)$p['id_game'], (string)$p['nama_produk'], (int)$p['harga']]
     );
 
     // Kembalikan keranjang user
     $rows = tz_db()->fetchAll(
-        'SELECT id_keranjang, nama_produk, harga, qty FROM keranjang WHERE id_user = ?',
+        'SELECT id AS id_keranjang, nama_produk, harga, qty FROM keranjang WHERE id_user = ?',
         [$id_user]
     );
     echo json_encode($rows, JSON_UNESCAPED_UNICODE);

@@ -41,8 +41,8 @@ try {
     }
 
     tz_db()->exec(
-        'INSERT INTO keranjang (id_user, id_game, nama_produk, harga, qty, tanggal)
-         VALUES (?, ?, ?, ?, ?, NOW())',
+        'INSERT INTO keranjang (id_user, id_game, nama_produk, harga, qty)
+         VALUES (?, ?, ?, ?, ?)',
         [$id_user, $id_game, $nama, $harga, $qty]
     );
     echo "Sukses";

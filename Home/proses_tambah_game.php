@@ -66,13 +66,15 @@ try {
     die('Database tidak tersedia.');
 }
 
-// Insert game + paket dalam satu transaksi
+// Insert game + paket dalam satu transaksi (tipe_voucher tidak ada di schema)
 try {
-    $id_game_baru = tz_db()->transaction(function ($db) use ($nama_game, $slug, $kategori, $tipe_voucher, $gambar_rel) {
+    // Build deskripsi dari tipe_voucher (kalau diisi)
+    $deskripsi = $tipe_voucher !== '' ? 'Tipe: ' . $tipe_voucher : '';
+    $id_game_baru = tz_db()->transaction(function ($db) use ($nama_game, $slug, $kategori, $deskripsi, $gambar_rel) {
         $db->exec(
-            'INSERT INTO games (nama_game, slug, kategori, tipe_voucher, gambar)
-             VALUES (?, ?, ?, ?, ?)',
-            [$nama_game, $slug, $kategori, $tipe_voucher, $gambar_rel]
+            'INSERT INTO games (nama_game, slug, kategori, deskripsi, gambar, terjual, is_active)
+             VALUES (?, ?, ?, ?, ?, 0, 1)',
+            [$nama_game, $slug, $kategori, $deskripsi, $gambar_rel]
         );
         $newId = (int)$db->lastInsertId();
 

@@ -19,7 +19,7 @@ if ($id_user <= 0 || $id <= 0 || $qty < 1 || $qty > 999) {
 
 try {
     tz_db()->exec(
-        'UPDATE keranjang SET qty = ? WHERE id_keranjang = ? AND id_user = ?',
+        'UPDATE keranjang SET qty = ? WHERE id = ? AND id_user = ?',
         [$qty, $id, $id_user]
     );
     echo json_encode(['status' => 'sukses']);

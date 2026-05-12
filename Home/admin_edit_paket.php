@@ -13,7 +13,7 @@ tz_require_admin();
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) tz_safe_redirect('/Home/admin_paket.php');
 
-$data = tz_db()->fetchOne('SELECT * FROM produk_game WHERE id_produk = ?', [$id]);
+$data = tz_db()->fetchOne('SELECT * FROM produk_game WHERE id = ?', [$id]);
 if (!$data) tz_safe_redirect('/Home/admin_paket.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     }
     try {
         tz_db()->exec(
-            'UPDATE produk_game SET nama_produk = ?, harga = ? WHERE id_produk = ?',
+            'UPDATE produk_game SET nama_produk = ?, harga = ? WHERE id = ?',
             [$nama, $harga, $id]
         );
         echo "<script>alert('Berhasil diupdate!'); window.location='admin_paket.php';</script>";

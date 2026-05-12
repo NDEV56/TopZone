@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_id'])) {
     $id_paket = (int)$_POST['hapus_id'];
     if ($id_paket > 0) {
         try {
-            tz_db()->exec('DELETE FROM produk_game WHERE id_produk = ?', [$id_paket]);
+            tz_db()->exec('DELETE FROM produk_game WHERE id = ?', [$id_paket]);
         } catch (\Throwable $e) {
             error_log('[topzone-admin-paket] ' . $e->getMessage());
         }
@@ -124,10 +124,10 @@ $games = tz_db()->fetchAll('SELECT * FROM games ORDER BY nama_game ASC');
                                         </td>
                                         <td style="text-align:right; padding-right:15px;">
                                             <div class="action-btns">
-                                                <a href="admin_edit_paket.php?id=<?= (int)$p['id_produk'] ?>" class="btn-edit-item">Edit</a>
+                                                <a href="admin_edit_paket.php?id=<?= (int)$p['id'] ?>" class="btn-edit-item">Edit</a>
                                                 <form method="POST" style="display:inline" onsubmit="return confirm('Hapus paket ini?')">
                                                     <?= tz_csrf_field() ?>
-                                                    <input type="hidden" name="hapus_id" value="<?= (int)$p['id_produk'] ?>">
+                                                    <input type="hidden" name="hapus_id" value="<?= (int)$p['id'] ?>">
                                                     <button type="submit" class="btn-del-item">Hapus</button>
                                                 </form>
                                             </div>

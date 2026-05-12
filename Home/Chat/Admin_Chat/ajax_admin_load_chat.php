@@ -21,7 +21,7 @@ try {
     );
 
     $chats = tz_db()->fetchAll(
-        'SELECT pesan, pengirim, waktu, is_read FROM chat WHERE id_user = ? ORDER BY waktu ASC LIMIT 500',
+        'SELECT pesan, pengirim, created_at, is_read FROM chat WHERE id_user = ? ORDER BY created_at ASC LIMIT 500',
         [$id_user]
     );
 } catch (\Throwable $e) {
@@ -43,7 +43,7 @@ foreach ($chats as $row) {
         echo tz_e($pesan);
     }
 
-    echo '<span class="msg-time">' . tz_e(date('H:i', strtotime((string)$row['waktu']))) . '</span>';
+    echo '<span class="msg-time">' . tz_e(date('H:i', strtotime((string)$row['created_at']))) . '</span>';
 
     if ($isAdmin) {
         $isRead = ((int)($row['is_read'] ?? 0) === 1);

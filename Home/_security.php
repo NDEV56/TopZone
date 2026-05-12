@@ -225,16 +225,21 @@ if (!function_exists('tz_is_logged_in')) {
 if (!function_exists('tz_is_admin')) {
     function tz_is_admin(): bool {
         if (!tz_is_logged_in()) return false;
-        $env = tz_load_env();
+        $uid = (int)($_SESSION['id_user'] ?? 0);
 
-        // Daftar admin via .env: ADMIN_USERNAMES=alice,bob  ADMIN_IDS=1,2
+        // CARA 1 (UTAMA): cek kolom role di DB
+        try {
+            $row = tz_db()->fetchOne('SELECT role FROM users WHERE id = ? LIMIT 1', [$uid]);
+            if ($row && ($row['role'] ?? '') === 'admin') return true;
+        } catch (\Throwable $e) { /* fallback ke env */ }
+
+        // CARA 2 (FALLBACK): cek dari .env
+        $env = tz_load_env();
         $names = array_filter(array_map('trim',
             explode(',', $env['ADMIN_USERNAMES'] ?? '')));
         $ids   = array_filter(array_map('intval',
             explode(',', $env['ADMIN_IDS'] ?? '')));
-
         $uname = $_SESSION['username'] ?? '';
-        $uid   = (int)($_SESSION['id_user'] ?? 0);
 
         if (!empty($names) && in_array($uname, $names, true)) return true;
         if (!empty($ids)   && in_array($uid,   $ids,   true)) return true;
@@ -242,10 +247,26 @@ if (!function_exists('tz_is_admin')) {
     }
 }
 
+/** Auto-detect base path: kalau di /TopZone/Home/x.php → return "/TopZone".
+ *  Kalau di root → return "". */
+if (!function_exists('tz_base_path')) {
+    function tz_base_path(): string {
+        static $base = null;
+        if ($base !== null) return $base;
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        // Hilangkan /Home/x.php atau /Login/x.php di akhir → ambil prefix
+        $base = preg_replace('#/(Home|Login)/[^/]+\.php$#', '', $script);
+        if ($base === $script) $base = ''; // tidak match (path tidak standar)
+        return $base;
+    }
+}
+
 if (!function_exists('tz_require_login')) {
     function tz_require_login(string $redirect = '/Login/tampilanlogin.php'): void {
         if (!tz_is_logged_in()) {
             if (PHP_SAPI === 'cli') return;
+            // Prepend base path supaya bekerja di hosting subdirectory (mis. /TopZone/)
+            if (str_starts_with($redirect, '/')) $redirect = tz_base_path() . $redirect;
             header('Location: ' . $redirect);
             exit;
         }
@@ -482,6 +503,14 @@ if (!function_exists('tz_safe_redirect')) {
         $path = trim($path);
         if ($path === '' || preg_match('#^https?://#i', $path) || str_starts_with($path, '//')) {
             $path = '/Home/index.php';
+        }
+        // Auto-prefix base path supaya bekerja di subdirectory hosting (mis. /TopZone/)
+        if (str_starts_with($path, '/')) {
+            $base = tz_base_path();
+            // Hindari double-prefix kalau path sudah punya base
+            if ($base !== '' && !str_starts_with($path, $base . '/')) {
+                $path = $base . $path;
+            }
         }
         header('Location: ' . $path);
         exit;
