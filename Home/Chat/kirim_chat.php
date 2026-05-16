@@ -1,81 +1,42 @@
 <?php
-/**
- * kirim_chat.php — HARDENED v3.1 (sync NAFI upload-image update)
- *   • require_login
- *   • CSRF check
- *   • Validasi file upload (whitelist ext+MIME)
- *   • Prepared SQL
- *   • Rate-limit anti chat-flood
- */
-require_once __DIR__ . '/../_security.php';
-tz_security_init();
+session_start();
+include '../koneksi.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    exit;
-}
+if(isset($_SESSION['id_user'])) {
+    $id_user = $_SESSION['id_user'];
+    $pesan = isset($_POST['pesan']) ? mysqli_real_escape_string($koneksi, $_POST['pesan']) : '';
+    $nama_file = "";
 
-$id_user = (int)($_SESSION['id_user'] ?? 0);
-if ($id_user <= 0) {
-    http_response_code(401);
-    exit('login-needed');
-}
+    // 1. Tentukan folder tujuan & BIKIN KALAU BELUM ADA
+    $targetDir = "../uploads/"; // Mundur satu langkah dari folder Chat untuk nemu folder uploads
+    $namaFile = "IMG_USER_" . uniqid() . "_" . time() . ".jpg";
+    $targetFile = $targetDir . $namaFile;
+    if (!file_exists($targetDir)) {
+        mkdir($targetDir, 0777, true); // Bikin folder otomatis dengan permission penuh
+    }
 
-tz_csrf_verify();
-
-if (!tz_rate_limit('chat:user:' . $id_user, 30, 60)) {
-    http_response_code(429);
-    exit('rate-limit');
-}
-
-$pesan = trim((string)($_POST['pesan'] ?? ''));
-if (strlen($pesan) > 1000) {
-    http_response_code(400);
-    exit('msg-too-long');
-}
-
-$uploadsDir = tz_uploads_dir();
-$gambarNama = null;
-
-// 1. Jika ada gambar
-if (isset($_FILES['gambar']) && is_array($_FILES['gambar'])
-    && ($_FILES['gambar']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-
-    $safe = tz_validate_upload(
-        $_FILES['gambar'],
-        ['png', 'jpg', 'jpeg', 'webp', 'gif'],
-        5 * 1024 * 1024
-    );
-    if ($safe === null) {
-        http_response_code(400);
-        exit('file-invalid');
+    // 2. Jika ada Gambar
+    if(isset($_FILES['gambar']) && $_FILES['gambar']['error'] == 0) {
+        $ext = pathinfo($_FILES['gambar']['name'], PATHINFO_EXTENSION);
+        if(empty($ext)) $ext = "jpg"; 
+        
+        $nama_file = "IMG_USER_" . uniqid() . "_" . time() . "." . $ext;
+        $path = $targetDir . $nama_file; 
+        
+        if(move_uploaded_file($_FILES['gambar']['tmp_name'], $path)) {
+            // Masukin nama file gambar ke DB
+            mysqli_query($koneksi, "INSERT INTO chat (id_user, pesan, pengirim, is_read) 
+                                   VALUES ('$id_user', '$nama_file', 'user', 0)");
+        }
     }
     $ext = pathinfo($safe, PATHINFO_EXTENSION);
     $gambarNama = 'IMG_USER_' . time() . '_' . bin2hex(random_bytes(3)) . '.' . $ext;
     $dest = $uploadsDir . DIRECTORY_SEPARATOR . $gambarNama;
 
-    if (!@move_uploaded_file($_FILES['gambar']['tmp_name'], $dest)) {
-        error_log('[topzone-kirim-chat] move_uploaded_file gagal');
-        http_response_code(500);
-        exit('upload-fail');
-    }
-    @chmod($dest, 0644);
-}
-
-try {
-    if ($gambarNama !== null) {
-        // Simpan nama file gambar sebagai pesan
-        tz_db()->exec(
-            "INSERT INTO chat (id_user, pesan, pengirim, is_read) VALUES (?, ?, 'user', 0)",
-            [$id_user, $gambarNama]
-        );
-    }
-    // Insert pesan teks (kalau ada)
-    if ($pesan !== '') {
-        tz_db()->exec(
-            "INSERT INTO chat (id_user, pesan, pengirim, is_read) VALUES (?, ?, 'user', 0)",
-            [$id_user, $pesan]
-        );
+    // 3. Jika ada Teks
+    if(!empty(trim($pesan))) {
+        mysqli_query($koneksi, "INSERT INTO chat (id_user, pesan, pengirim, is_read) 
+                               VALUES ('$id_user', '$pesan', 'user', 0)");
     }
     echo 'ok';
 } catch (\Throwable $e) {

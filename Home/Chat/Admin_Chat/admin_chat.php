@@ -17,102 +17,468 @@ tz_require_admin();
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Reset & Dasar */
-        * { box-sizing: border-box; } 
-        :root { --primary: #00ff88; --dark: #121212; --card: #1e1e1e; --text: #eee; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: var(--text); margin: 0; display: flex; overflow: hidden; }
-        
-        /* Sidebar Utama */
-        .sidebar { width: 220px; height: 100vh; background: #000; padding: 15px; position: fixed; border-right: 1px solid #333; z-index: 100; }
-        .sidebar h1 { color: var(--primary); font-size: 20px; margin-bottom: 25px; letter-spacing: 1px; }
-        .nav-link { display: block; color: #888; text-decoration: none; padding: 10px 15px; border-radius: 8px; transition: 0.3s; margin-bottom: 5px; font-size: 14px; }
-        .nav-link:hover, .nav-link.active { background: #222; color: var(--primary); }
+/* ==========================================================================
+   RESET & VARIABEL UTAMA (Topzone Blue Navy Theme)
+   ========================================================================== */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+} 
 
-        .content { margin-left: 220px; display: flex; width: calc(100% - 220px); height: 100vh; }
-        
-        /* List User Sidebar Kiri */
-        .user-list { width: 280px; background: #181818; border-right: 1px solid #333; overflow-y: auto; }
-        .user-item { padding: 12px 15px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.3s; border-left: 3px solid transparent; }
-        .user-item:hover { background: #252525; }
-        .user-item.active { background: #222; border-left: 3px solid var(--primary); }
-        .user-name { font-weight: bold; color: var(--primary); font-size: 13px; display: flex; justify-content: space-between; }
+:root { 
+    --primary: #00d2ff; 
+    --primary-glow: rgba(0, 210, 255, 0.35);
+    --topzone-blue: #005cff;
+    --navy-deep: #050d26;
+    --navy-mid: #0b173a;
+    --glass-bg: rgba(11, 23, 58, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --text-main: #ffffff;
+    --text-muted: #647b9b;
+}
 
-        /* Area Chat Kanan */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #121212; position: relative; border-right: 1px solid #333; }
-        #chatHeader { padding: 12px 20px; background: #1e1e1e; border-bottom: 1px solid #333; font-weight: bold; color: var(--primary); font-size: 14px; }
-        #chatWindow { flex: 1; padding: 15px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px; }
-        
-        /* Bubble Chat */
-        .chat-bubble { padding: 10px 15px; border-radius: 12px; max-width: 65%; font-size: 13px; line-height: 1.4; position: relative; color: #fff; display: flex; flex-direction: column; }
-        .admin-msg { background: #00ff88; color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .user-msg { background: #333; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .msg-time { font-size: 9px; margin-top: 4px; opacity: 0.6; align-self: flex-end; }
+/* ==========================================================================
+   BODY & ANIMASI LATAR BELAKANG (Liquid Blobs)
+   ========================================================================== */
+body { 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    background: var(--navy-deep); 
+    color: var(--text-main); 
+    height: 100vh;
+    display: flex; 
+    overflow: hidden; 
+    position: relative;
+}
 
-        /* Preview Panel */
-        #previewPanel { display: none; padding: 15px; background: #1e1e1e; border-top: 1px solid #333; position: relative; }
-        #imgPreview { max-height: 150px; border-radius: 8px; border: 2px solid var(--primary); }
-        .close-preview { position: absolute; top: 5px; right: 15px; color: #ff4444; cursor: pointer; font-size: 24px; }
+body::before, body::after {
+    content: "";
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #002266, var(--topzone-blue), #00aaff);
+    filter: blur(100px);
+    z-index: -1;
+    opacity: 0.5;
+    animation: liquidMovement 15s infinite alternate ease-in-out;
+}
 
-        /* Input Area & Action Menu */
-        .input-area { padding: 12px 20px; background: #1e1e1e; display: flex; gap: 12px; border-top: 1px solid #333; align-items: center; position: relative; }
-        .action-menu { position: relative; display: flex; align-items: center; }
-        .main-btn { background: #252525; color: var(--primary); border: 1px solid #444; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; }
-        .main-btn.active { transform: rotate(45deg); background: var(--primary); color: #000; }
-        
-        .menu-options { position: absolute; bottom: 55px; left: 0; display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(15px) scale(0.8); pointer-events: none; transition: 0.3s; background: #1e1e1e; padding: 8px; border-radius: 20px; border: 1px solid #333; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .menu-options.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
-        .menu-options button { background: #252525; color: var(--primary); border: 1px solid #444; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+body::after {
+    right: -50px;
+    bottom: -50px;
+    background: linear-gradient(45deg, var(--topzone-blue), #001133, #00d2ff);
+    animation-delay: -7.5s;
+}
 
-        input[type="text"] { flex: 1; background: #252525; border: 1px solid #444; color: #fff; padding: 10px 18px; border-radius: 20px; outline: none; font-size: 13px; }
-        .send-btn { background: var(--primary); color: #000; border: none; padding: 10px 22px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; }
+@keyframes liquidMovement {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 30% 70% / 50% 60% 40% 60%; }
+    50% { transform: translate(80px, 40px) scale(1.1) rotate(180deg); border-radius: 30% 70% 70% 30% / 50% 30% 70% 50%; }
+    100% { transform: translate(-40px, 60px) scale(0.95) rotate(360deg); border-radius: 50% 50% 30% 70% / 50% 60% 40% 60%; }
+}
 
-        /* Modal Zoom */
-        #imageModal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); align-items:center; justify-content:center; }
-        .user-info-panel { 
-            width: 280px; 
-            background: #181818; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 40px 20px;
-            text-align: center;
-        }
+/* ==========================================================================
+   SIDEBAR UTAMA
+   ========================================================================== */
+.sidebar { 
+    width: 220px; 
+    height: 100vh; 
+    background: rgba(3, 8, 24, 0.75);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    padding: 20px 15px; 
+    position: fixed; 
+    border-right: 1px solid var(--glass-border); 
+    z-index: 100; 
+}
 
-        .profile-img-large {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary);
-            margin-bottom: 20px;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
-        }
+.sidebar h1 { 
+    color: var(--text-main); 
+    font-size: 20px; 
+    margin-bottom: 25px; 
+    letter-spacing: 1px; 
+    font-weight: 700;
+}
 
-        .info-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 5px;
-        }
+.nav-link { 
+    display: block; 
+    color: var(--text-muted); 
+    text-decoration: none; 
+    padding: 12px 15px; 
+    border-radius: 12px; 
+    transition: all 0.25s ease; 
+    margin-bottom: 8px; 
+    font-size: 14px; 
+    font-weight: 500;
+}
 
-        .info-id {
-            background: #252525;
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 11px;
-            color: #888;
-            border: 1px solid #333;
-            letter-spacing: 1px;
-        }
+.nav-link:hover, .nav-link.active { 
+    background: rgba(0, 92, 255, 0.15); 
+    color: var(--primary); 
+    border-left: 3px solid var(--primary);
+    padding-left: 18px;
+    box-shadow: 0 4px 15px rgba(0, 92, 255, 0.15);
+}
 
-        .status-badge {
-            margin-top: 25px;
-            font-size: 12px;
-            color: #555;
-            border-top: 1px solid #333;
-            padding-top: 20px;
-            width: 100%;
-        }
+/* Container Layout */
+.content { 
+    margin-left: 220px; 
+    display: flex; 
+    width: calc(100% - 220px); 
+    height: 100vh; 
+}
+
+/* ==========================================================================
+   LIST USER (SIDEBAR KIRI)
+   ========================================================================== */
+.user-list { 
+    width: 280px; 
+    background: rgba(4, 11, 31, 0.4); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--glass-border); 
+    overflow-y: auto; 
+}
+
+.user-item { 
+    padding: 16px 18px; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03); 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+    border-left: 3px solid transparent; 
+}
+
+.user-item:hover { 
+    background: rgba(255, 255, 255, 0.02); 
+}
+
+.user-item.active { 
+    background: rgba(0, 92, 255, 0.12); 
+    border-left: 3px solid var(--primary); 
+    backdrop-filter: blur(8px);
+}
+
+.user-name { 
+    font-weight: 600; 
+    color: var(--text-main); 
+    font-size: 13.5px; 
+    display: flex; 
+    justify-content: space-between; 
+}
+
+.user-item.active .user-name {
+    color: var(--primary);
+}
+
+/* ==========================================================================
+   AREA CHAT & HEADER (MURNI TRANSPARAN / ANTI-HITAM)
+   ========================================================================== */
+.chat-area { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    background: rgba(5, 13, 38, 0.15); /* Diturunkan kepekatannya agar tidak hitam solid */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    position: relative; 
+    border-right: 1px solid var(--glass-border); 
+}
+
+#chatHeader { 
+    padding: 18px 20px; 
+    background: rgba(8, 18, 48, 0.4); /* Diubah jadi semi-transparan */
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-bottom: 1px solid var(--glass-border); 
+    font-weight: 600; 
+    color: var(--text-main); 
+    font-size: 15px; 
+    box-shadow: 0 4px 25px rgba(3, 8, 24, 0.2);
+}
+
+#chatWindow { 
+    flex: 1; 
+    padding: 20px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    background-image: radial-gradient(rgba(0, 92, 255, 0.04) 1.5px, transparent 1.5px); 
+    background-size: 24px 24px; 
+}
+
+/* Memperbaiki warna teks default bawaan chat agar tidak hitam kusam */
+#chatWindow div[style*="color: #555"],
+#chatWindow div[style*="color:#555"] {
+    color: var(--text-muted) !important;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   BUBBLE CHAT (Pop-up Animation)
+   ========================================================================== */
+.chat-bubble { 
+    padding: 12px 18px; 
+    border-radius: 18px; 
+    max-width: 65%; 
+    font-size: 13.5px; 
+    line-height: 1.5; 
+    position: relative; 
+    color: var(--text-main); 
+    display: flex; 
+    flex-direction: column; 
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    animation: bubblePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.12) both;
+}
+
+@keyframes bubblePop {
+    from { opacity: 0; transform: translateY(10px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.admin-msg { 
+    background: linear-gradient(135deg, rgba(0, 92, 255, 0.25), rgba(0, 170, 255, 0.1)); 
+    border: 1px solid rgba(0, 170, 255, 0.25);
+    align-self: flex-end; 
+    border-bottom-right-radius: 4px; 
+    box-shadow: 0 4px 15px rgba(0, 92, 255, 0.1);
+}
+
+.user-msg { 
+    background: rgba(255, 255, 255, 0.03); 
+    align-self: flex-start; 
+    border-bottom-left-radius: 4px; 
+}
+
+.msg-time { 
+    font-size: 10px; 
+    margin-top: 6px; 
+    color: var(--text-muted);
+    align-self: flex-end; 
+}
+
+/* ==========================================================================
+   PANEL PREVIEW IMAGE (GLASS EFFECT)
+   ========================================================================== */
+#previewPanel { 
+    display: none; 
+    padding: 15px; 
+    background: rgba(11, 23, 58, 0.4); /* Diubah dari navy solid menjadi transparan */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-top: 1px solid var(--glass-border); 
+    position: relative; 
+}
+
+#imgPreview { 
+    max-height: 150px; 
+    border-radius: 12px; 
+    border: 2px solid var(--primary); 
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.close-preview { 
+    position: absolute; 
+    top: 5px; 
+    right: 15px; 
+    color: #ff4a4a; 
+    cursor: pointer; 
+    font-size: 24px; 
+    transition: transform 0.2s;
+}
+.close-preview:hover { transform: scale(1.1); }
+
+/* ==========================================================================
+   INPUT AREA & ACTION MENU
+   ========================================================================== */
+.input-area { 
+    padding: 16px 20px; 
+    background: rgba(6, 14, 38, 0.35); /* Transparansi ditingkatkan dari 0.8 */
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    display: flex; 
+    gap: 12px; 
+    border-top: 1px solid var(--glass-border); 
+    align-items: center; 
+    position: relative; 
+}
+
+.action-menu { position: relative; display: flex; align-items: center; }
+
+.main-btn { 
+    background: rgba(255, 255, 255, 0.06); /* Dibuat sedikit lebih terang agar kontras */
+    color: var(--primary); 
+    border: 1px solid var(--glass-border); 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    transition: all 0.25s ease; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.main-btn:hover {
+    background: rgba(0, 92, 255, 0.15);
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.main-btn.active { 
+    transform: rotate(45deg); 
+    background: var(--primary); 
+    color: var(--navy-deep); 
+    box-shadow: 0 0 15px var(--primary);
+}
+
+.menu-options { 
+    position: absolute; 
+    bottom: 60px; 
+    left: 0; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    opacity: 0; 
+    transform: translateY(15px) scale(0.8); 
+    pointer-events: none; 
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+    background: rgba(8, 19, 48, 0.9); 
+    backdrop-filter: blur(15px);
+    padding: 10px; 
+    border-radius: 25px; 
+    border: 1px solid var(--glass-border); 
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); 
+}
+
+.menu-options.show { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+    pointer-events: all; 
+}
+
+.menu-options button { 
+    background: rgba(255, 255, 255, 0.04); 
+    color: var(--primary); 
+    border: 1px solid var(--glass-border); 
+    width: 38px; 
+    height: 38px; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: all 0.2s;
+}
+
+.menu-options button:hover {
+    background: var(--primary);
+    color: var(--navy-deep);
+}
+
+input[type="text"] { 
+    flex: 1; 
+    background: rgba(255, 255, 255, 0.05); /* Sedikit dinaikkan dari 0.03 agar terlihat bersih */
+    border: 1px solid var(--glass-border); 
+    color: #fff; 
+    padding: 12px 20px; 
+    border-radius: 25px; 
+    outline: none; 
+    font-size: 13.5px; 
+    transition: all 0.25s ease;
+}
+
+input[type="text"]:focus {
+    background: rgba(255, 255, 255, 0.08); 
+    border-color: rgba(0, 170, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 170, 255, 0.15);
+}
+
+.send-btn { 
+    background: linear-gradient(135deg, var(--topzone-blue), #00aaff); 
+    color: #fff; 
+    border: none; 
+    padding: 12px 24px; 
+    border-radius: 25px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    font-size: 13px; 
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px rgba(0, 92, 255, 0.3);
+}
+
+.send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 170, 255, 0.4);
+}
+
+/* ==========================================================================
+   USER INFO PANEL & STATUS BADGE
+   ========================================================================== */
+.user-info-panel { 
+    width: 280px; 
+    background: rgba(4, 11, 31, 0.4); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-left: 1px solid var(--glass-border);
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.profile-img-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--topzone-blue);
+    margin-bottom: 20px;
+    box-shadow: 0 0 25px rgba(0, 92, 255, 0.35);
+    transition: transform 0.4s ease;
+}
+
+.profile-img-large:hover {
+    transform: scale(1.04) rotate(3deg);
+}
+
+.info-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.info-id {
+    background: rgba(255, 255, 255, 0.04);
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--glass-border);
+    letter-spacing: 1px;
+}
+
+.status-badge {
+    margin-top: 25px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--glass-border);
+    padding-top: 20px;
+    width: 100%;
+    background: transparent; 
+}
+
+/* Modal Zoom & Scrollbar */
+#imageModal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(3, 7, 20, 0.94); align-items:center; justify-content:center; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 92, 255, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 170, 255, 0.4); }
     </style>
 </head>
 <body>
