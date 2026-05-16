@@ -478,11 +478,11 @@ input[type="text"]:focus {
 
 <div class="sidebar">
     <h1>TOPZONE.</h1>
-    <a href="../../admin_orders.php" class="nav-link">📦 Pesanan Masuk</a>
-    <a href="../../admin_tambah_game.php" class="nav-link">🎮 Kelola Game</a>
-    <a href="../../admin_paket.php" class="nav-link">💎 Kelola Paket</a>
-    <a href="admin_chat.php" class="nav-link active">💬 Chat Pelanggan</a>
-    <a href="../../index.php" class="nav-link">🏠 Lihat Website</a>
+    <a href="../../admin_orders.php" class="nav-link"> Pesanan Masuk</a>
+    <a href="../../admin_tambah_game.php" class="nav-link"> Kelola Game</a>
+    <a href="../../admin_paket.php" class="nav-link"> Kelola Paket</a>
+    <a href="admin_chat.php" class="nav-link active"> Chat Pelanggan</a>
+    <a href="../../index.php" class="nav-link"> Lihat Website</a>
 </div>
 
 <div class="content">
@@ -530,7 +530,7 @@ input[type="text"]:focus {
     <!-- Panel Info Profil (Kanan Baru) -->
     <div class="user-info-panel" id="userInfoPanel">
         <!-- Placeholder gambar jika belum pilih user -->
-        <img src="../../uploads/default-profile.png" class="profile-img-large" id="infoPic">
+        <img src="../../../../Default.jpg" class="profile-img-large" id="infoPic">
         <div class="info-name" id="infoName">User Profil</div>
         <div class="info-id" id="infoID">ID: #0000</div>
         
