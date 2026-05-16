@@ -1,22 +1,30 @@
 <?php
-include 'koneksi.php';
+/**
+ * admin_paket.php — HARDENED v3.1
+ *   • require_admin
+ *   • Prepared SQL semua
+ *   • Hapus sekarang via POST + CSRF (sebelumnya GET ?hapus=ID — CSRFable)
+ *   • XSS-safe
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
+tz_require_admin();
 
-// --- 1. LOGIKA HAPUS PAKET ---
-if (isset($_GET['hapus'])) {
-    $id_paket = mysqli_real_escape_string($koneksi, $_GET['hapus']);
-    
-    // GANTI 'id_produk' di bawah ini dengan nama kolom kunci di database lu!
-    $query_hapus = mysqli_query($koneksi, "DELETE FROM produk_game WHERE id_produk = '$id_paket'");
-    
-    if($query_hapus) {
-        echo "<script>window.location='admin_paket.php';</script>";
-        exit();
-    } else {
-        echo "Error: " . mysqli_error($koneksi);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_id'])) {
+    tz_csrf_verify();
+    $id_paket = (int)$_POST['hapus_id'];
+    if ($id_paket > 0) {
+        try {
+            tz_db()->exec('DELETE FROM produk_game WHERE id = ?', [$id_paket]);
+        } catch (\Throwable $e) {
+            error_log('[topzone-admin-paket] ' . $e->getMessage());
+        }
     }
+    tz_safe_redirect('/Home/admin_paket.php');
 }
-?>
 
+$games = tz_db()->fetchAll('SELECT * FROM games ORDER BY nama_game ASC');
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -332,30 +340,31 @@ if (isset($_GET['hapus'])) {
         <a href="admin_orders.php" class="nav-link">📦 Pesanan Masuk</a>
         <a href="admin_tambah_game.php" class="nav-link">🎮 Kelola Game</a>
         <a href="admin_paket.php" class="nav-link active">💎 Kelola Paket</a>
-        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
+        <a href="Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
         <a href="index.php" class="nav-link">🏠 Lihat Website</a>
     </div>
 
     <div class="content">
-        <h2 style="margin-bottom: 30px; font-weight: 700;">Management Paket Produk</h2>
+        <h2 style="margin-bottom: 30px; font-weight: 700;">💎 Management Paket Produk</h2>
 
         <div class="game-grid">
-            <?php
-            $q_game = mysqli_query($koneksi, "SELECT * FROM games ORDER BY nama_game ASC");
-            while($g = mysqli_fetch_assoc($q_game)):
-                $id_game = $g['id'];
-                $slug_game = $g['slug']; 
+            <?php foreach ($games as $g):
+                $id_game    = (int)$g['id'];
+                $paket_list = tz_db()->fetchAll(
+                    'SELECT * FROM produk_game WHERE id_game = ? ORDER BY tipe ASC, harga ASC',
+                    [$id_game]
+                );
             ?>
                 <div class="game-card">
                     <div class="game-header">
                         <div class="game-info">
-                            <img src="<?= $g['gambar'] ?>" alt="<?= $g['nama_game'] ?>">
+                            <img src="<?= tz_attr($g['gambar']) ?>" alt="">
                             <div>
-                                <h3><?= $g['nama_game'] ?></h3>
-                                <span class="slug-tag">/<?= $slug_game ?></span>
+                                <h3><?= tz_e($g['nama_game']) ?></h3>
+                                <span class="slug-tag">/<?= tz_e($g['slug']) ?></span>
                             </div>
                         </div>
-                        <a href="admin_tambah_paket.php?game=<?= $slug_game ?>" class="btn-add-item">+ ITEM</a>
+                        <a href="admin_tambah_paket.php?game=<?= rawurlencode((string)$g['slug']) ?>" class="btn-add-item">+ ITEM</a>
                     </div>
 
                     <table class="paket-table">
@@ -367,73 +376,45 @@ if (isset($_GET['hapus'])) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php
-                            // 1. Tambahkan 'tipe ASC' di ORDER BY supaya paket yang setipe ngumpul jadi satu
-                            $q_paket = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_game' ORDER BY tipe ASC, harga ASC");
-                            
-                            if(mysqli_num_rows($q_paket) > 0) {
-                                $current_tipe = ""; // Variabel pembantu buat cek perubahan tipe
-
-                                while($p = mysqli_fetch_assoc($q_paket)) {
-                                    $id_p = $p['id_produk']; 
-                                    $nama_p = htmlspecialchars($p['nama_produk']);
-                                    $harga_p = number_format($p['harga'], 0, ',', '.');
-                                    $tipe_p = $p['tipe']; // Ambil kolom tipe
-
-                                    // 2. LOGIKA PEMISAH (Hanya muncul jika tipe berubah)
+                            <?php if (count($paket_list) > 0):
+                                $current_tipe = '';
+                                foreach ($paket_list as $p):
+                                    $tipe_p = (string)$p['tipe'];
                                     if ($tipe_p !== $current_tipe) {
                                         $current_tipe = $tipe_p;
-                                        
-                                        // Tentukan label Header berdasarkan tipe
-                                        $header_label = "";
-                                        $header_color = "";
-
-                                        if ($tipe_p == 'roblox_login') {
-                                            $header_label = "--- KATEGORI: VIA LOGIN (ROBLOX) ---";
-                                            $header_color = "#ff4d4d"; // Merah
-                                        } elseif ($tipe_p == 'roblox_5hari') {
-                                            $header_label = "--- KATEGORI: 5 HARI / GIFT (ROBLOX) ---";
-                                            $header_color = "#2ecc71"; // Hijau
-                                        }
-
-                                        // Tampilkan baris header pemisah jika ini produk roblox
-                                        if ($header_label !== "") {
-                                            echo "<tr>
-                                                    <td colspan='3' style='background: rgba(255,255,255,0.05); color: $header_color; font-weight: bold; text-align: center; font-size: 12px; letter-spacing: 1px; padding: 10px 0;'>
-                                                        $header_label
-                                                    </td>
-                                                </tr>";
+                                        $hl = ''; $hc = '';
+                                        if ($tipe_p === 'roblox_login')      { $hl = '--- KATEGORI: VIA LOGIN (ROBLOX) ---'; $hc = '#ff4d4d'; }
+                                        elseif ($tipe_p === 'roblox_5hari')  { $hl = '--- KATEGORI: 5 HARI / GIFT (ROBLOX) ---'; $hc = '#2ecc71'; }
+                                        if ($hl !== '') {
+                                            echo "<tr><td colspan='3' style='background: rgba(255,255,255,0.05); color: " . tz_attr($hc) . "; font-weight: bold; text-align: center; font-size: 12px; letter-spacing: 1px; padding: 10px 0;'>" . tz_e($hl) . "</td></tr>";
                                         }
                                     }
                             ?>
                                     <tr>
-                                        <td><strong style="color: #fff;"><?php echo $nama_p; ?></strong></td>
+                                        <td><strong style="color: #fff;"><?= tz_e($p['nama_produk']) ?></strong></td>
                                         <td style="color: var(--primary); font-family: monospace; font-weight: bold;">
-                                            Rp <?php echo $harga_p; ?>
+                                            Rp <?= tz_e(number_format((int)$p['harga'], 0, ',', '.')) ?>
                                         </td>
                                         <td style="text-align:right; padding-right:15px;">
-                                            <div class="action-btns" style="justify-content: flex-end;">
-                                                <a href="admin_edit_paket.php?id=<?php echo $id_p; ?>" class="btn-edit-item">Edit</a>
-                                                <a href="admin_paket.php?hapus=<?php echo $id_p; ?>" 
-                                                class="btn-del-item" 
-                                                onclick="return confirm('Hapus paket <?php echo $nama_p; ?>?')">
-                                                Hapus
-                                                </a>
+                                            <div class="action-btns">
+                                                <a href="admin_edit_paket.php?id=<?= (int)$p['id'] ?>" class="btn-edit-item">Edit</a>
+                                                <form method="POST" style="display:inline" onsubmit="return confirm('Hapus paket ini?')">
+                                                    <?= tz_csrf_field() ?>
+                                                    <input type="hidden" name="hapus_id" value="<?= (int)$p['id'] ?>">
+                                                    <button type="submit" class="btn-del-item">Hapus</button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
-                            <?php 
-                                }
-                            } else {
-                            ?>
+                            <?php endforeach; else: ?>
                                 <tr>
                                     <td colspan="3" class="empty-state">Belum ada paket tersedia.</td>
                                 </tr>
-                            <?php } ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     </div>
 

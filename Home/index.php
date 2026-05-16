@@ -1,70 +1,88 @@
 <?php
-session_start();
-include 'koneksi.php'; 
+/**
+ * index.php — HARDENED v3.1 (sync NAFI update)
+ *   • Fitur UI baru dari NAFI dipertahankan
+ *   • SQL injection di-patch dengan prepared statements (via mysqli stmt
+ *     supaya kompatibel dengan template yang masih pakai mysqli_fetch_assoc)
+ *   • XSS di output di-escape via tz_e()
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
 
 // 1. CEK STATUS USER
-$is_real_user = isset($_SESSION['id_user']); 
-$is_logged_in = isset($_SESSION['nama_user']); 
-$id_user_skrg = $_SESSION['id_user'] ?? 0;
+$is_real_user = isset($_SESSION['id_user']) && (int)$_SESSION['id_user'] > 0;
+$is_logged_in = isset($_SESSION['nama_user']);
+$id_user_skrg = (int)($_SESSION['id_user'] ?? 0);
 
-// 2. LOGIKA CALLBACK / UPDATE STATUS (Pending -> proses)
-if (isset($_GET['status']) && $_GET['status'] == 'success' && $is_real_user) {
-    $update_status = "UPDATE orders SET status = 'proses' 
-                      WHERE id_user = '$id_user_skrg' AND status = 'pending'";
-    mysqli_query($koneksi, $update_status);
-    header("Location: index.php");
-    exit();
+// 2. LOGIKA CALLBACK / UPDATE STATUS (Pending -> proses) — prepared
+if (isset($_GET['status']) && $_GET['status'] === 'success' && $is_real_user) {
+    try {
+        tz_db()->exec(
+            "UPDATE orders SET status = 'proses' WHERE id_user = ? AND status = 'pending'",
+            [$id_user_skrg]
+        );
+    } catch (\Throwable $e) {
+        error_log('[topzone-index] ' . $e->getMessage());
+    }
+    tz_safe_redirect('/Home/index.php');
 }
 
-// 3. QUERY PRODUK UTAMA
-$query = "SELECT * FROM games"; 
-$result = mysqli_query($koneksi, $query);
+// 3. QUERY PRODUK UTAMA — sediakan $koneksi & $result untuk template
+$koneksi = tz_legacy_mysqli();
+$result  = mysqli_query($koneksi, 'SELECT * FROM games ORDER BY id DESC');
 
-// 4. AMBIL DATA ORDER (DENGAN LOGIKA NAMA GAME ASLI)
+// 4. AMBIL DATA ORDER
 $jumlah_keranjang = 0;
 $count_pending = $count_proses = $count_dikirim = $count_selesai = 0;
 $q_pending = $q_proses = $q_dikirim = $q_selesai = null;
 
 if ($is_real_user) {
-    // Hitung Keranjang
-    $res_keranjang = mysqli_query($koneksi, "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'");
-    $data_keranjang = mysqli_fetch_assoc($res_keranjang);
-    $jumlah_keranjang = $data_keranjang['total'] ?? 0;
+    // Hitung keranjang (prepared)
+    try {
+        $jumlah_keranjang = (int)tz_db()->fetchColumn(
+            'SELECT COALESCE(SUM(qty),0) FROM keranjang WHERE id_user = ?',
+            [$id_user_skrg]
+        );
+    } catch (\Throwable $e) { $jumlah_keranjang = 0; }
 
-    // Fungsi Sakti: Nyocokkin teks di orders dengan nama game di tabel games
-    function getOrders($koneksi, $id_user, $status) {
-        $sql = "SELECT o.*, 
-                COALESCE(
-                    -- Cara 1: Cek apakah nama game ada di dalam teks paket
-                    (SELECT g.nama_game FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
-                    -- Cara 2: Cek berdasarkan harga (SANGAT PENTING buat yang namanya 'Paket Utama')
-                    (SELECT g.nama_game FROM games g WHERE g.harga = o.total_price LIMIT 1),
-                    -- Cara 3: Cadangan kalau tetep gak ketemu
-                    'TopZone Product'
-                ) as nama_game_asli,
-                COALESCE(
-                    (SELECT g.gambar FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
-                    (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
-                    'Default.jpg'
-                ) as gambar_game_asli
-                FROM orders o 
-                WHERE o.id_user = '$id_user' AND o.status = '$status' 
-                ORDER BY o.id_order DESC";
-        return mysqli_query($koneksi, $sql);
+    // Helper prepared via mysqli supaya hasilnya kompatibel dengan
+    // mysqli_fetch_assoc/mysqli_num_rows-loop yang dipakai template.
+    if (!function_exists('getOrders')) {
+        function getOrders(\mysqli $kon, int $id_user, string $status) {
+            $stmt = $kon->prepare(
+                "SELECT o.*,
+                    COALESCE(
+                        (SELECT g.nama_game FROM games g WHERE INSTR(o.game_name, g.nama_game) > 0 LIMIT 1),
+                        (SELECT g.nama_game FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                        'TopZone Product'
+                    ) AS nama_game_asli,
+                    COALESCE(
+                        (SELECT g.gambar FROM games g WHERE INSTR(o.game_name, g.nama_game) > 0 LIMIT 1),
+                        (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                        'Default.jpg'
+                    ) AS gambar_game_asli
+                FROM orders o
+                WHERE o.id_user = ? AND o.status = ?
+                ORDER BY o.id_order DESC"
+            );
+            if (!$stmt) return null;
+            $stmt->bind_param('is', $id_user, $status);
+            $stmt->execute();
+            return $stmt->get_result();
+        }
     }
-    
-    // Eksekusi Query per Status
-    $q_pending = getOrders($koneksi, $id_user_skrg, 'pending');
-    $count_pending = mysqli_num_rows($q_pending);
 
-    $q_proses = getOrders($koneksi, $id_user_skrg, 'proses');
-    $count_proses = mysqli_num_rows($q_proses);
+    $q_pending     = getOrders($koneksi, $id_user_skrg, 'pending');
+    $count_pending = $q_pending ? mysqli_num_rows($q_pending) : 0;
 
-    $q_dikirim = getOrders($koneksi, $id_user_skrg, 'dikirim');
-    $count_dikirim = mysqli_num_rows($q_dikirim);
+    $q_proses      = getOrders($koneksi, $id_user_skrg, 'proses');
+    $count_proses  = $q_proses ? mysqli_num_rows($q_proses) : 0;
 
-    $q_selesai = getOrders($koneksi, $id_user_skrg, 'selesai');
-    $count_selesai = mysqli_num_rows($q_selesai);
+    $q_dikirim     = getOrders($koneksi, $id_user_skrg, 'dikirim');
+    $count_dikirim = $q_dikirim ? mysqli_num_rows($q_dikirim) : 0;
+
+    $q_selesai     = getOrders($koneksi, $id_user_skrg, 'selesai');
+    $count_selesai = $q_selesai ? mysqli_num_rows($q_selesai) : 0;
 }
 ?>
 <!DOCTYPE html>
@@ -127,7 +145,7 @@ if ($is_real_user) {
                 <span>🛒</span>
                 <?php if ($jumlah_keranjang > 0): ?>
                     <span id="cartCountBadge" style="position: absolute; top: -5px; right: -8px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold;">
-                        <?php echo $jumlah_keranjang; ?>
+                        <?= (int)$jumlah_keranjang ?>
                     </span>
                 <?php endif; ?>
             </div>
@@ -135,7 +153,7 @@ if ($is_real_user) {
             <div class="tp-user">
                 <div onclick="toggleProfileSidebar()">
                     <?php if($is_logged_in): ?>
-                        <img id="nav_avatar" src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
+                        <img id="nav_avatar" src="uploads/<?= tz_attr(!empty($_SESSION['foto']) ? basename((string)$_SESSION['foto']) : 'Default.jpg') ?>?t=<?= time() ?>"
                              style="width:40px; height:40px; border-radius:50%; border: 2px solid #fff; object-fit:cover;">
                     <?php else: ?>
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #ccc;">👤</div>
@@ -172,21 +190,25 @@ if ($is_real_user) {
         <h2 class="tp-title" id="mainTitle">Semua Produk</h2>
         
         <div id="productList" class="tp-grid">
-        <?php if(mysqli_num_rows($result) > 0): ?>
-            <?php while($row_game = mysqli_fetch_assoc($result)): ?>
-                <?php 
-                    $id_ini = $row_game['id'];
-                    $ambil_ulasan = mysqli_query($conn, "SELECT AVG(rating) as hasil_rata FROM reviews WHERE id_game = '$id_ini'");
-                    $data_ulasan = mysqli_fetch_assoc($ambil_ulasan);
-                    $angka_bintang = ($data_ulasan['hasil_rata'] > 0) ? round($data_ulasan['hasil_rata'], 1) : 0;
-                ?>
+        <?php if($result && mysqli_num_rows($result) > 0): ?>
+            <?php while($row_game = mysqli_fetch_assoc($result)):
+                $id_ini = (int)$row_game['id'];
+                // PREPARED: hindari SQL injection lewat id_game
+                try {
+                    $data_ulasan = tz_db()->fetchOne(
+                        'SELECT AVG(rating) AS hasil_rata FROM reviews WHERE id_game = ?',
+                        [$id_ini]
+                    ) ?: ['hasil_rata' => 0];
+                } catch (\Throwable $e) { $data_ulasan = ['hasil_rata' => 0]; }
+                $angka_bintang = ($data_ulasan['hasil_rata'] > 0) ? round((float)$data_ulasan['hasil_rata'], 1) : 0;
+            ?>
 
-                <a href="game_detail.php?game=<?php echo $row_game['slug']; ?>" class="tp-card">
-                    <div class="tp-img" style="background-image:url('<?php echo $row_game['gambar']; ?>')"></div>
+                <a href="game_detail.php?game=<?= rawurlencode((string)$row_game['slug']) ?>" class="tp-card">
+                    <div class="tp-img" style="background-image:url('<?= tz_attr($row_game['gambar']) ?>')"></div>
                     <div class="tp-info">
-                        <h4><?php echo $row_game['nama_game']; ?></h4>
+                        <h4><?= tz_e($row_game['nama_game']) ?></h4>
                         <div class="tp-meta">
-                            ⭐ <?php echo number_format($angka_bintang, 1); ?> | <?php echo $row_game['terjual']; ?> terjual
+                            ⭐ <?= tz_e(number_format($angka_bintang, 1)) ?> | <?= (int)($row_game['terjual'] ?? 0) ?> terjual
                         </div>
                     </div>
                 </a>
@@ -230,9 +252,10 @@ if ($is_real_user) {
     <?php else: ?>
         <!-- FORM UPDATE PROFIL -->
         <form action="update_profile.php" method="POST" enctype="multipart/form-data">
+            <?= tz_csrf_field() ?>
             <div style="text-align:center; margin-bottom:20px; color:white;">
                 <div style="position: relative; display: inline-block;">
-                    <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
+                    <img src="uploads/<?= tz_attr(!empty($_SESSION['foto']) ? basename((string)$_SESSION['foto']) : 'Default.jpg') ?>?t=<?= time() ?>"
                         id="prev_foto" 
                         style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:3px solid #ffee00;">
                     
@@ -249,7 +272,7 @@ if ($is_real_user) {
             </div>
 
             <div class="view-mode" style="text-align:center; margin-bottom:25px;">
-                <h2 style="margin:0; color:#ffffff; font-size:22px;">@<?php echo $_SESSION['username']; ?></h2>
+                <h2 style="margin:0; color:#ffffff; font-size:22px;">@<?= tz_e($_SESSION['username'] ?? '') ?></h2>
                 <p style="margin:5px 0 0; color:#fff; font-size:13px;">Member Loyal TopZone</p>
             </div>
 
@@ -264,7 +287,7 @@ if ($is_real_user) {
                 inset 0 1px 0 rgba(255,255,255,0.3); padding:15px; border-radius:15px;">
                 <div style="margin-bottom:12px;">
                     <label style="font-size:11px; font-weight:bold; color:#fff;">Nama Lengkap</label>
-                    <input type="text" name="nama_user" value="<?php echo $_SESSION['nama_user']; ?>" style="width:100%; color:#fff; padding:10px;  background: rgba(255, 255, 255, 0.08);
+                    <input type="text" name="nama_user" value="<?= tz_attr($_SESSION['nama_user'] ?? '') ?>" maxlength="64" style="width:100%; color:#fff; padding:10px;  background: rgba(255, 255, 255, 0.08);
                 backdrop-filter: blur(24px) saturate(180%);
                 -webkit-backdrop-filter: blur(24px) saturate(180%);
                 border: 1px solid rgba(255, 255, 255, 0.25);
@@ -275,7 +298,7 @@ if ($is_real_user) {
                 </div>
                 <div style="margin-bottom:12px;">
                     <label style="font-size:11px; font-weight:bold; color:#fff;">Username</label>
-                    <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" style="width:100%; color:#fff; padding:10px;  background: rgba(255, 255, 255, 0.08);
+                    <input type="text" name="username" value="<?= tz_attr($_SESSION['username'] ?? '') ?>" maxlength="32" pattern="[A-Za-z0-9_.\-]{3,32}" style="width:100%; color:#fff; padding:10px;  background: rgba(255, 255, 255, 0.08);
                 backdrop-filter: blur(24px) saturate(180%);
                 -webkit-backdrop-filter: blur(24px) saturate(180%);
                 border: 1px solid rgba(255, 255, 255, 0.25);
@@ -286,7 +309,7 @@ if ($is_real_user) {
                 </div>
                 <div style="margin-bottom:12px;">
                     <label style="font-size:11px; font-weight:bold; color:#fff;">Email</label>
-                    <input type="email" name="email" value="<?php echo $_SESSION['email'] ?? ''; ?>" style="width:100%; padding:10px; color:#fff; background: rgba(255, 255, 255, 0.08);
+                    <input type="email" name="email" value="<?= tz_attr($_SESSION['email'] ?? '') ?>" maxlength="128" style="width:100%; padding:10px; color:#fff; background: rgba(255, 255, 255, 0.08);
                 backdrop-filter: blur(24px) saturate(180%);
                 -webkit-backdrop-filter: blur(24px) saturate(180%);
                 border: 1px solid rgba(255, 255, 255, 0.25);
@@ -364,28 +387,26 @@ if ($is_real_user) {
                         </div>
 
                         <!-- Detail List Order -->
-                        <div id="det_<?= $st['id'] ?>" style="display:none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed <?= $st['border'] ?>;">
-                            <?php if($st['count'] > 0): 
-                                mysqli_data_seek($st['q'], 0); 
+                        <div id="det_<?= tz_attr($st['id']) ?>" style="display:none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed <?= tz_attr($st['border']) ?>;">
+                            <?php if($st['count'] > 0 && $st['q']):
+                                @mysqli_data_seek($st['q'], 0);
                                 while($d = mysqli_fetch_assoc($st['q'])): ?>
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                    <!-- Gunakan 'gambar_game_asli' hasil JOIN dari Fungsi Sakti lo -->
-                                    <img src="<?= !empty($d['gambar_game_asli']) ? $d['gambar_game_asli'] : 'Default.jpg' ?>" 
-                                        onerror="this.src='./Default.jpg'" 
+                                    <img src="<?= tz_attr(!empty($d['gambar_game_asli']) ? $d['gambar_game_asli'] : 'Default.jpg') ?>"
+                                        onerror="this.src='./Default.jpg'"
                                         style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
 
                                     <div style="flex: 1;">
-                                        <!-- Pake nama_game_asli biar gak muncul 'TopZone Product' -->
                                         <div style="font-size: 11px; font-weight: bold; color: #333;">
-                                            <?= $d['nama_game_asli'] ?>
+                                            <?= tz_e($d['nama_game_asli']) ?>
                                         </div>
-                                        
+
                                         <div style="font-size: 9px; color: #424242;">
-                                            Paket: <?= $d['paket'] ?>
+                                            Paket: <?= tz_e($d['paket']) ?>
                                         </div>
                                     </div>
-                                    <?php if($st['id'] == 'dikirim'): ?>
-                                        <button onclick="event.stopPropagation(); window.location.href='konfirmasi.php?id=<?= $d['id_order'] ?>'" 
+                                    <?php if($st['id'] === 'dikirim'): ?>
+                                        <button onclick="event.stopPropagation(); window.location.href='Konfirmasi.php?id=<?= (int)$d['id_order'] ?>'"
                                                 style="background: #9c27b0; color: white; border: none; padding: 5px 8px; border-radius: 5px; font-size: 9px; cursor: pointer;">
                                             TERIMA
                                         </button>

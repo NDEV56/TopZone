@@ -1,30 +1,39 @@
 <?php
-session_start();
-include 'koneksi.php';
+/**
+ * Konfirmasi.php — HARDENED v3.1
+ *   • require_login
+ *   • Prepared SQL
+ *   • Hanya boleh konfirmasi order MILIK user
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
+tz_require_login();
 
-if (isset($_GET['id'])) {
-    // Hapus yang lama, ganti jadi ini (pake variabel $koneksi lo):
-    $id_order = mysqli_real_escape_string($koneksi, $_GET['id']);
+$id_order = (int)($_GET['id'] ?? 0);
+$id_user  = (int)$_SESSION['id_user'];
 
-    // 1. Update status order jadi 'selesai'
-    $update_order = "UPDATE orders SET status = 'selesai' WHERE id_order = '$id_order'";
-    mysqli_query($koneksi, $update_order);
+if ($id_order <= 0) tz_safe_redirect('/Home/index.php');
 
-    if (mysqli_affected_rows($koneksi) > 0) {
-        // 2. Ambil data game_name dari orderan tersebut
-        $q_order = mysqli_query($koneksi, "SELECT game_name FROM orders WHERE id_order = '$id_order'");
-        $d_order = mysqli_fetch_assoc($q_order);
-        $nama_paket = $d_order['game_name'];
-
-        // 3. Update jumlah TERJUAL di tabel 'games'
-        // Mencari nama game yang ada di dalam teks paket (misal paket "400 Robux" cocok dengan game "Roblox")
-        $update_terjual = "UPDATE games SET terjual = terjual + 1 
-                           WHERE '$nama_paket' LIKE CONCAT('%', nama_game, '%')";
-        mysqli_query($koneksi, $update_terjual);
+try {
+    $rows = tz_db()->exec(
+        "UPDATE orders SET status = 'selesai'
+         WHERE id_order = ? AND id_user = ? AND status IN ('proses','dikirim')",
+        [$id_order, $id_user]
+    );
+    if ($rows > 0) {
+        // Update statistik terjual — pakai prepared, JANGAN concat
+        $order = tz_db()->fetchOne('SELECT game_name FROM orders WHERE id_order = ?', [$id_order]);
+        if ($order && !empty($order['game_name'])) {
+            tz_db()->exec(
+                "UPDATE games
+                 SET terjual = terjual + 1
+                 WHERE INSTR(?, nama_game) > 0",
+                [(string)$order['game_name']]
+            );
+        }
     }
-
-    // Kembali ke halaman index/status
-    header("Location: index.php");
-    exit();
+} catch (\Throwable $e) {
+    error_log('[topzone-konfirmasi] ' . $e->getMessage());
 }
-?>
+
+tz_safe_redirect('/Home/index.php');

@@ -1,18 +1,18 @@
 <?php
-session_start();
+/**
+ * masuk_guest.php — Guest mode (HARDENED v3.1)
+ * Sebelumnya double session_start memicu warning. Sekarang dipusatkan.
+ */
+require_once __DIR__ . '/../Home/_security.php';
+tz_security_init();
 
-// 1. HAPUS SEMUA SESSION LAMA (Biar gak login otomatis)
-session_unset();
-session_destroy();
+// Bersihkan sesi user lama
+$_SESSION = [];
+session_regenerate_id(true);
 
-// 2. MULAI SESSION BARU UNTUK GUEST
-session_start();
-$_SESSION['nama_user'] = "Guest_" . rand(100, 999);
-$_SESSION['foto'] = "Default.jpeg";
-unset($_SESSION['user_id']); // WAJIB: Biar ID user sebelumnya kehapus total
-// 3. JANGAN SET $_SESSION['user_id'] 
-// Ini kuncinya! Tanpa user_id, fitur bakal terkunci.
+// Set sesi guest
+$_SESSION['nama_user'] = 'Guest_' . random_int(1000, 9999);
+$_SESSION['foto']      = 'Default.jpg';
+// id_user TIDAK di-set — guest tidak punya akses fitur user
 
-header("Location: ../Home/index.php"); // Sesuaikan folder lo
-exit();
-?>
+tz_safe_redirect('/Home/index.php');

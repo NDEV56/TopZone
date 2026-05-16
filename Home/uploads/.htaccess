@@ -1,0 +1,38 @@
+# ════════════════════════════════════════════════════════════
+#  Home/uploads/.htaccess — Cegah eksekusi script di folder upload.
+#  JANGAN HAPUS — ini lapisan pertahanan utama anti-RCE via upload.
+# ════════════════════════════════════════════════════════════
+
+# 1. Blokir total semua file scripting yang mungkin di-eksekusi.
+<FilesMatch "(?i)\.(?:ph(?:p\d?|tml|ar)|html?|js|sh|cgi|pl|py|rb|asp|aspx|jsp|exe|bat|cmd|war|jar)$">
+  Require all denied
+</FilesMatch>
+
+# 2. Disable directory listing & CGI.
+Options -Indexes -ExecCGI
+
+# 3. Force semua file di sini diserve sebagai gambar / oktet biner.
+#    Kalau file diberi nama "evil.php.png", browser dapat image/png — bukan PHP.
+<IfModule mod_mime.c>
+  RemoveHandler  .php .phtml .phar .pl .py .jsp .asp .aspx .sh .cgi
+  RemoveType     .php .phtml .phar .pl .py .jsp .asp .aspx .sh .cgi
+  AddType        application/octet-stream .php .phtml .phar .pl .py .sh .cgi .asp
+</IfModule>
+
+# 4. Matikan PHP engine sepenuhnya di folder ini.
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
+</IfModule>
+
+# 5. Header keamanan default-deny utk attempted XSS via SVG/HTML.
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Content-Disposition "inline"
+  Header set Cache-Control "public, max-age=86400"
+</IfModule>

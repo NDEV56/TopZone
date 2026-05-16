@@ -1,1 +1,22 @@
+# Konfigurasi rahasia
 .env
+.topzone-state.json
+
+# Dependency
+node_modules/
+
+# Log & backup
+logs/*.log
+logs/*.bak
+logs/update-log.txt
+backups/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build / cache
+*.tmp
+*.tmp.*

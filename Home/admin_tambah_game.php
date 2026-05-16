@@ -1,4 +1,17 @@
-<?php include 'koneksi.php'; ?>
+<?php
+/**
+ * admin_tambah_game.php — HARDENED v3.1
+ *   • require_admin
+ *   • CSRF token di form
+ *   • Prepared SELECT untuk daftar game
+ *   • XSS-safe output
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
+tz_require_admin();
+
+$games = tz_db()->fetchAll('SELECT * FROM games ORDER BY id DESC');
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -341,24 +354,26 @@
         <a href="admin_orders.php" class="nav-link">📦 Pesanan Masuk</a>
         <a href="admin_tambah_game.php" class="nav-link active">🎮 Kelola Game</a>
         <a href="admin_paket.php" class="nav-link">💎 Kelola Paket</a>
-        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
+        <a href="Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
         <a href="index.php" class="nav-link">🏠 Lihat Website</a>
     </div>
 
     <div class="content">
-        <h2 style="margin-top: 0;">Kelola & Tambah Game Baru</h2>
-        
+        <h2 style="margin-top: 0;">🚀 Kelola & Tambah Game Baru</h2>
+
         <div class="form-card">
             <form action="proses_tambah_game.php" method="POST" enctype="multipart/form-data">
+                <?= tz_csrf_field() ?>
                 <div class="form-group">
                     <label>Nama Game</label>
-                    <input type="text" name="nama_game" id="nama_game" placeholder="Contoh: Mobile Legends" required oninput="buatSlug(this.value)">
+                    <input type="text" name="nama_game" id="nama_game" maxlength="64"
+                           placeholder="Contoh: Mobile Legends" required oninput="buatSlug(this.value)">
                 </div>
-                
-                <!-- INPUT SLUG BARU -->
+
                 <div class="form-group">
                     <label>Slug URL (Otomatis/Custom)</label>
-                    <input type="text" name="slug" id="slug" placeholder="Contoh: mobile-legends" required>
+                    <input type="text" name="slug" id="slug" maxlength="64" pattern="[a-z0-9\-]+"
+                           placeholder="Contoh: mobile-legends" required>
                 </div>
 
                 <div class="form-group">
@@ -372,27 +387,27 @@
                 </div>
                 <div class="form-group">
                     <label>Mata Uang / Merk Voucher</label>
-                    <input type="text" name="tipe_voucher" placeholder="Contoh: Diamonds, Robux, UC, CP" required>
+                    <input type="text" name="tipe_voucher" maxlength="64"
+                           placeholder="Contoh: Diamonds, Robux, UC, CP" required>
                 </div>
                 <div class="form-group">
-                    <label>Upload Logo Game (Gambar)</label>
-                    <input type="file" name="gambar" required>
+                    <label>Upload Logo Game (PNG/JPG/JPEG/WEBP/GIF, max 5MB)</label>
+                    <input type="file" name="gambar" required accept="image/png,image/jpeg,image/webp,image/gif">
                 </div>
 
                 <hr style="border: 0.5px solid #333; margin: 30px 0;">
                 <label>💎 Tambah Paket Langsung</label>
                 <div id="paket-list">
                     <div class="paket-row">
-                        <input type="text" name="p_nama[]" placeholder="Jumlah (ex: 50)" required style="flex: 2;">
-                        <input type="text" name="p_harga[]" placeholder="Harga" required 
-                            style="flex: 1;" 
-                            oninput="formatRupiah(this)">
+                        <input type="text" name="p_nama[]" placeholder="Jumlah (ex: 50)" required maxlength="64" style="flex: 2;">
+                        <input type="text" name="p_harga[]" placeholder="Harga" required
+                            style="flex: 1;" oninput="formatRupiah(this)">
                         <select name="p_tipe[]" style="flex: 1;">
                             <option value="umum">Umum (ID Only)</option>
                             <option value="login">Roblox Login</option>
                             <option value="5hari">Robux 5 Hari</option>
                         </select>
-                        <div style="width: 35px;"></div> 
+                        <div style="width: 35px;"></div>
                     </div>
                 </div>
                 <button type="button" class="btn-action btn-add-paket" onclick="tambahPaket()">+ Tambah Baris Paket</button>
@@ -412,34 +427,30 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php
-                    $res = mysqli_query($koneksi, "SELECT * FROM games ORDER BY id DESC");
-                    while($row = mysqli_fetch_assoc($res)):
-                    ?>
+                    <?php foreach ($games as $row): ?>
                     <tr>
-                        <td><img src="<?= $row['gambar'] ?>" class="game-img"></td>
+                        <td><img src="<?= tz_attr($row['gambar']) ?>" class="game-img" alt=""></td>
                         <td>
-                            <strong style="color: #fff;"><?= $row['nama_game'] ?></strong><br>
-                            <small style="color: var(--primary); font-size: 10px;"><?= $row['slug'] ?></small>
+                            <strong style="color: #fff;"><?= tz_e($row['nama_game']) ?></strong><br>
+                            <small style="color: var(--primary); font-size: 10px;"><?= tz_e($row['slug']) ?></small>
                         </td>
-                        <td><small style="color: #888;"><?= $row['kategori'] ?></small></td>
+                        <td><small style="color: #888;"><?= tz_e($row['kategori']) ?></small></td>
                         <td>
-                            <a href="admin_paket.php?id_game=<?= $row['id'] ?>" class="btn-small btn-edit">+ Kelola Paket</a>
-                            <a href="hapus_game.php?id=<?= $row['id'] ?>" 
-                               class="btn-small btn-delete" 
-                               onclick="return confirm('⚠️ Hapus game ini?\nSemua paket di dalamnya juga akan terhapus secara permanen!')">
+                            <a href="admin_paket.php?id_game=<?= (int)$row['id'] ?>" class="btn-small btn-edit">+ Kelola Paket</a>
+                            <a href="hapus_game.php?id=<?= (int)$row['id'] ?>"
+                               class="btn-small btn-delete"
+                               onclick="return confirm('Hapus game ini?\nSemua paket di dalamnya juga akan terhapus permanen!')">
                                🗑️ Hapus
                             </a>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // Fungsi buat bikin slug otomatis pas ngetik Nama Game
         function buatSlug(val) {
             let slug = val.toLowerCase()
                          .replace(/[^\w ]+/g, '')
@@ -447,12 +458,13 @@
             document.getElementById('slug').value = slug;
         }
 
+        // CSRF token harus ikut form-row dinamis. Tidak perlu, karena hanya 1 form.
         function tambahPaket() {
             const container = document.getElementById('paket-list');
             const row = document.createElement('div');
             row.className = 'paket-row';
             row.innerHTML = `
-                <input type="text" name="p_nama[]" placeholder="Jumlah" required style="flex: 2;">
+                <input type="text" name="p_nama[]" placeholder="Jumlah" required maxlength="64" style="flex: 2;">
                 <input type="text" name="p_harga[]" placeholder="Harga" required style="flex: 1;" oninput="formatRupiah(this)">
                 <select name="p_tipe[]" style="flex: 1;">
                     <option value="umum">Umum</option>
@@ -465,8 +477,8 @@
         }
 
         function formatRupiah(input) {
-            let value = input.value.replace(/[^0-9]/g, ''); 
-            input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, "."); 
+            let value = input.value.replace(/[^0-9]/g, '');
+            input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         }
     </script>
 </body>

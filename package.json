@@ -1,12 +1,23 @@
 {
   "name": "topzone-server",
-  "version": "1.0.0",
-  "description": "TopZone local dev server with PHP + ngrok tunnel",
+  "version": "3.0.0",
+  "description": "TopZone Universal Launcher — multi-tunnel (ngrok/cloudflared/localtunnel/serveo/pinggy), beginner-friendly GUI control panel, auto-update from GitHub, and 6-category logging.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start"   : "node server.js",
+    "gui"     : "node gui.js",
+    "dev"     : "node server.js",
+    "setup"   : "node server.js --setup",
+    "doctor"  : "node server.js --doctor",
+    "update"  : "node server.js --update",
+    "no-tunnel": "node server.js --no-tunnel",
+    "check"   : "node -c server.js && node -c gui.js && node -e \"['./lib/colors.js','./lib/utils.js','./lib/config.js','./lib/logger.js','./lib/detector.js','./lib/tunnels.js','./lib/security.js','./lib/updater.js','./lib/phpServer.js','./lib/controller.js'].forEach(f=>{require('child_process').execSync('node -c '+f);console.log('ok',f)})\""
   },
+  "keywords": [
+    "ngrok","cloudflared","localtunnel","tunnel","xampp","laragon","wamp",
+    "mamp","ampps","openserver","php","webhook","midtrans","gui","control-panel"
+  ],
+  "license": "MIT",
   "dependencies": {
     "@ngrok/ngrok": "^1.4.0",
     "dotenv": "^16.4.5"

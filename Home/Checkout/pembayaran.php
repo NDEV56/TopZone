@@ -1,22 +1,34 @@
 <?php
-session_start();
-include '../koneksi.php'; 
+/**
+ * Checkout/pembayaran.php — HARDENED v3.1
+ *   • Prepared SELECT
+ *   • Validasi int untuk id_game/qty/harga
+ *   • Sanitasi user_data, nama_produk
+ */
+require_once __DIR__ . '/../_security.php';
+tz_security_init();
 
-// 1. AMBIL DATA DARI URL
-$id_game = mysqli_real_escape_string($koneksi, $_GET['id_game'] ?? '');
-$user_data_mentah = $_GET['user'] ?? '';
-$nama_produk = $_GET['produk'] ?? 'Produk';
-$harga_satuan = (int)($_GET['harga'] ?? 0);
-$qty = (int)($_GET['qty'] ?? 1);
+// 1. Input
+$id_game          = (int)($_GET['id_game'] ?? 0);
+$user_data_mentah = substr((string)($_GET['user'] ?? ''),    0, 256);
+$nama_produk      = substr((string)($_GET['produk'] ?? 'Produk'), 0, 128);
+$harga_satuan     = (int)($_GET['harga'] ?? 0);
+$qty              = (int)($_GET['qty']   ?? 1);
 
-// 2. AMBIL DATA DARI DATABASE (Cek Game & Tipe-nya)
-// Pastikan variabel koneksi lo bener ($koneksi atau $conn)
-$query_game = mysqli_query($koneksi, "SELECT * FROM games WHERE id = '$id_game'");
-$data_game = mysqli_fetch_assoc($query_game);
+if ($id_game <= 0 || $harga_satuan < 100 || $qty < 1 || $qty > 999) {
+    http_response_code(400);
+    die('Permintaan tidak valid');
+}
 
-$nama_game = $data_game['nama_game'] ?? 'Game';
-$nama_foto = $data_game['gambar'] ?? 'default.jpg';
-$path_foto = "../" . $nama_foto; 
+// 2. Lookup game (prepared)
+$data_game = tz_db()->fetchOne('SELECT * FROM games WHERE id = ? LIMIT 1', [$id_game])
+          ?? ['nama_game' => 'Game', 'gambar' => 'Default.jpg', 'slug' => ''];
+
+$nama_game = (string)$data_game['nama_game'];
+$nama_foto = (string)$data_game['gambar'];
+// Hindari path-join yang loncat keluar folder
+$nama_foto = preg_replace('#[^\w./\-]#', '', (string)$nama_foto);
+$path_foto = '../' . ltrim((string)$nama_foto, '/');
 ?>
 
 <!DOCTYPE html>
