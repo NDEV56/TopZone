@@ -5,42 +5,333 @@
     <meta charset="UTF-8">
     <title>TopZone Admin - Kelola Game</title>
     <style>
-        :root { --primary: #00ff88; --dark: #121212; --card: #1e1e1e; --text: #eee; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: var(--text); margin: 0; display: flex; }
-        
-        /* Sidebar */
-        .sidebar { width: 220px; height: 100vh; background: #000; padding: 15px; position: fixed; border-right: 1px solid #333; z-index: 100; }
-        .sidebar h1 { color: var(--primary); font-size: 20px; margin-bottom: 25px; letter-spacing: 1px; }
-        .nav-link { display: block; color: #888; text-decoration: none; padding: 10px 15px; border-radius: 8px; transition: 0.3s; margin-bottom: 5px; font-size: 14px; }
-        .nav-link:hover, .nav-link.active { background: #222; color: var(--primary); }
+        /* ==========================================================================
+        RESET & VARIABEL UTAMA (Topzone Blue Navy Theme)
+        ========================================================================== */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        } 
 
-        /* Main Content */
-        .content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); box-sizing: border-box; }
-        
-        /* Container Form */
-        .form-card { background: var(--card); padding: 30px; border-radius: 15px; margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; color: var(--primary); font-size: 14px; font-weight: bold; }
-        input, select { width: 100%; padding: 12px; background: #252525; border: 1px solid #444; color: #fff; border-radius: 8px; box-sizing: border-box; }
-        
-        /* Paket Row Dynamic */
-        .paket-row { display: flex; gap: 10px; background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px dashed #444; align-items: center; }
-        
-        /* Buttons */
-        .btn-action { background: var(--primary); color: #000; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
-        .btn-action:hover { opacity: 0.8; box-shadow: 0 0 15px var(--primary); }
-        .btn-add-paket { background: transparent; color: var(--primary); border: 1px solid var(--primary); margin-top: 10px; margin-bottom: 20px; }
+        :root { 
+            --primary: #00d2ff; 
+            --primary-glow: rgba(0, 210, 255, 0.35);
+            --topzone-blue: #005cff;
+            --navy-deep: #050d26;
+            --navy-mid: #0b173a;
+            --glass-bg: rgba(11, 23, 58, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --text-main: #ffffff;
+            --text-muted: #647b9b;
+        }
 
-        /* Table Style */
-        .table-container { background: var(--card); border-radius: 15px; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; padding: 15px; border-bottom: 2px solid #333; color: var(--primary); font-size: 12px; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #2a2a2a; font-size: 14px; }
-        .game-img { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; border: 1px solid #444; }
-        .btn-small { padding: 6px 12px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 11px; display: inline-block; }
-        .btn-edit { border: 1px solid var(--primary); color: var(--primary); }
-        .btn-delete { border: 1px solid #ff4444; color: #ff4444; }
-        .btn-remove-row { background: #ff4444; color: #fff; border: none; padding: 10px; border-radius: 8px; cursor: pointer; }
+        /* ==========================================================================
+        BODY & ANIMASI LATAR BELAKANG (Liquid Blobs)
+        ========================================================================== */
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--navy-deep); 
+            color: var(--text-main); 
+            min-height: 100vh;
+            display: flex; 
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before, body::after {
+            content: "";
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #002266, var(--topzone-blue), #00aaff);
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.5;
+            animation: liquidMovement 15s infinite alternate ease-in-out;
+        }
+
+        body::after {
+            right: -50px;
+            bottom: -50px;
+            background: linear-gradient(45deg, var(--topzone-blue), #001133, #00d2ff);
+            animation-delay: -7.5s;
+        }
+
+        @keyframes liquidMovement {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); border-radius: 50% 50% 30% 70% / 50% 60% 40% 60%; }
+            50% { transform: translate(80px, 40px) scale(1.1) rotate(180deg); border-radius: 30% 70% 70% 30% / 50% 30% 70% 50%; }
+            100% { transform: translate(-40px, 60px) scale(0.95) rotate(360deg); border-radius: 50% 50% 30% 70% / 50% 60% 40% 60%; }
+        }
+
+        /* ==========================================================================
+        SIDEBAR UTAMA
+        ========================================================================== */
+        .sidebar { 
+            width: 220px; 
+            height: 100vh; 
+            background: rgba(3, 8, 24, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            padding: 20px 15px; 
+            position: fixed; 
+            border-right: 1px solid var(--glass-border); 
+            z-index: 100; 
+        }
+
+        .sidebar h1 { 
+            color: var(--text-main); 
+            font-size: 20px; 
+            margin-bottom: 25px; 
+            letter-spacing: 1px; 
+            font-weight: 700;
+        }
+
+        .nav-link { 
+            display: block; 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            padding: 12px 15px; 
+            border-radius: 12px; 
+            transition: all 0.25s ease; 
+            margin-bottom: 8px; 
+            font-size: 14px; 
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active { 
+            background: rgba(0, 92, 255, 0.15); 
+            color: var(--primary); 
+            border-left: 3px solid var(--primary);
+            padding-left: 18px;
+            box-shadow: 0 4px 15px rgba(0, 92, 255, 0.15);
+        }
+
+        /* ==========================================================================
+        MAIN CONTENT VIEW
+        ========================================================================== */
+        .content { 
+            margin-left: 220px; 
+            padding: 30px; 
+            width: calc(100% - 220px); 
+            box-sizing: border-box; 
+        }
+
+        /* ==========================================================================
+        CONTAINER FORM (Glassmorphism Card)
+        ========================================================================== */
+        .form-card { 
+            background: rgba(11, 23, 58, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 30px; 
+            border-radius: 15px; 
+            margin-bottom: 40px; 
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        }
+
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            color: var(--primary); 
+            font-size: 14px; 
+            font-weight: bold; 
+            text-shadow: 0 0 8px rgba(0, 210, 255, 0.2);
+        }
+
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid var(--glass-border); 
+            color: #fff; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            outline: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(0, 210, 255, 0.4);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.15);
+        }
+
+        /* Mengubah warna teks opsi dropdown agar terbaca di background gelap */
+        select option {
+            background: var(--navy-mid);
+            color: #fff;
+        }
+
+        /* ==========================================================================
+        PAKET ROW DYNAMIC (Fluid Row Style)
+        ========================================================================== */
+        .paket-row { 
+            display: flex; 
+            gap: 12px; 
+            background: rgba(255, 255, 255, 0.02); 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 12px; 
+            border: 1px dashed rgba(0, 210, 255, 0.2); 
+            align-items: center; 
+            animation: rowFadeIn 0.3s ease both;
+        }
+
+        @keyframes rowFadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==========================================================================
+        BUTTONS (Glow & Glass Style)
+        ========================================================================== */
+        .btn-action { 
+            background: linear-gradient(135deg, var(--topzone-blue), #00aaff); 
+            color: #fff; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            width: 100%; 
+            transition: all 0.3s ease; 
+            box-shadow: 0 4px 15px rgba(0, 92, 255, 0.3);
+        }
+
+        .btn-action:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.45); 
+        }
+
+        .btn-add-paket { 
+            background: rgba(0, 210, 255, 0.05); 
+            color: var(--primary); 
+            border: 1px solid var(--primary); 
+            margin-top: 10px; 
+            margin-bottom: 20px; 
+        }
+
+        .btn-add-paket:hover {
+            background: var(--primary);
+            color: var(--navy-deep);
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .btn-remove-row { 
+            background: rgba(255, 68, 68, 0.1); 
+            color: #ff4444; 
+            border: 1px solid rgba(255, 68, 68, 0.3); 
+            padding: 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .btn-remove-row:hover {
+            background: #ff4444;
+            color: #fff;
+            box-shadow: 0 0 12px rgba(255, 68, 68, 0.4);
+        }
+
+        /* ==========================================================================
+        TABLE STYLE (Glassmorphism Table)
+        ========================================================================== */
+        .table-container { 
+            background: rgba(11, 23, 58, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 15px; 
+            padding: 20px; 
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+        }
+
+        th { 
+            text-align: left; 
+            padding: 15px; 
+            border-bottom: 2px solid rgba(255, 255, 255, 0.06); 
+            color: var(--primary); 
+            font-size: 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+        }
+
+        td { 
+            padding: 15px; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03); 
+            font-size: 14px; 
+            color: var(--text-main);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .game-img { 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 8px; 
+            object-fit: cover; 
+            border: 1px solid var(--glass-border); 
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        /* Action Buttons Table */
+        .btn-small { 
+            padding: 6px 14px; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: 600; 
+            font-size: 11px; 
+            display: inline-block; 
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit { 
+            border: 1px solid var(--primary); 
+            color: var(--primary); 
+            background: rgba(0, 210, 255, 0.05);
+            margin-right: 5px;
+        }
+
+        .btn-edit:hover {
+            background: var(--primary);
+            color: var(--navy-deep);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .btn-delete { 
+            border: 1px solid #ff4444; 
+            color: #ff4444; 
+            background: rgba(255, 68, 68, 0.05);
+        }
+
+        .btn-delete:hover {
+            background: #ff4444;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 92, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 170, 255, 0.4); }
     </style>
 </head>
 <body>
