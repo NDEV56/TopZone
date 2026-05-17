@@ -1,8 +1,8 @@
 <?php
 /**
- * TOPZONE - Game Topup Detail Page
+ * TOPZONE - Game Topup Detail Page (Fixed Layout Layout Symmetry)
  * Author: Gemini AI
- * Date: 2026-05-02
+ * Date: 2026-05-16
  */
 
 session_start();
@@ -24,7 +24,6 @@ $id_g = $g['id'];
 // ==========================================
 // 2. HITUNG STATISTIK RATING & ULASAN
 // ==========================================
-// Gunakan $koneksi sesuai file koneksi.php lu
 $q_avg = mysqli_query($koneksi, "SELECT AVG(rating) as rata_rata, COUNT(id) as total_review FROM reviews WHERE id_game = '$id_g'");
 $res_avg = mysqli_fetch_assoc($q_avg);
 
@@ -42,7 +41,6 @@ $q_rev = mysqli_query($koneksi, "SELECT * FROM reviews WHERE id_game = '$id_g' O
 // ==========================================
 $nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . rand(100, 999));
 
-// Tangkap data dari keranjang jika ada
 $selected_produk = $_GET['select_produk'] ?? '';
 $qty_cart = $_GET['qty'] ?? 1;
 $from_cart = $_GET['from_cart'] ?? false;
@@ -58,7 +56,6 @@ $from_cart = $_GET['from_cart'] ?? false;
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <title>Top Up <?php echo $g['nama_game']; ?> - TOPZONE OFFICIAL</title>
     
-    <!-- CSS STYLING -->
     <style>
         :root {
             --primary: #ff4d4d;
@@ -70,37 +67,42 @@ $from_cart = $_GET['from_cart'] ?? false;
         }
 
         body { 
-            background:  linear-gradient(135deg, #050e2e, #1205a5, #050e2e);
+            background: linear-gradient(135deg, #050e2e, #1205a5, #050e2e);
             display: flex; 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             margin: 0; 
-            color: var(--dark); 
+            color: #white; 
             line-height: 1.6;
         }
 
         /* Container Layout */
         .container { 
-            max-width: 1100px; 
+            max-width: 1200px; 
             margin: 40px auto; 
-            display: flex; 
+            display: grid;
+            grid-template-columns: 7fr 4fr; /* Mengunci rasio perbandingan lebar kiri dan kanan */
             gap: 30px; 
             padding: 0 20px; 
-            align-items: flex-start; 
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        /* Kolom Kiri - Info Game & Produk */
-        .main-info { 
-            flex: 2; 
-            color:#fff;
-            background: rgba(255,255,255,0.08) ; 
+        /* Glassmorphism Shared Style */
+        .glass-panel {
+            color: #fff;
+            background: rgba(255,255,255,0.08); 
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%); 
             border: 1px solid rgba(255,255,255,0.25);
             border-top-color: rgba(255,255,255,0.5);
-             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-             inset 0 0 0 1px rgba(255,255,255,0.3); 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.3); 
             padding: 30px; 
             border-radius: 20px; 
+            box-sizing: border-box;
+        }
+
+        .main-info { 
+            width: 100%;
         }
 
         .tp-img { 
@@ -112,27 +114,31 @@ $from_cart = $_GET['from_cart'] ?? false;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* Grid Produk */
+        /* Grid Produk - Disamakan ukurannya agar tidak mengecil saat item sedikit */
         .item-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); 
             gap: 15px; 
             margin-top: 20px; 
         }
 
         .item-card { 
-            background: rgba(255, 255, 255, 0.08) ; 
+            background: rgba(255, 255, 255, 0.08); 
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%); 
             border: 1px solid rgba(251, 255, 0, 0.25);
             border-top-color: rgba(255,255,255,0.5);
-            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.4),
-             inset 0 0 0 1px rgba(255, 217, 0, 0.3);  
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 217, 0, 0.3);  
             padding: 20px; 
             border-radius: 15px; 
             cursor: pointer; 
             text-align: center; 
             transition: all 0.2s ease-in-out; 
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 90px; /* Menjaga tinggi card produk tetap seragam */
         }
         .item-card:hover { 
             border-color: #c9a227; 
@@ -161,83 +167,81 @@ $from_cart = $_GET['from_cart'] ?? false;
         }
 
         /* Sidebar Kanan */
-        .side-buy { flex: 1; position: sticky; top: 20px; }
-        .sticky-card { 
-            background: rgba(255,255,255,0.08) ; 
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%); 
-            border: 2px solid rgba(255,255,255,0.25);
-            border-top-color: rgba(255,255,255,0.5);
-             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-             inset 0 0 0 1px rgba(255,255,255,0.3);  
-            padding: 25px; 
-            border-radius: 20px; 
-            color: #fff;
+        .side-buy { 
+            position: sticky; 
+            top: 40px;
+            width: 100%;
         }
 
+        /* Form Input Unified */
         .form-input { 
             width: 100%; 
             padding: 13px; 
-            background: rgba(255,255,255,0.08) ; 
+            background: rgba(255,255,255,0.08); 
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%); 
             border: 1px solid rgba(255,255,255,0.25);
             border-top-color: rgba(255,255,255,0.5);
-             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-             inset 0 0 0 1px rgba(255,255,255,0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.3);
             border-radius: 12px; 
             font-size: 14px; 
             box-sizing: border-box; 
             margin-bottom: 15px; 
+            color: #fff;
             transition: 0.3s;
         }
-        .form-input:focus { border-color: gold; }
+        .form-input:focus { border-color: gold; outline: none; }
+        .form-input::placeholder { color: #ccc; }
 
         /* Tabs System */
         .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { 
             flex: 1; 
             padding: 12px; 
-            border: 1px solid gold; 
             border-radius: 10px; 
             cursor: pointer; 
             text-align: center; 
             font-weight: bold; 
-            background: rgba(255,255,255,0.08) ;
+            background: rgba(255,255,255,0.08);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%); 
             border: 1px solid rgba(251, 255, 0, 0.25);
             border-top-color: rgba(255,255,255,0.5);
-            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.4),
-             inset 0 0 0 1px rgba(255, 217, 0, 0.3); 
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 217, 0, 0.3); 
             font-size: 13px; 
+            color: #fff;
             transition: 0.3s;
         }
         .tab-btn.active { 
-            background: var(--dark); 
-            color: var(--white); 
-            border-color: var(--dark); 
+            background: #c9a227; 
+            color: #000; 
+            border-color: gold; 
+        }
+
+        /* Dynamic wrapper untuk mencegah layout 'anjing' / collapse jumping saat tab diganti */
+        .dynamic-field-wrapper {
+            min-height: 140px; /* Mengunci ruang kosong agar tinggi sidebar kanan stabil */
         }
 
         /* Qty Control */
         .qty-control { 
             display: flex; 
             align-items: center; 
-            background: rgba(255,255,255,0.08) ; 
+            background: rgba(255,255,255,0.08); 
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%); 
             border: 1px solid rgba(255,255,255,0.25);
             border-top-color: rgba(255,255,255,0.5);
-             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-             inset 0 0 0 1px rgba(255,255,255,0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.3);
             border-radius: 12px; 
             width: fit-content; 
             overflow: hidden; 
             margin: 15px 0;
         }
-        .qty-btn { color: #fff; width: 40px; height: 40px; border: none; background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25); border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3);cursor: pointer; font-size: 18px; }
-        .qty-btn:hover { color: #fff; background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25);border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3); }
-        .qty-input { width: 60px; color: #fff; text-align: center; border: none; font-weight: bold; font-size: 16px; background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25); border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3);}
+        .qty-btn { color: #fff; width: 40px; height: 40px; border: none; background: transparent; cursor: pointer; font-size: 18px; transition: 0.2s;}
+        .qty-btn:hover { background: rgba(255,255,255,0.2); }
+        .qty-input { width: 60px; color: #fff; text-align: center; border: none; font-weight: bold; font-size: 16px; background: transparent;}
+        .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
         /* Star Rating Form */
         .rating-stars { display: flex; flex-direction: row-reverse; justify-content: flex-end; }
@@ -247,23 +251,23 @@ $from_cart = $_GET['from_cart'] ?? false;
 
         /* Review Item */
         .rev-item { 
-            background: #fafafa; 
+            background: rgba(255,255,255,0.05); 
             padding: 20px; 
             border-radius: 15px; 
             margin-bottom: 15px; 
             border-left: 5px solid #ffca08; 
+            color: #fff;
         }
 
         /* Action Buttons */
         .btn-cart {
             width: 60px; height: 60px; 
-            background: rgba(255,255,255,0.08) ; 
+            background: rgba(255,255,255,0.08); 
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%); 
             border: 1px solid rgba(255,255,255,0.25);
             border-top-color: rgba(255,255,255,0.5);
-             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-             inset 0 0 0 1px rgba(255,255,255,0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.3);
             border-radius: 15px; 
             color: #007bff; 
             font-size: 24px; 
@@ -273,17 +277,11 @@ $from_cart = $_GET['from_cart'] ?? false;
             justify-content: center;
             transition: 0.3s;
         }
-        .btn-cart:hover {  background: #007bff; transform: scale(1.02);}
+        .btn-cart:hover { background: #007bff; color: #fff; transform: scale(1.02);}
 
         .btn-buy-now {
             flex-grow: 1; height: 60px; 
-            background: rgba(255,255,255,0.08) ; 
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%); 
-            border: 1px solid rgba(255,255,255,0.25);
-            border-top-color: rgba(255,255,255,0.5);
-             box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-             inset 0 0 0 1px rgba(255,255,255,0.3);
+            background: #007bff; 
             color: white; 
             border: none; 
             border-radius: 15px; 
@@ -291,21 +289,21 @@ $from_cart = $_GET['from_cart'] ?? false;
             font-size: 18px; 
             cursor: pointer;
             transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
         }
-        .btn-buy-now:hover { background: #007bff; transform: scale(1.02); }
+        .btn-buy-now:hover { background: #0056b3; transform: scale(1.02); }
 
         /* Responsive */
         @media (max-width: 900px) {
-            .container { flex-direction: column; }
-            .side-buy { width: 100%; position: static; }
+            .container { grid-template-columns: 1fr; }
+            .side-buy { position: static; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- BAGIAN UTAMA (KIRI) -->
-    <div class="main-info">
+    <div class="main-info glass-panel">
         <a href="index.php" class="btn-back-home"
                 style="display: inline-flex;align-items: center;gap: 6px;padding: 8px 16px;margin-bottom: 16px;background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); color: #ffffff;border: 1px solid rgba(255,255,255,0.25);border-top-color: rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3); border-radius: 8px;font-size: 13px;font-weight: 500;text-decoration: none;cursor: pointer;transition: all 0.2s ease;">
                  Kembali ke Home
@@ -322,16 +320,14 @@ $from_cart = $_GET['from_cart'] ?? false;
             </div>
         </div>
 
-        <hr style="margin: 35px 0; border: 0; border-top: 1.5px solid #f0f0f0;">
+        <hr style="margin: 35px 0; border: 0; border-top: 1.5px solid rgba(255,255,255,0.15);">
 
-        <!-- List Produk -->
         <h3>1. Pilih Nominal Top Up</h3>
         
         <?php 
         $gn_check = strtolower($g['nama_game']);
         if (strpos($gn_check, 'roblox') !== false): 
         ?>
-            <!-- Khusus Roblox ada pemisahan Tab -->
             <div class="tab-container">
                 <div class="tab-btn active" id="btn-tab-login" onclick="toggleRobloxTab('login')">Robux Via Login</div>
                 <div class="tab-btn" id="btn-tab-5hari" onclick="toggleRobloxTab('5hari')">Robux 5 Hari (Tanpa Login)</div>
@@ -343,13 +339,12 @@ $from_cart = $_GET['from_cart'] ?? false;
             $q_produk = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_g' ORDER BY harga ASC");
             if(mysqli_num_rows($q_produk) > 0): 
                 while($p = mysqli_fetch_assoc($q_produk)): 
-                    // Tambahkan class tipe produk di sini
                     $tipe_p = $p['tipe'] ?? 'default'; 
             ?>
                 <div class="item-card produk-item" 
                     data-tipe="<?= $tipe_p ?>" 
                     onclick="selectProduct(this, <?= $p['harga']; ?>, '<?= addslashes($p['nama_produk']); ?>')"
-                    style="display: <?= ($gn_check == 'roblox' && $tipe_p != 'roblox_login') ? 'none' : 'block' ?>;">
+                    style="display: <?= ($gn_check == 'roblox' && $tipe_p != 'roblox_login') ? 'none' : 'flex' ?>;">
                     <div style="font-size: 14px; font-weight: 600; color: #ffffff;"><?= $p['nama_produk']; ?></div>
                     <div class="price">Rp <?= number_format($p['harga'], 0, ',', '.'); ?></div>
                 </div>
@@ -362,12 +357,10 @@ $from_cart = $_GET['from_cart'] ?? false;
             <?php endif; ?>
         </div>
 
-        <!-- Section Ulasan -->
         <div style="margin-top: 60px; border-top: 2px solid gold; padding-top: 30px;">
             <h3>2. Testimoni Pembeli</h3>
             
-            <!-- Form Kirim Ulasan -->
-            <div style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); padding: 25px; border-radius: 15px; border: 1px solid rgba(251, 255, 0, 0.25); margin-bottom: 30px;">
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 15px; border: 1px solid rgba(251, 255, 0, 0.25); margin-bottom: 30px;">
                 <form action="simpan_ulasan.php" method="POST">
                     <input type="hidden" name="id_game" value="<?php echo $id_g; ?>">
                     <input type="hidden" name="slug" value="<?php echo $g['slug']; ?>">
@@ -383,24 +376,23 @@ $from_cart = $_GET['from_cart'] ?? false;
                     </div>
 
                     <textarea name="komentar" placeholder="Gimana layanannya mprruy? Tulis di sini..." required 
-                              style="width: 100%; height: 100px; border-radius: 12px; padding: 15px; border: 1.5px solid #eee; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px;"></textarea>
-                    <button type="submit" style="background:var(--dark);color:white; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
+                              style="width: 100%; height: 100px; border-radius: 12px; padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color:#fff; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px;"></textarea>
+                    <button type="submit" style="background:#c9a227; color:black; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
                 </form>
             </div>
 
-            <!-- List Ulasan yang sudah ada -->
             <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
                 <?php if(mysqli_num_rows($q_rev) > 0): ?>
                     <?php while($rev = mysqli_fetch_assoc($q_rev)): ?>
                         <div class="rev-item">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <strong>👤 <?php echo htmlspecialchars($rev['user_name']); ?></strong>
-                                <span style="font-size: 11px; color: #999;"><?php echo date('d M Y', strtotime($rev['created_at'] ?? 'now')); ?></span>
+                                <span style="font-size: 11px; color: #ccc;"><?php echo date('d M Y', strtotime($rev['created_at'] ?? 'now')); ?></span>
                             </div>
                             <div style="color: #ffca08; font-size: 14px; margin: 5px 0;">
                                 <?php for($k=1; $k<=5; $k++) echo ($k <= $rev['rating']) ? "★" : "☆"; ?>
                             </div>
-                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #eee;">
                                 "<?php echo nl2br(htmlspecialchars($rev['komentar'])); ?>"
                             </p>
                         </div>
@@ -412,14 +404,12 @@ $from_cart = $_GET['from_cart'] ?? false;
         </div>
     </div>
 
-    <!-- SIDEBAR (KANAN) -->
     <div class="side-buy">
-        <div class="sticky-card">
-            <h3 style="margin-top:0; border-bottom: 2px solid #f4f7f9; padding-bottom: 10px;">Detail Pesanan</h3>
+        <div class="sticky-card glass-panel">
+            <h3 style="margin-top:0; border-bottom: 2px solid rgba(255,255,255,0.15); padding-bottom: 10px;">Detail Pesanan</h3>
             
-            <!-- Input Data Game Dinamis -->
-            <div id="dynamic-inputs" style="margin-top: 20px; ">
-                <label style="font-size: 13px; font-weight: bold; margin-bottom: 8px; display: block;">Lengkapi Data Akun:</label>
+            <label style="font-size: 13px; font-weight: bold; margin-top: 20px; margin-bottom: 8px; display: block;">Lengkapi Data Akun:</label>
+            <div id="dynamic-inputs" class="dynamic-field-wrapper">
                 
                 <?php 
                 $game_name_lower = strtolower($g['nama_game']);
@@ -434,7 +424,7 @@ $from_cart = $_GET['from_cart'] ?? false;
                             <input type="text" id="bc2" placeholder="Code 2" class="form-input">
                             <input type="text" id="bc3" placeholder="Code 3" class="form-input">
                         </div>
-                        <small style="color: gold; font-size: 12px;">*Wajib sertakan backup codes mprruy!</small>
+                        <small style="color: gold; font-size: 12px; display: block; margin-top: -5px;">*Wajib sertakan backup codes mprruy!</small>
                     </div>
                     <div id="roblox-fields-5hari" style="display:none;">
                         <input type="text" id="rblx_id_only" placeholder="Username / Profile Link" class="form-input">
@@ -452,7 +442,7 @@ $from_cart = $_GET['from_cart'] ?? false;
                 // KONDISI 3: GENSHIN
                 elseif (strpos($game_name_lower, 'genshin') !== false): ?>
                     <input type="number" id="uid_genshin" placeholder="Masukkan UID" class="form-input">
-                    <select id="server_genshin" class="form-input">
+                    <select id="server_genshin" class="form-input" style="color: #000;">
                         <option value="Asia">Server Asia</option>
                         <option value="America">Server America</option>
                         <option value="Europe">Server Europe</option>
@@ -466,7 +456,6 @@ $from_cart = $_GET['from_cart'] ?? false;
                 <?php endif; ?>
             </div>
 
-            <!-- Kontrol Jumlah -->
             <label style="font-size: 13px; font-weight: bold; margin-top: 10px; display: block;">Jumlah Pembelian:</label>
             <div class="qty-control">
                 <button class="qty-btn" onclick="adjustQty(-1)">-</button>
@@ -474,9 +463,8 @@ $from_cart = $_GET['from_cart'] ?? false;
                 <button class="qty-btn" onclick="adjustQty(1)">+</button>
             </div>
 
-            <!-- Ringkasan Harga -->
-            <div style="background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.25);border-top-color: rgba(255,255,255,0.5);box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3); padding: 15px; border-radius: 12px; margin: 20px 0;">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; color: #adaaaa;">
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; color: #ccc;">
                     <span>Produk:</span>
                     <span id="selected-product-name">-</span>
                 </div>
@@ -486,32 +474,24 @@ $from_cart = $_GET['from_cart'] ?? false;
                 </div>
             </div>
 
-            <!-- Tombol Aksi -->
             <div style="display: flex; gap: 12px;">
                 <button type="button" class="btn-cart" onclick="addToCart()">🛒</button>
                 <button type="button" class="btn-buy-now" onclick="submitOrder()">Beli Sekarang</button>
             </div>
             
-            <p style="font-size: 12px; color: gold; text-align: center; margin-top: 15px;">
+            <p style="font-size: 12px; color: gold; text-align: center; margin-top: 15px; margin-bottom: 0;">
                 Layanan aktif 24 Jam. Proses otomatis & aman 100%.
             </p>
         </div>
     </div>
 </div>
 
-<!-- JAVASCRIPT LOGIC -->
 <script>
-    /* ==========================================
-       VARIABLE GLOBAL (Tanpa Re-deklarasi Toast)
-       ========================================== */
     let currentSelectedProduct = null;
     let basePrice = 0;
     let currentQuantity = 1;
     let robloxTabMode = 'login'; 
 
-    /**
-     * Pilih Produk
-     */
     function selectProduct(element, price, name) {
         const cards = document.querySelectorAll('.item-card');
         cards.forEach(c => c.classList.remove('selected'));
@@ -524,9 +504,6 @@ $from_cart = $_GET['from_cart'] ?? false;
         updatePriceDisplay();
     }
 
-    /**
-     * Quantity Control
-     */
     function adjustQty(amount) {
         currentQuantity += amount;
         if (currentQuantity < 1) currentQuantity = 1;
@@ -542,9 +519,6 @@ $from_cart = $_GET['from_cart'] ?? false;
         }
     }
 
-    /**
-     * Khusus Roblox Tab & Filter
-     */
     function toggleRobloxTab(mode) {
         robloxTabMode = mode;
         const filterKey = (mode === 'login') ? 'roblox_login' : 'roblox_5hari';
@@ -555,34 +529,32 @@ $from_cart = $_GET['from_cart'] ?? false;
         document.getElementById('roblox-fields-5hari').style.display = (mode === '5hari' ? 'block' : 'none');
 
         document.querySelectorAll('.produk-item').forEach(el => {
-            el.style.display = (el.getAttribute('data-tipe') === filterKey) ? 'block' : 'none';
+            el.style.display = (el.getAttribute('data-tipe') === filterKey) ? 'flex' : 'none';
         });
 
         currentSelectedProduct = null;
         basePrice = 0;
         document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+        document.getElementById('selected-product-name').innerText = '-';
         updatePriceDisplay();
     }
 
-    /**
-     * Tambah Ke Keranjang (Sinkron DB)
-     */
     function addToCart() {
         const isLogged = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
         
         if (!isLogged) {
-            Toast.fire({
+            Swal.fire({
                 icon: 'warning',
-                html: '<span class="tz-toast-title">LOGIN DULU!</span><p class="tz-toast-content">Akun lu belum nyangkut mprruy.</p>'
+                title: 'LOGIN DULU!',
+                text: 'Akun lu belum nyangkut mprruy.',
+                background: '#1205a5',
+                color: '#fff'
             }).then(() => { window.location.href = "../Login/tampilanlogin.php"; });
             return;
         }
 
         if (!currentSelectedProduct) {
-            Toast.fire({
-                icon: 'info',
-                html: '<span class="tz-toast-title">INFO</span><p class="tz-toast-content">Pilih produk dulu bray!</p>'
-            });
+            Swal.fire({ icon: 'info', title: 'INFO', text: 'Pilih produk dulu bray!', background: '#1205a5', color: '#fff' });
             return;
         }
 
@@ -595,35 +567,35 @@ $from_cart = $_GET['from_cart'] ?? false;
         fetch('proses_keranjang.php', { method: 'POST', body: formData })
         .then(res => res.text())
         .then(data => {
-            Toast.fire({
+            Swal.fire({
                 icon: 'success',
-                html: `<span class="tz-toast-title">BERHASIL</span><p class="tz-toast-content"><b>${currentSelectedProduct}</b> masuk keranjang!</p>`
+                title: 'BERHASIL',
+                text: `${currentSelectedProduct} masuk keranjang!`,
+                background: '#1205a5',
+                color: '#fff'
             }).then(() => { window.location.reload(); });
         })
         .catch(err => {
-            Toast.fire({ icon: 'error', html: '<span class="tz-toast-title">ERROR</span><p class="tz-toast-content">Koneksi ruyam!</p>' });
+            Swal.fire({ icon: 'error', title: 'ERROR', text: 'Koneksi ruyam!', background: '#1205a5', color: '#fff' });
         });
     }
 
-    /**
-     * Langsung Beli (Checkout)
-     */
     function submitOrder() {
         const isLoggedIn = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
         
         if (!isLoggedIn) {
-            Toast.fire({
+            Swal.fire({
                 icon: 'info',
-                html: '<span class="tz-toast-title">LOGIN DULU BRAY</span><p class="tz-toast-content">Biar transaksinya aman & masuk histori.</p>'
+                title: 'LOGIN DULU BRAY',
+                text: 'Biar transaksinya aman & masuk histori.',
+                background: '#1205a5',
+                color: '#fff'
             }).then(() => { window.location.href = "../Login/tampilanlogin.php"; });
             return;
         }
 
         if (!currentSelectedProduct) {
-            Toast.fire({
-                icon: 'warning',
-                html: '<span class="tz-toast-title">PILIH PRODUK!</span><p class="tz-toast-content">Pilih nominalnya dulu mprruy.</p>'
-            });
+            Swal.fire({ icon: 'warning', title: 'PILIH PRODUK!', text: 'Pilih nominalnya dulu mprruy.', background: '#1205a5', color: '#fff' });
             return;
         }
 
@@ -653,10 +625,7 @@ $from_cart = $_GET['from_cart'] ?? false;
                 userDataRaw = inputGeneral.value.trim();
             }
         } catch (pesanError) {
-            Toast.fire({
-                icon: 'error',
-                html: `<span class="tz-toast-title">DATA KOSONG!</span><p class="tz-toast-content">${pesanError}</p>`
-            });
+            Swal.fire({ icon: 'error', title: 'DATA KOSONG!', text: pesanError, background: '#1205a5', color: '#fff' });
             return;
         }
 

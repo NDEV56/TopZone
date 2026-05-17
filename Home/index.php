@@ -194,11 +194,52 @@ if ($is_real_user) {
         <?php endif; ?>
         </div>
         
-        <div id="notFound" style="display:none; width:100%; padding: 50px 0;">
-            <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                <div style="background:#fff3f3; border:2px dashed #ff0000; padding:20px 40px; border-radius:10px; text-align:center;">
-                    <h3 style="color:#ff0000; margin:0;">GAME LAU GADA MPRUYY!</h3>
-                    <p style="color:#666;">Coba kata kunci lain...</p>
+        <div id="notFound" class="tz-wrapper-notfound-baru" style="
+            display: none; 
+            grid-column: 1 / -1; 
+            width: 100% !important; 
+            justify-content: center !important; 
+            align-items: center !important; 
+            padding: 60px 0 !important; 
+            box-sizing: border-box !important;
+        ">
+            <div class="tz-poros-notfound-baru" style="
+                width: 100% !important; 
+                max-width: 480px !important; 
+                box-sizing: border-box !important; 
+                padding: 0 20px !important;
+            ">
+                <div class="tz-card-notfound-baru" style="
+                    background: rgba(255, 77, 77, 0.04) !important; 
+                    backdrop-filter: blur(20px) saturate(180%) !important; 
+                    -webkit-backdrop-filter: blur(20px) saturate(180%) !important; 
+                    border: 2px solid rgba(255, 77, 77, 0.2) !important; 
+                    border-top-color: rgba(255, 150, 150, 0.4) !important; 
+                    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 
+                                inset 0 0 25px rgba(255, 77, 77, 0.1) !important; 
+                    padding: 40px 30px !important; 
+                    border-radius: 20px !important; 
+                    text-align: center !important; 
+                    box-sizing: border-box !important;
+                    animation: tzSmoothPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards !important;
+                ">
+                    <div style="font-size: 45px; margin-bottom: 12px; filter: drop-shadow(0 0 10px rgba(255,77,77,0.6));">⚠️</div>
+                    
+                    <h3 style="
+                        color: #ff4d4d; 
+                        margin: 0 0 10px 0; 
+                        font-size: 21px; 
+                        font-weight: 800; 
+                        letter-spacing: 0.5px;
+                        text-shadow: 0 0 12px rgba(255, 77, 77, 0.5);
+                        word-break: break-all;
+                    ">
+                        Waduh mprruy, game gak ketemu!
+                    </h3>
+                    
+                    <p style="color: #cbd5e1; margin: 0; font-size: 14px; font-weight: 500;">
+                        Coba ketik kata kunci game lain bray...
+                    </p>
                 </div>
             </div>
         </div>
