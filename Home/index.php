@@ -20,29 +20,21 @@ if (isset($_GET['status']) && $_GET['status'] == 'success' && $is_real_user) {
 $query = "SELECT * FROM games"; 
 $result = mysqli_query($koneksi, $query);
 
-// 4. AMBIL DATA ORDER (DENGAN LOGIKA NAMA GAME ASLI)
-$jumlah_keranjang = 0;
-$count_pending = $count_proses = $count_dikirim = $count_selesai = 0;
-$q_pending = $q_proses = $q_dikirim = $q_selesai = null;
-
-if ($is_real_user) {
-    // Hitung Keranjang
-    $res_keranjang = mysqli_query($koneksi, "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'");
-    $data_keranjang = mysqli_fetch_assoc($res_keranjang);
-    $jumlah_keranjang = $data_keranjang['total'] ?? 0;
-
-    // Fungsi Sakti: Nyocokkin teks di orders dengan nama game di tabel games
+// 4. FUNGSI SAKTI NYOCOKKIN TEKS (Sudah diperbaiki agar ID User terbaca)
+if (!function_exists('getOrders')) {
     function getOrders($koneksi, $id_user, $status) {
+        // PERHATIKAN: $id_user di sini diambil dari parameter fungsi agar tidak kosong!
         $sql = "SELECT o.*, 
                 COALESCE(
                     -- Cara 1: Cek apakah nama game ada di dalam teks paket
                     (SELECT g.nama_game FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
-                    -- Cara 2: Cek berdasarkan harga (SANGAT PENTING buat yang namanya 'Paket Utama')
-                    (SELECT g.nama_game FROM games g WHERE g.harga = o.total_price LIMIT 1),
-                    -- Cara 3: Cadangan kalau tetep gak ketemu
+                    -- Cara 2: Cek berdasarkan harga
+                    (SELECT g.harga FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                    -- Cara 3: Cadangan
                     'TopZone Product'
                 ) as nama_game_asli,
                 COALESCE(
+                    -- Menggunakan g.gambar sesuai struktur tabel games kamu
                     (SELECT g.gambar FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
                     (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
                     'Default.jpg'
@@ -50,8 +42,21 @@ if ($is_real_user) {
                 FROM orders o 
                 WHERE o.id_user = '$id_user' AND o.status = '$status' 
                 ORDER BY o.id_order DESC";
+                
         return mysqli_query($koneksi, $sql);
     }
+}
+
+// 5. AMBIL DATA ORDER USER
+$jumlah_keranjang = 0;
+$count_pending = $count_proses = $count_dikirim = $count_selesai = 0;
+$q_pending = $q_proses = $q_dikirim = $q_selesai = null;
+
+if ($is_real_user) {
+    // Hitung Keranjang (Pastikan variabel koneksi menggunakan $koneksi bray)
+    $res_keranjang = mysqli_query($koneksi, "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'");
+    $data_keranjang = mysqli_fetch_assoc($res_keranjang);
+    $jumlah_keranjang = $data_keranjang['total'] ?? 0;
     
     // Eksekusi Query per Status
     $q_pending = getOrders($koneksi, $id_user_skrg, 'pending');
@@ -158,40 +163,131 @@ if ($is_real_user) {
     </aside>
 
     <main class="tp-main">
-        <div class="slider-wrap" id="sliderWrap">
-            <div class="tp-slider">
-                <div class="tp-slides" id="sliderTrack">
-                    <div class="tp-slide"><img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200"></div>
-                    <div class="tp-slide"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200"></div>
-                    <div class="tp-slide"><img src="https://images.unsplash.com/photo-1605901309584-818e25960a8f?w=1200"></div>
-                    <div class="tp-slide"><img src="https://lh7-rt.googleusercontent.com/docsz/AD_4nXdaeh5nCCpewFNqlqhUTijdqvjpYhh66tL1vJCxzu0M28-lDOt8T9MQAxKkCfmRXiz90gYhgaA4t2SG8XAk4ntEz5_xxSNriTW04S4qcL36RtuZ6hFdtH0kTV7f6XFAJDCbFZJi?key=13D7PG225SiyZYQv4S1nVg1G"></div>
+        <div class="tz-hero-wrap" id="tzHeroWrap">
+            <div class="tz-hero-container">
+                <button class="tz-hero-arrow tz-prev" id="tzPrevBtn">❮</button>
+                <button class="tz-hero-arrow tz-next" id="tzNextBtn">❯</button>
+
+                <div class="tz-hero-track" id="tzHeroTrack">
+                    <div class="tz-hero-slide"><img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200"></div>
+                    <div class="tz-hero-slide"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200"></div>
+                    <div class="tz-hero-slide"><img src="https://images.unsplash.com/photo-1605901309584-818e25960a8f?w=1200"></div>
+                    <div class="tz-hero-slide"><img src="https://cms-media.roblox.com/resize=width:1280,fit:max/GnaqqRBTcCuoRELL938w"></div>
+                    <div class="tz-hero-slide"><img src="https://assets.xboxservices.com/assets/2b/d2/2bd239ef-b3a5-4b50-b5a5-ba6418012534.jpg?n=Xbox-360-Games_Feature-0_Back-Compat_1040x585_01.jpg"></div>
                 </div>
             </div>
+            
+            <div class="tz-hero-dots" id="tzHeroDots"></div>
         </div>
 
-        <h2 class="tp-title" id="mainTitle">Semua Produk</h2>
-        
-        <div id="productList" class="tp-grid">
-        <?php if(mysqli_num_rows($result) > 0): ?>
-            <?php while($row_game = mysqli_fetch_assoc($result)): ?>
-                <?php 
-                    $id_ini = $row_game['id'];
-                    $ambil_ulasan = mysqli_query($conn, "SELECT AVG(rating) as hasil_rata FROM reviews WHERE id_game = '$id_ini'");
-                    $data_ulasan = mysqli_fetch_assoc($ambil_ulasan);
-                    $angka_bintang = ($data_ulasan['hasil_rata'] > 0) ? round($data_ulasan['hasil_rata'], 1) : 0;
-                ?>
+        <?php 
+        if ($is_real_user): 
+            // TAMBAHKAN o.catatan ke dalam SELECT bray
+            $query_beli_lagi = "
+                SELECT o.game_name, o.total_price, o.catatan,
+                COALESCE(
+                    (SELECT g.id FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                    (SELECT g.id FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                    0
+                ) as id_game_asli,
+                COALESCE(
+                    (SELECT g.nama_game FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                    'TopZone Product'
+                ) as nama_game_asli,
+                COALESCE(
+                    (SELECT g.gambar FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                    (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                    'Default.jpg'
+                ) as gambar_game_asli
+                FROM orders o
+                WHERE o.id_user = '$id_user_skrg' AND o.status = 'selesai'
+                AND o.id_order IN (
+                    SELECT MAX(id_order)
+                    FROM orders
+                    WHERE id_user = '$id_user_skrg' AND status = 'selesai'
+                    GROUP BY game_name
+                )
+                ORDER BY o.id_order DESC
+                LIMIT 4
+            ";
+            $result_beli_lagi = mysqli_query($koneksi, $query_beli_lagi);
+        ?>
+        <div class="tz-repeat-order-section" id="tzRepeatOrderSection">
+            <div class="tz-repeat-header">
+                <div class="tz-repeat-title-wrap">
+                    <span class="tz-repeat-icon"></span>
+                    <h2>Beli Lagi Yuk</h2>
+                </div>
+                <?php if ($result_beli_lagi && mysqli_num_rows($result_beli_lagi) > 0): ?>
+                    <a href="riwayat_transaksi.php" class="tz-btn-lihat-semua">Lihat Semua ❯</a>
+                <?php endif; ?>
+            </div>
 
-                <a href="game_detail.php?game=<?php echo $row_game['slug']; ?>" class="tp-card">
-                    <div class="tp-img" style="background-image:url('<?php echo $row_game['gambar']; ?>')"></div>
-                    <div class="tp-info">
-                        <h4><?php echo $row_game['nama_game']; ?></h4>
-                        <div class="tp-meta">
-                            ⭐ <?php echo number_format($angka_bintang, 1); ?> | <?php echo $row_game['terjual']; ?> terjual
+            <?php if ($result_beli_lagi && mysqli_num_rows($result_beli_lagi) > 0): ?>
+                <div class="tz-repeat-grid">
+                    <?php while($row_ulang = mysqli_fetch_assoc($result_beli_lagi)): ?>
+                        <div class="tz-repeat-card">
+                            <div class="tz-repeat-info-wrap">
+                                <div class="tz-repeat-img-container">
+                                    <img src="<?php echo $row_ulang['gambar_game_asli']; ?>" alt="<?php echo $row_ulang['nama_game_asli']; ?>" class="tz-repeat-img">
+                                </div>
+                                <div class="tz-repeat-details">
+                                    <h4 class="tz-game-name"><?php echo $row_ulang['nama_game_asli']; ?></h4>
+                                    <p class="tz-game-paket"><?php echo $row_ulang['game_name']; ?></p>
+                                    <p class="tz-game-price">Rp <?php echo number_format($row_ulang['total_price'], 0, ',', '.'); ?></p>
+                                </div>
+                            </div>
+                            
+                            <div class="tz-repeat-action-wrap">
+                                <a href="Checkout/pembayaran.php?id_game=<?php echo $row_ulang['id_game_asli']; ?>&paket=<?php echo urlencode($row_ulang['game_name']); ?>&harga=<?php echo $row_ulang['total_price']; ?>&user=<?php echo urlencode($row_ulang['catatan']); ?>" class="tz-btn-beli-lagi">
+                                    Beli Lagi
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                </a>
-            <?php endwhile; ?>
-        <?php endif; ?>
+                    <?php endwhile; ?>
+                </div>
+            <?php else: ?>
+                <div class="tz-empty-repeat-container">
+                    <p class="tz-empty-repeat-text">Kosong mpruyyy, beli dulu sono...</p>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php 
+        endif; 
+        ?>
+
+        <div class="tz-main-products-box">
+            <div class="tp-header-wrap">
+                <span class="tp-header-icon"></span>
+                <h2 class="tp-title" id="mainTitle">Semua Produk</h2>
+            </div>
+            
+            <div id="productList" class="tp-grid-six">
+            <?php if(mysqli_num_rows($result) > 0): ?>
+                <?php while($row_game = mysqli_fetch_assoc($result)): ?>
+                    <?php 
+                        $id_ini = $row_game['id'];
+                        $ambil_ulasan = mysqli_query($koneksi, "SELECT AVG(rating) as hasil_rata FROM reviews WHERE id_game = '$id_ini'");
+                        $data_ulasan = mysqli_fetch_assoc($ambil_ulasan);
+                        $angka_bintang = ($data_ulasan['hasil_rata'] > 0) ? round($data_ulasan['hasil_rata'], 1) : 0;
+                    ?>
+
+                    <a href="game_detail.php?game=<?php echo $row_game['slug']; ?>" class="tp-card-premium">
+                        <div class="tp-img-container">
+                            <div class="tp-img" style="background-image:url('<?php echo $row_game['gambar']; ?>')"></div>
+                        </div>
+                        <div class="tp-info">
+                            <h4><?php echo $row_game['nama_game']; ?></h4>
+                            <div class="tp-meta">
+                                <span class="tp-star">⭐ <?php echo number_format($angka_bintang, 1); ?></span>
+                                <span class="tp-divider">|</span>
+                                <span class="tp-sold"><?php echo $row_game['terjual']; ?> terjual</span>
+                            </div>
+                        </div>
+                    </a>
+                <?php endwhile; ?>
+            <?php endif; ?>
+            </div>
         </div>
         
         <div id="notFound" class="tz-wrapper-notfound-baru" style="

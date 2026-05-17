@@ -19,14 +19,17 @@ let selectedPrice = 0;
 let selectedProductName = "";
 let currentQty = 1;
 
-/* ===== B. CORE DATA LOAD (SEARCH & KATEGORI) ===== */
-/* ===== B. CORE DATA LOAD (SEARCH & KATEGORI) ===== */
 function loadData() {
     const searchInput = document.getElementById("searchInput");
-    const slider = document.getElementById("sliderWrap");
+    const slider = document.getElementById("tzHeroWrap"); 
     const productList = document.getElementById("productList");
     const notFound = document.getElementById("notFound");
     const mainTitle = document.getElementById("mainTitle");
+
+    // Tangkap elemen kontainer luar & wrapper header bray
+    const repeatOrderSection = document.querySelector(".tz-repeat-order-section");
+    const mainProductsBox = document.querySelector(".tz-main-products-box");
+    const tpHeaderWrap = document.querySelector(".tp-header-wrap"); // BIAR API GAK MELAYANG bray!
 
     const search = searchInput ? searchInput.value.trim() : ""; 
 
@@ -38,16 +41,55 @@ function loadData() {
 
     if (productList) productList.innerHTML = "";
 
+    // Skenario A: Jika user sedang MENCARI sesuatu atau memilih KATEGORI
     if (search.length > 0 || kategoriAktif !== "") {
-        if (slider) slider.style.display = "none";
+        if (slider) slider.style.setProperty("display", "none", "important"); 
+        
+        // SEMBUNYIKAN BOX BELI LAGI TOTAL
+        if (repeatOrderSection) {
+            repeatOrderSection.style.setProperty("display", "none", "important");
+        }
+        
+        // HANCURKAN BACKGROUND UTAMA (Biar gak double box kacanya)
+        if (mainProductsBox) {
+            mainProductsBox.style.setProperty("background", "transparent", "important");
+            mainProductsBox.style.setProperty("backdrop-filter", "none", "important");
+            mainProductsBox.style.setProperty("-webkit-backdrop-filter", "none", "important");
+            mainProductsBox.style.setProperty("border", "none", "important");
+            mainProductsBox.style.setProperty("box-shadow", "none", "important");
+            mainProductsBox.style.setProperty("padding", "0px", "important");
+        }
+
         if (mainTitle) {
             mainTitle.style.display = "block";
             mainTitle.innerHTML = search.length > 0 
-                ? `<span style="color:gold">Hasil:</span> "${displaySearch}"` 
-                : `<span style="color:gold">Kategori:</span> ${kategoriAktif}`;
+                ? `<span style="color:#38bdf8">Hasil:</span> "${displaySearch}"` 
+                : `<span style="color:#38bdf8">Kategori:</span> ${kategoriAktif}`;
         }
+
     } else {
-        if (slider) slider.style.display = "flex";
+        // Skenario B: Kembali ke halaman utama / Beranda awal
+        if (slider) slider.style.setProperty("display", "flex", "important"); 
+        
+        if (repeatOrderSection) {
+            repeatOrderSection.style.setProperty("display", "block", "important");
+        }
+
+        // KEMBALIKAN EFEK LIQUID GLASS BLUE KREASI LU bray
+        if (mainProductsBox) {
+            mainProductsBox.style.setProperty("background", "rgba(0, 38, 230, 0.15)", "important");
+            mainProductsBox.style.setProperty("backdrop-filter", "blur(20px) saturate(160%)", "important");
+            mainProductsBox.style.setProperty("-webkit-backdrop-filter", "blur(20px) saturate(160%)", "important");
+            mainProductsBox.style.setProperty("border", "1px solid rgba(59, 130, 246, 0.3)", "important");
+            mainProductsBox.style.setProperty("border-top", "1px solid rgba(96, 165, 250, 0.5)", "important");
+            mainProductsBox.style.setProperty("padding", "24px", "important");
+            mainProductsBox.style.setProperty("box-shadow", "0 15px 35px rgba(0, 38, 230, 0.2)", "important");
+        }
+
+        if (tpHeaderWrap) {
+            tpHeaderWrap.style.setProperty("display", "flex", "important"); // Tampilkan lagi headernya
+        }
+
         if (mainTitle) {
             mainTitle.style.display = "block";
             mainTitle.innerText = "Semua Produk";
@@ -65,14 +107,16 @@ function loadData() {
                 productList.style.display = "none"; 
             }
             
-            // Sesuai request sebelumnya: hilangkan tulisan Hasil: "..." di atas pas not found bray
+            // Sembunyikan seluruh bungkus judul biar icon api '🔥' gak ketinggalan melayang sendirian
+            if (tpHeaderWrap) {
+                tpHeaderWrap.style.setProperty("display", "none", "important");
+            }
             if (mainTitle) {
                 mainTitle.style.display = "none";
                 mainTitle.innerHTML = "";
             }
             
             if (notFound) {
-                // Rata tengah murni mengimbangi sidebar kiri (lebar 240px)
                 notFound.style.cssText = `
                     display: flex !important; 
                     grid-column: 1 / -1; 
@@ -84,48 +128,49 @@ function loadData() {
                     box-sizing: border-box !important;
                 `;
                 
-                // Pembungkus dan Card Box Glassmorphism Merah (Ukuran Pas & Proporsional)
                 notFound.innerHTML = `
                     <div class="tz-poros-notfound-baru" style="width: 100% !important; max-width: 440px !important; box-sizing: border-box !important; padding: 0 20px !important;">
                         <div class="tz-card-notfound-baru" style="
-                            background: rgba(255, 77, 77, 0.05) !important; 
-                            backdrop-filter: blur(20px) saturate(180%) !important; 
-                            -webkit-backdrop-filter: blur(20px) saturate(180%) !important; 
-                            border: 2px solid rgba(255, 77, 77, 0.2) !important; 
-                            border-top-color: rgba(255, 150, 150, 0.35) !important; 
-                            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 77, 77, 0.05) !important; 
+                            background: rgba(0, 38, 230, 0.18) !important; 
+                            backdrop-filter: blur(20px) saturate(160%) !important; 
+                            -webkit-backdrop-filter: blur(20px) saturate(160%) !important; 
+                            border: 1px solid rgba(96, 165, 250, 0.4) !important; 
+                            border-top: 1px solid rgba(147, 197, 253, 0.6) !important;
+                            box-shadow: 0 20px 45px rgba(0, 38, 230, 0.25), inset 0 0 15px rgba(59, 130, 246, 0.2) !important;
                             padding: 35px 25px !important; 
-                            border-radius: 16px !important; 
+                            border-radius: 20px !important; 
                             text-align: center !important; 
                             box-sizing: border-box !important;
-                            animation: tzSmoothPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards !important;
                         ">
-                            <div style="font-size: 42px; margin-bottom: 15px; filter: drop-shadow(0 0 8px rgba(255,77,77,0.4));">⚠️</div>
-                            
-                            <h3 style="
-                                color: #ff4d4d; 
-                                margin: 0 0 10px 0; 
-                                font-size: 18px; 
-                                font-weight: 700; 
-                                letter-spacing: 0.3px;
-                                line-height: 1.5;
-                                text-shadow: 0 0 8px rgba(255, 77, 77, 0.3);
-                            ">
-                                Waduh mprruy, <span style="word-break: break-all; display: inline-block;">"${displaySearch || 'game'}"</span><br>gak ketemu!
+                            <div style="font-size: 45px; margin-bottom: 15px; filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8));">🔍</div>
+                            <h3 style="color: #ffffff; margin: 0 0 12px 0; font-size: 18px; font-weight: 700; line-height: 1.4;">
+                                Waduh mprruy, <span style="color: #38bdf8; word-break: break-all; text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);">"${displaySearch || 'game'}"</span><br>kagak ketemu bray!
                             </h3>
-                            
-                            <p style="color: #94a3b8; margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.1px;">
-                                Coba ketik kata kunci game lain bray...
+                            <p style="color: #cbd5e1; margin: 0; font-size: 13px; font-weight: 500; opacity: 0.85;">
+                                Coba cek kembali ketikan lu atau pilih kategori lain...
                             </p>
                         </div>
                     </div>
                 `;
             }
         } else {
+            // Skenario pas data ADA / KETEMU
+            if (tpHeaderWrap) tpHeaderWrap.style.setProperty("display", "flex", "important");
             if (mainTitle && search.length > 0) mainTitle.style.display = "block";
+            
             if (productList) { 
+                // 1. Suntik data asli ke produk bray
                 productList.innerHTML = cleanData; 
-                productList.style.display = "grid"; 
+                
+                // 2. 🔥 [ANTI DOUBLE WRAPPER] Kalo search.php ngirim div pembungkus lagi, kita bongkar paksa!
+                const doubleWrapper = productList.querySelector(':scope > .tp-grid-six, :scope > .tp-grid, :scope > .row');
+                if (doubleWrapper) {
+                    productList.innerHTML = doubleWrapper.innerHTML;
+                }
+
+                // 3. 🔥 Kunci mati class utamanya & set display-nya
+                productList.classList.add("tp-grid-six");
+                productList.style.setProperty("display", "grid", "important"); 
             }
             if (notFound) {
                 notFound.style.display = "none";
@@ -455,4 +500,84 @@ const Toast = Swal.mixin({
         toast.querySelector('.swal2-title').style.setProperty('color', '#ffffff', 'important');
         toast.querySelector('.swal2-html-container').style.setProperty('color', '#ffffff', 'important');
     }
+});
+
+//Slider
+document.addEventListener("DOMContentLoaded", function() {
+    const track = document.getElementById("tzHeroTrack");
+    const prevBtn = document.getElementById("tzPrevBtn");
+    const nextBtn = document.getElementById("tzNextBtn");
+    const dotsContainer = document.getElementById("tzHeroDots");
+
+    if (!track || !dotsContainer) return; // Penjaga eror bray
+
+    const slides = Array.from(track.children);
+    let currentIndex = 0;
+
+    // 1. Generate Titik-Titik Berdasarkan Jumlah Foto
+    dotsContainer.innerHTML = ""; 
+    slides.forEach((_, index) => {
+        const dot = document.createElement("div");
+        dot.classList.add("tz-indicator-dot");
+        if (index === 0) dot.classList.add("tz-active");
+        
+        dot.addEventListener("click", () => {
+            goToSlide(index);
+        });
+        dotsContainer.appendChild(dot);
+    });
+
+    // 2. Fungsi Utama Pergeseran Gambar & Reset Loading
+    function goToSlide(index) {
+        if (index < 0) {
+            currentIndex = slides.length - 1;
+        } else if (index >= slides.length) {
+            currentIndex = 0;
+        } else {
+            currentIndex = index;
+        }
+
+        // Jalankan animasi geser
+        track.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+        // Ambil elemen titik ter-update untuk dibersihkan listener lamanya bray
+        const currentDots = Array.from(dotsContainer.children);
+        currentDots.forEach(dot => {
+            dot.classList.remove("tz-active");
+            
+            // Trik kloning murni buat memicu ulang durasi CSS loading biar gak balapan
+            const newDot = dot.cloneNode(true);
+            dot.parentNode.replaceChild(newDot, dot);
+        });
+
+        // Ambil ulang referensi titik yang baru selesai di-clone
+        const updatedDots = Array.from(dotsContainer.children);
+
+        // Pasang ulang trigger click manual ke titik-titik baru bray
+        updatedDots.forEach((d, i) => {
+            d.addEventListener("click", () => goToSlide(i));
+        });
+
+        // Nyalakan status aktif di titik saat ini
+        const activeDot = updatedDots[currentIndex];
+        if (activeDot) {
+            activeDot.classList.add("tz-active");
+
+            // Kunci Utama: Slide baru geser kalau animasi loading di CSS beres 100%
+            activeDot.addEventListener("animationend", function() {
+                goToSlide(currentIndex + 1);
+            }, { once: true });
+        }
+    }
+
+    // 3. Pasang Event untuk Tombol Navigasi Kiri & Kanan
+    if (prevBtn) {
+        prevBtn.addEventListener("click", () => goToSlide(currentIndex - 1));
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener("click", () => goToSlide(currentIndex + 1));
+    }
+
+    // 4. Nyalakan inisialisasi awal slider bray
+    goToSlide(0);
 });

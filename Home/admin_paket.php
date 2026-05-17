@@ -139,6 +139,71 @@ if (isset($_GET['hapus'])) {
             min-height: 100vh; 
         }
 
+        /* Header Area untuk Judul & Search Bar */
+        .content-header {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* ==========================================================================
+        SEARCH BAR COMPONENT (Liquid Glassmorphism)
+        ========================================================================== */
+        .search-container {
+            position: relative;
+            max-width: 380px;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 20px 14px 45px;
+            background: rgba(11, 23, 58, 0.35);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            outline: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .search-input:focus {
+            background: rgba(11, 23, 58, 0.6);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.2), 
+                        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Icon Search Glow effect */
+        .search-container::before {
+            content: "🔍";
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .search-container:focus-within::before {
+            opacity: 1;
+            text-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        /* Container Grid Game */
         .game-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -157,13 +222,23 @@ if (isset($_GET['hapus'])) {
             overflow: hidden;
             border: 1px solid var(--glass-border);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+                        border-color 0.3s ease, 
+                        box-shadow 0.3s ease, 
+                        opacity 0.4s ease;
         }
 
         .game-card:hover {
             transform: translateY(-5px);
             border-color: rgba(0, 210, 255, 0.4);
             box-shadow: 0 15px 35px rgba(0, 92, 255, 0.15);
+        }
+
+        /* Untuk animasi sembunyi saat di-filter */
+        .game-card.hidden {
+            display: none;
+            opacity: 0;
+            transform: scale(0.95);
         }
 
         .game-header {
@@ -306,6 +381,19 @@ if (isset($_GET['hapus'])) {
             border: 1px dashed var(--glass-border);
         }
 
+        #search-empty-msg {
+            grid-column: 1 / -1;
+            padding: 50px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 15px;
+            background: rgba(11, 23, 58, 0.3);
+            border-radius: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
         /* ==========================================================================
         SCROLLBAR MANAGEMENT
         ========================================================================== */
@@ -318,7 +406,7 @@ if (isset($_GET['hapus'])) {
         }
         ::-webkit-scrollbar-thumb { 
             background: rgba(0, 92, 255, 0.2); 
-            border-radius: 10px; 
+            border-radius: 10px; vectors
         }
         ::-webkit-scrollbar-thumb:hover { 
             background: rgba(0, 170, 255, 0.4); 
@@ -337,16 +425,24 @@ if (isset($_GET['hapus'])) {
     </div>
 
     <div class="content">
-        <h2 style="margin-bottom: 30px; font-weight: 700;">Management Paket Produk</h2>
+        <div class="content-header">
+            <h2 style="font-weight: 700;">Management Paket Produk</h2>
+            
+            <div class="search-container">
+                <input type="text" id="searchGame" class="search-input" placeholder="Cari nama game...">
+            </div>
+        </div>
 
-        <div class="game-grid">
+        <div class="game-grid" id="gameGridContainer">
+            <div id="search-empty-msg">Game yang lu cari kagak ketemu nih... 🕹️</div>
+
             <?php
             $q_game = mysqli_query($koneksi, "SELECT * FROM games ORDER BY nama_game ASC");
             while($g = mysqli_fetch_assoc($q_game)):
                 $id_game = $g['id'];
                 $slug_game = $g['slug']; 
             ?>
-                <div class="game-card">
+                <div class="game-card" data-name="<?= strtolower($g['nama_game']) ?>">
                     <div class="game-header">
                         <div class="game-info">
                             <img src="<?= $g['gambar'] ?>" alt="<?= $g['nama_game'] ?>">
@@ -437,5 +533,31 @@ if (isset($_GET['hapus'])) {
         </div>
     </div>
 
+    <script>
+        document.getElementById('searchGame').addEventListener('input', function(e) {
+            const keyword = e.target.value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.game-card');
+            const emptyMsg = document.getElementById('search-empty-msg');
+            let visibleCardsCount = 0;
+
+            cards.forEach(card => {
+                const gameName = card.getAttribute('data-name');
+                
+                if (gameName.includes(keyword)) {
+                    card.classList.remove('hidden');
+                    visibleCardsCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            // Tampilkan pesan kosong jika tidak ada game yang cocok
+            if (visibleCardsCount === 0) {
+                emptyMsg.style.display = 'block';
+            } else {
+                emptyMsg.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
