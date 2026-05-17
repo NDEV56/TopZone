@@ -20,6 +20,7 @@ let selectedProductName = "";
 let currentQty = 1;
 
 /* ===== B. CORE DATA LOAD (SEARCH & KATEGORI) ===== */
+/* ===== B. CORE DATA LOAD (SEARCH & KATEGORI) ===== */
 function loadData() {
     const searchInput = document.getElementById("searchInput");
     const slider = document.getElementById("sliderWrap");
@@ -29,31 +30,107 @@ function loadData() {
 
     const search = searchInput ? searchInput.value.trim() : ""; 
 
+    // --- LIMIT SAKTI 10 HURUF ---
+    const maxLimit = 10; 
+    const displaySearch = search.length > maxLimit 
+        ? search.substring(0, maxLimit) + "..." 
+        : search;
+
+    if (productList) productList.innerHTML = "";
+
     if (search.length > 0 || kategoriAktif !== "") {
         if (slider) slider.style.display = "none";
         if (mainTitle) {
+            mainTitle.style.display = "block";
             mainTitle.innerHTML = search.length > 0 
-                ? `<span style="color:#gold">Hasil:</span> "${search}"` 
-                : `<span style="color:#gold">Kategori:</span> ${kategoriAktif}`;
+                ? `<span style="color:gold">Hasil:</span> "${displaySearch}"` 
+                : `<span style="color:gold">Kategori:</span> ${kategoriAktif}`;
         }
     } else {
         if (slider) slider.style.display = "flex";
-        if (mainTitle) mainTitle.innerText = "Semua Produk";
+        if (mainTitle) {
+            mainTitle.style.display = "block";
+            mainTitle.innerText = "Semua Produk";
+        }
     }
 
     fetch(`search.php?search=${encodeURIComponent(search)}&kategori=${encodeURIComponent(kategoriAktif)}`)
     .then(res => res.text())
     .then(data => {
         const cleanData = data.trim();
+        
         if (cleanData === "" || cleanData.includes("tidak ditemukan")) {
-            if (productList) { productList.innerHTML = ""; productList.style.display = "none"; }
+            if (productList) { 
+                productList.innerHTML = ""; 
+                productList.style.display = "none"; 
+            }
+            
+            // Sesuai request sebelumnya: hilangkan tulisan Hasil: "..." di atas pas not found bray
+            if (mainTitle) {
+                mainTitle.style.display = "none";
+                mainTitle.innerHTML = "";
+            }
+            
             if (notFound) {
-                notFound.style.display = "block";
-                notFound.innerHTML = `<div style="text-align:center; padding:50px;"><p style="font-size:40px;">📦</p><h3>Waduh mprruy, "${search}" gak ketemu!</h3></div>`;
+                // Rata tengah murni mengimbangi sidebar kiri (lebar 240px)
+                notFound.style.cssText = `
+                    display: flex !important; 
+                    grid-column: 1 / -1; 
+                    width: calc(100% + 240px) !important; 
+                    margin-left: -240px !important; 
+                    justify-content: center !important; 
+                    align-items: center !important; 
+                    padding: 60px 0 !important; 
+                    box-sizing: border-box !important;
+                `;
+                
+                // Pembungkus dan Card Box Glassmorphism Merah (Ukuran Pas & Proporsional)
+                notFound.innerHTML = `
+                    <div class="tz-poros-notfound-baru" style="width: 100% !important; max-width: 440px !important; box-sizing: border-box !important; padding: 0 20px !important;">
+                        <div class="tz-card-notfound-baru" style="
+                            background: rgba(255, 77, 77, 0.05) !important; 
+                            backdrop-filter: blur(20px) saturate(180%) !important; 
+                            -webkit-backdrop-filter: blur(20px) saturate(180%) !important; 
+                            border: 2px solid rgba(255, 77, 77, 0.2) !important; 
+                            border-top-color: rgba(255, 150, 150, 0.35) !important; 
+                            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 77, 77, 0.05) !important; 
+                            padding: 35px 25px !important; 
+                            border-radius: 16px !important; 
+                            text-align: center !important; 
+                            box-sizing: border-box !important;
+                            animation: tzSmoothPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards !important;
+                        ">
+                            <div style="font-size: 42px; margin-bottom: 15px; filter: drop-shadow(0 0 8px rgba(255,77,77,0.4));">⚠️</div>
+                            
+                            <h3 style="
+                                color: #ff4d4d; 
+                                margin: 0 0 10px 0; 
+                                font-size: 18px; 
+                                font-weight: 700; 
+                                letter-spacing: 0.3px;
+                                line-height: 1.5;
+                                text-shadow: 0 0 8px rgba(255, 77, 77, 0.3);
+                            ">
+                                Waduh mprruy, <span style="word-break: break-all; display: inline-block;">"${displaySearch || 'game'}"</span><br>gak ketemu!
+                            </h3>
+                            
+                            <p style="color: #94a3b8; margin: 0; font-size: 14px; font-weight: 500; letter-spacing: 0.1px;">
+                                Coba ketik kata kunci game lain bray...
+                            </p>
+                        </div>
+                    </div>
+                `;
             }
         } else {
-            if (productList) { productList.innerHTML = cleanData; productList.style.display = "grid"; }
-            if (notFound) notFound.style.display = "none";
+            if (mainTitle && search.length > 0) mainTitle.style.display = "block";
+            if (productList) { 
+                productList.innerHTML = cleanData; 
+                productList.style.display = "grid"; 
+            }
+            if (notFound) {
+                notFound.style.display = "none";
+                notFound.innerHTML = "";
+            }
         }
     })
     .catch(err => console.error("Search Error:", err));

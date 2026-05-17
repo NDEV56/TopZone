@@ -492,11 +492,11 @@ select option {
 
     <div class="sidebar">
         <h1>TOPZONE.</h1>
-        <a href="admin_orders.php" class="nav-link active">📦 Pesanan Masuk</a>
-        <a href="admin_tambah_game.php" class="nav-link">🎮 Kelola Game</a>
-        <a href="admin_paket.php" class="nav-link">💎 Kelola Paket</a>
-        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link">💬 Chat Pelanggan</a>
-        <a href="index.php" class="nav-link">🏠 Lihat Website</a>
+        <a href="admin_orders.php" class="nav-link active"> Pesanan Masuk</a>
+        <a href="admin_tambah_game.php" class="nav-link"> Kelola Game</a>
+        <a href="admin_paket.php" class="nav-link"> Kelola Paket</a>
+        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link"> Chat Pelanggan</a>
+        <a href="index.php" class="nav-link"> Lihat Website</a>
     </div>
 
     <div class="content">

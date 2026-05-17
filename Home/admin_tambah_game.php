@@ -351,11 +351,11 @@ $games = tz_db()->fetchAll('SELECT * FROM games ORDER BY id DESC');
 
     <div class="sidebar">
         <h1>TOPZONE.</h1>
-        <a href="admin_orders.php" class="nav-link">📦 Pesanan Masuk</a>
-        <a href="admin_tambah_game.php" class="nav-link active">🎮 Kelola Game</a>
-        <a href="admin_paket.php" class="nav-link">💎 Kelola Paket</a>
-        <a href="Chat/Admin_Chat/admin_chat.php" class="nav-link ">💬 Chat Pelanggan</a>
-        <a href="index.php" class="nav-link">🏠 Lihat Website</a>
+        <a href="admin_orders.php" class="nav-link"> Pesanan Masuk</a>
+        <a href="admin_tambah_game.php" class="nav-link active"> Kelola Game</a>
+        <a href="admin_paket.php" class="nav-link"> Kelola Paket</a>
+        <a href="../Home/Chat/Admin_Chat/admin_chat.php" class="nav-link "> Chat Pelanggan</a>
+        <a href="index.php" class="nav-link"> Lihat Website</a>
     </div>
 
     <div class="content">
@@ -396,7 +396,7 @@ $games = tz_db()->fetchAll('SELECT * FROM games ORDER BY id DESC');
                 </div>
 
                 <hr style="border: 0.5px solid #333; margin: 30px 0;">
-                <label>💎 Tambah Paket Langsung</label>
+                <label> Tambah Paket Langsung</label>
                 <div id="paket-list">
                     <div class="paket-row">
                         <input type="text" name="p_nama[]" placeholder="Jumlah (ex: 50)" required maxlength="64" style="flex: 2;">
@@ -411,11 +411,11 @@ $games = tz_db()->fetchAll('SELECT * FROM games ORDER BY id DESC');
                     </div>
                 </div>
                 <button type="button" class="btn-action btn-add-paket" onclick="tambahPaket()">+ Tambah Baris Paket</button>
-                <button type="submit" name="simpan" class="btn-action">SIMPAN GAME & PAKET 🔥</button>
+                <button type="submit" name="simpan" class="btn-action">SIMPAN GAME & PAKET</button>
             </form>
         </div>
 
-        <h3 style="color: var(--primary); margin-bottom: 15px;">📝 Game Saat Ini</h3>
+        <h3 style="color: var(--primary); margin-bottom: 15px;"> Game Saat Ini</h3>
         <div class="table-container">
             <table>
                 <thead>

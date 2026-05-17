@@ -139,35 +139,58 @@ body {
     top: 90px;
 }
 
+/* ... baris kode lu yang di atas ... */
+
 .tp-sidebar ul {
     list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column; /* Susun ke bawah */
+    gap: 8px; /* Jarak antar kotak putih */
 }
 
 .tp-sidebar li {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-top-color: rgba(255, 255, 255, 0.5);
-    box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255,255,255,0.3);
-    padding: 10px;
-    border-radius: 8px;
+    /* KUNCI UTAMA DI SINI */
+    display: block; 
+    width: 100%; 
+    box-sizing: border-box; /* Padding gak nambah lebar luar */
+    padding: 12px 15px;
     cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    color: #a8a8a8;
+    background: transparent;
+    border: 1px solid transparent; /* Biar gak goyang pas aktif */
 }
 
-.tp-sidebar li:hover {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-top-color: rgba(255, 255, 255, 0.5);
-    box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255,255,255,0.3);
+/* ======================================================== */
+/* SAMBUNGANNYA MULAI DARI BARIS INI:                      */
+/* ======================================================== */
+
+/* Kotak Kaca Menyala Pas Aktif (Kategori Terpilih) */
+.tp-sidebar li.active {
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    
+    /* Aksen border emas mengikuti tema card TopZone */
+    border: 1.5px solid rgba(201, 162, 39, 0.85) !important; 
+    color: #ffffff !important;
+    font-weight: 700;
+    
+    /* Efek pendaran neon emas halus luar dalam */
+    box-shadow: 0 0 15px rgba(201, 162, 39, 0.3), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
+/* Efek Animasi Geser Pas Di-hover */
+.tp-sidebar li:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    padding-left: 20px !important; /* Dorong teks masuk sedikit ke kanan biar interaktif */
+}
 /* MAIN */
 .tp-main {
     flex: 1;
@@ -276,16 +299,7 @@ body {
     font-weight: bold;
 }
 
-/* =========================================
-   SEARCH NOT FOUND
-========================================= */
-.not-found {
-    display: none;
-    text-align: center;
-    padding: 30px;
-    font-weight: bold;
-    color: red;
-}
+
 
 /* =========================================
    FOOTER
@@ -684,18 +698,6 @@ body {
       100% { background-position: 130% 0;  opacity: 0; }
     }
 
-#notFound {
-    display: none; 
-    width: 100%;
-    text-align: center;
-    padding: 50px 0;
-    color: #ff0000 !important; /* KASIH WARNA MERAH BIAR KELIHATAN */
-    font-weight: bold;
-    font-size: 20px; /* GEDEIN DIKIT */
-    background: #f0f0f0; /* KASIH BG ABU MUDA BIAR KELIHATAN DI BG PUTIH */
-    border: 2px dashed red; /* BIAR KELIATAN KOTAKNYA */
-    margin-top: 20px;
-}
 .tp-title {
     margin: 20px 0;
     font-size: 22px;
@@ -707,26 +709,19 @@ body {
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     min-height: 100px;
+    position: relative; /* Menjaga kestabilan layout di dalam grid */
 }
 
 /* Container utama untuk judul */
 .tp-content-header {
     display: flex;
-    justify-content: space-between; /* Judul kiri, search kanan (kalau search dipindah) */
+    justify-content: space-between; 
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px solid #eee; /* Garis tipis biar cakep */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Diubah jadi semi transparan biar masuk ke tema gelap */
     margin-bottom: 20px;
 }
 
-/* Biar tulisan "game lau gada" bener-bener di tengah layar */
-#notFound {
-    display: none;
-    grid-column: 1 / -1; /* Kalau di dalam grid, dia makan semua kolom */
-    text-align: center;
-    width: 100%;
-    padding: 100px 0;
-}
 
 /* Layout Dasar */
 .product-container {
@@ -1687,4 +1682,121 @@ body .swal2-container.swal2-top-end .tz-toast-popup .swal2-timer-progress-bar {
 /* Paksa SweetAlert jadi kasta tertinggi */
 .swal2-container {
     z-index: 999999 !important;
+}
+
+
+
+/*buat bagian notfound*/
+/* ======================================================= */
+/* CSS REVISI FINAL - CENTER PERFECT WITH FLEXBOX           */
+/* ======================================================= */
+
+/* Membuat kontainer menjadi fleksibel penuh mengisi sisa ruang main */
+.tz-bypass-global-container {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important; /* Otomatis membagi sisa ruang kanan kiri rata tengah */
+    align-items: center !important;
+    padding: 60px 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Poros tengah murni tanpa absolute/fixed yang bikin meleset */
+.tz-poros-tengah-global {
+    width: 100% !important;
+    max-width: 480px !important; /* Lebar pas proporsional dengan search bar TopZone */
+    box-sizing: border-box !important;
+    padding: 0 20px !important;
+}
+
+/* Premium Liquid Glassmorphism Glow (Sesuai image_452128.jpg) */
+.tz-kaca-liquid-glow {
+    background: rgba(255, 77, 77, 0.04) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    
+    /* Border neon halus */
+    border: 2px solid rgba(255, 77, 77, 0.2) !important;
+    border-top-color: rgba(255, 150, 150, 0.4) !important;
+    
+    /* Efek bayangan pendar dalam dan luar */
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 
+                inset 0 0 25px rgba(255, 77, 77, 0.1) !important;
+    
+    padding: 40px 30px !important;
+    border-radius: 20px !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    
+    /* Animasi Pop-In Smooth */
+    animation: tzSmoothPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards !important;
+    opacity: 0;
+}
+
+/* Efek transisi muncul membesar halus */
+@keyframes tzSmoothPop {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* --- EMPTY STATE SEARCH FIX --- */
+
+/* Wrapper luar biar posisinya pas di tengah content-main */
+.tp-empty-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 20px;
+}
+
+/* Card Notifikasi Bergaya Glassmorphism */
+.tp-empty-state {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    animation: fadeInEmpty 0.4s ease forwards;
+}
+
+/* Icon Peringatan */
+.tp-empty-state .empty-icon {
+    font-size: 42px;
+    margin-bottom: 15px;
+    color: #ffca08; /* Warna emas biar singkron sama TopZone */
+    filter: drop-shadow(0 0 10px rgba(201, 162, 39, 0.4));
+}
+
+/* Tulisan Judul Error */
+.tp-empty-state h3 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+/* Sub-text */
+.tp-empty-state p {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* Animasi muncul halus */
+@keyframes fadeInEmpty {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
