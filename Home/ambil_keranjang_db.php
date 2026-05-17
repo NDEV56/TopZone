@@ -1,33 +1,35 @@
 <?php
-session_start();
-include 'koneksi.php'; 
-header('Content-Type: application/json');
+/**
+ * ambil_keranjang_db.php — HARDENED v3.1
+ *   • Prepared SQL
+ *   • Auth check (kalau guest, return [])
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
+header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
 
-$id_user = $_SESSION['id_user'] ?? 0;
+$id_user = (int)($_SESSION['id_user'] ?? 0);
+if ($id_user <= 0) { echo '[]'; exit; }
 
-// Query ini ngambil:
-// 1. Data belanjaan (nama_produk, harga, qty) dari tabel KERANJANG (k)
-// 2. Data Master (nama_game, gambar) dari tabel GAMES (g)
-// ... (bagian awal sama)
-$query = "SELECT 
-            k.id_keranjang, k.nama_produk, k.harga, k.qty, 
-            g.nama_game, g.gambar 
-          FROM keranjang k 
-          LEFT JOIN games g ON k.id_game = g.id 
-          WHERE k.id_user = '$id_user' 
-          ORDER BY k.id_keranjang DESC";
-// ... (sisanya sama)
-
-$result = mysqli_query($conn, $query);
-$data_keranjang = [];
-
-while ($row = mysqli_fetch_assoc($result)) {
-    // Kalau di table games nggak ada (id gak cocok), kasih default
-    if (empty($row['gambar'])) {
-        $row['gambar'] = "Default.jpg";
-    }
-    $data_keranjang[] = $row;
+try {
+    $rows = tz_db()->fetchAll(
+        'SELECT k.id, k.nama_produk, k.harga, k.qty,
+                g.nama_game, g.gambar
+         FROM keranjang k
+         LEFT JOIN games g ON k.id_game = g.id
+         WHERE k.id_user = ?
+         ORDER BY k.id DESC
+         LIMIT 200',
+        [$id_user]
+    );
+} catch (\Throwable $e) {
+    error_log('[topzone-keranjang] ' . $e->getMessage());
+    echo '[]';
+    exit;
 }
 
-echo json_encode($data_keranjang);
-?>
+foreach ($rows as &$row) {
+    if (empty($row['gambar'])) $row['gambar'] = 'Default.jpg';
+}
+echo json_encode($rows, JSON_UNESCAPED_UNICODE);

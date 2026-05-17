@@ -1,23 +1,35 @@
 <?php
-include '../../koneksi.php';
+/**
+ * ajax_admin_list_user.php — HARDENED v3.1 (sync NAFI: status bar + foto user)
+ *   • require_admin
+ *   • Prepared SQL
+ *   • XSS-safe (data-attr untuk onclick, escape semua output)
+ *   • Status admin toggle
+ */
+require_once __DIR__ . '/../../_security.php';
+tz_security_init();
+tz_require_admin();
 
-// 1. Ambil status admin saat ini
-$check_status = mysqli_query($koneksi, "SELECT status_admin FROM users LIMIT 1");
-$row_status = mysqli_fetch_assoc($check_status);
-$current_status = $row_status['status_admin'] ?? 'offline';
-$is_online = ($current_status == 'online');
+// 1. Ambil status admin
+$current_status = 'offline';
+try {
+    $row_status = tz_db()->fetchOne('SELECT status_admin FROM users LIMIT 1');
+    $current_status = (string)($row_status['status_admin'] ?? 'offline');
+} catch (\Throwable $e) {
+    error_log('[topzone-list-user] ' . $e->getMessage());
+}
+$is_online = ($current_status === 'online');
+?>
 
-// --- BAGIAN TOMBOL TOGGLE COMPACT (PALING ATAS) ---
-echo '
 <div class="admin-status-bar">
     <div class="status-info">
         <span class="status-label">ADMIN STATUS</span>
-        <span id="statusLabel" class="status-value '.($is_online ? 'online-color' : 'offline-color').'">
-            '.strtoupper($current_status).'
+        <span id="statusLabel" class="status-value <?= $is_online ? 'online-color' : 'offline-color' ?>">
+            <?= tz_e(strtoupper($current_status)) ?>
         </span>
     </div>
     <label class="compact-switch">
-        <input type="checkbox" id="statusToggle" '.($is_online ? 'checked' : '').' onchange="updateAdminStatus(this)">
+        <input type="checkbox" id="statusToggle" <?= $is_online ? 'checked' : '' ?> onchange="updateAdminStatus(this)">
         <span class="compact-slider"></span>
     </label>
 </div>
@@ -57,21 +69,22 @@ echo '
     input:checked + .compact-slider { background-color: #00ff88; box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
     input:checked + .compact-slider:before { transform: translateX(16px); }
 </style>
-';
 
-// --- BAGIAN LIST USER ---
-$query = mysqli_query($koneksi, "SELECT u.id, u.username, u.foto, c.pesan, c.waktu 
-    FROM users u 
-    JOIN chat c ON u.id = c.id_user 
-    WHERE c.id_chat IN (SELECT MAX(id_chat) FROM chat GROUP BY id_user)
-    ORDER BY c.waktu DESC");
-
-if (!$query) { die("Query Error: " . mysqli_error($koneksi)); }
-
-while($row = mysqli_fetch_assoc($query)) {
-    $pesan_singkat = strlen($row['pesan']) > 30 ? substr($row['pesan'], 0, 30) . "..." : $row['pesan'];
-    $waktu = date('H:i', strtotime($row['waktu']));
-    $foto_user = (!empty($row['foto'])) ? $row['foto'] : 'default-profile.png';
+<?php
+// 2. List user dengan pesan terakhir
+try {
+    $rows = tz_db()->fetchAll(
+        "SELECT u.id, u.username, u.foto, c.pesan, c.created_at
+         FROM users u
+         JOIN chat c ON u.id = c.id_user
+         WHERE c.id IN (SELECT MAX(id) FROM chat GROUP BY id_user)
+         ORDER BY c.created_at DESC
+         LIMIT 200"
+    );
+} catch (\Throwable $e) {
+    error_log('[topzone-list-user] ' . $e->getMessage());
+    exit;
+}
 
     echo '
     <div class="user-item" id="user-'.$row['id'].'" onclick="openChat('.$row['id'].', \''.htmlspecialchars($row['username']).'\', \''.$foto_user.'\')" 
@@ -88,6 +101,6 @@ while($row = mysqli_fetch_assoc($query)) {
                 </div>
             </div>
         </div>
-    </div>';
+    </div>
+<?php
 }
-?>

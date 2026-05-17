@@ -1,5 +1,13 @@
 <?php
-include 'koneksi.php';
+/**
+ * search.php — HARDENED v3.1
+ *   • Prepared statements (parameter binding untuk LIKE)
+ *   • Output XSS-safe
+ *   • Length cap pada input
+ *   • Whitelist kategori
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
 
 // Ambil parameter search dan kategori
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -50,4 +58,3 @@ if ($result && mysqli_num_rows($result) > 0) {
     // Kirim string "tidak ditemukan" agar dibaca oleh cleanData.includes("tidak ditemukan") di JS kamu
     echo "tidak ditemukan"; 
 }
-?>

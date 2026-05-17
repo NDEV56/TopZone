@@ -1,42 +1,78 @@
 <?php
-include 'koneksi.php';
+/**
+ * admin_orders.php — HARDENED v3.1 (sync NAFI: search + grouping)
+ *   • require_admin
+ *   • Prepared statements (untuk update + search + statistik)
+ *   • CSRF check di update status
+ *   • Whitelist status
+ *   • XSS-safe output
+ */
+require_once __DIR__ . '/_security.php';
+tz_security_init();
+tz_require_admin();
 
-// --- 1. LOGIKA UPDATE STATUS ---
+// --- 1. LOGIKA UPDATE STATUS (prepared + whitelist + CSRF) ---
 if (isset($_POST['update_status'])) {
-    $id_order = mysqli_real_escape_string($koneksi, $_POST['id_order']);
-    $status_baru = mysqli_real_escape_string($koneksi, $_POST['status_baru']);
-    mysqli_query($koneksi, "UPDATE orders SET status = '$status_baru' WHERE id_order = '$id_order'");
-    header("Location: admin_orders.php");
-    exit();
+    tz_csrf_verify();
+    $id_order    = (int)($_POST['id_order'] ?? 0);
+    $status_baru = strtoupper(trim((string)($_POST['status_baru'] ?? '')));
+    $allowed = ['PENDING','PROSES','DIKIRIM','SELESAI'];
+    if ($id_order > 0 && in_array($status_baru, $allowed, true)) {
+        try {
+            tz_db()->exec(
+                'UPDATE orders SET status = ? WHERE id_order = ?',
+                [$status_baru, $id_order]
+            );
+        } catch (\Throwable $e) {
+            error_log('[topzone-admin-orders] ' . $e->getMessage());
+        }
+    }
+    tz_safe_redirect('/Home/admin_orders.php');
 }
 
-// --- 2. LOGIKA SEARCH ---
-$search_query = "";
-$where_clause = "";
-if (isset($_GET['search']) && !empty($_GET['search'])) {
-    $search = mysqli_real_escape_string($koneksi, $_GET['search']);
-    $search_query = $search;
-    // Cari berdasarkan Username atau ID User
-    $where_clause = " WHERE u.username LIKE '%$search%' OR o.id_user = '$search' ";
+// --- 2. LOGIKA SEARCH (prepared) ---
+$search_query = '';
+$rows = [];
+
+try {
+    $q_search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+    if ($q_search !== '' && strlen($q_search) <= 64) {
+        $search_query = $q_search;
+        // Escape LIKE special chars
+        $like = '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $q_search) . '%';
+        $maybeId = ctype_digit($q_search) ? (int)$q_search : 0;
+        $rows = tz_db()->fetchAll(
+            'SELECT o.*, u.username FROM orders o
+             LEFT JOIN users u ON o.id_user = u.id
+             WHERE u.username LIKE ? OR o.id_user = ?
+             ORDER BY o.id_user DESC, o.created_at DESC
+             LIMIT 500',
+            [$like, $maybeId]
+        );
+    } else {
+        $rows = tz_db()->fetchAll(
+            'SELECT o.*, u.username FROM orders o
+             LEFT JOIN users u ON o.id_user = u.id
+             ORDER BY o.id_user DESC, o.created_at DESC
+             LIMIT 500'
+        );
+    }
+} catch (\Throwable $e) {
+    error_log('[topzone-admin-orders] ' . $e->getMessage());
+    $rows = [];
 }
 
-// --- 3. AMBIL DATA STATISTIK ---
-$q_cuan = mysqli_query($koneksi, "SELECT SUM(total_price) as total FROM orders WHERE status = 'SELESAI'");
-$total_cuan = mysqli_fetch_assoc($q_cuan)['total'] ?? 0;
+// --- 3. STATISTIK (prepared) ---
+$total_cuan  = (int)(tz_db()->fetchColumn(
+    "SELECT COALESCE(SUM(total_price),0) FROM orders WHERE UPPER(status) = 'SELESAI'"
+) ?: 0);
+$total_order = (int)tz_db()->fetchColumn('SELECT COUNT(*) FROM orders');
+$total_game  = (int)tz_db()->fetchColumn('SELECT COUNT(*) FROM games');
 
-$q_order = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM orders");
-$total_order = mysqli_fetch_assoc($q_order)['total'] ?? 0;
+$jumlah_data = count($rows);
 
-$q_game = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM games");
-$total_game = mysqli_fetch_assoc($q_game)['total'] ?? 0;
-
-// --- 4. AMBIL DATA PESANAN DENGAN FILTER SEARCH ---
-$query_str = "SELECT o.*, u.username FROM orders o 
-              LEFT JOIN users u ON o.id_user = u.id 
-              $where_clause
-              ORDER BY o.id_user DESC, o.created_at DESC";
-$res = mysqli_query($koneksi, $query_str);
-$jumlah_data = mysqli_num_rows($res);
+// Sediakan mysqli result-like iteration untuk template
+// Konversi $rows array ke generator function untuk template di bawah
 ?>
 
 <!DOCTYPE html>
@@ -469,7 +505,7 @@ select option {
 
         <!-- SEARCH FORM -->
         <form method="GET" class="search-container">
-            <input type="text" name="search" class="search-input" placeholder="Cari Nama User atau ID..." value="<?= htmlspecialchars($search_query) ?>">
+            <input type="text" name="search" class="search-input" maxlength="64" placeholder="Cari Nama User atau ID..." value="<?= tz_attr($search_query) ?>">
             <button type="submit" class="btn-search">CARI</button>
             <?php if(!empty($search_query)): ?>
                 <a href="admin_orders.php" class="btn-reset">Reset</a>
@@ -479,30 +515,30 @@ select option {
         <div class="stats-grid">
             <div class="stat-card">
                 <small>TOTAL ORDER</small>
-                <h3><?= $total_order ?> Pesanan</h3>
+                <h3><?= tz_e($total_order) ?> Pesanan</h3>
             </div>
             <div class="stat-card">
                 <small>TOTAL CUAN (SELESAI)</small>
-                <h3>Rp <?= number_format($total_cuan) ?></h3>
+                <h3>Rp <?= tz_e(number_format($total_cuan)) ?></h3>
             </div>
             <div class="stat-card">
                 <small>GAME AKTIF</small>
-                <h3><?= $total_game ?> Game</h3>
+                <h3><?= tz_e($total_game) ?> Game</h3>
             </div>
         </div>
 
         <?php if ($jumlah_data > 0): ?>
-            <?php 
+            <?php
             $current_user = null;
-            while($row = mysqli_fetch_assoc($res)): 
-                if ($current_user !== $row['id_user']): 
-                    if ($current_user !== null) echo '</tbody></table></div></div>'; 
+            foreach ($rows as $row):
+                if ($current_user !== $row['id_user']):
+                    if ($current_user !== null) echo '</tbody></table></div></div>';
                     $current_user = $row['id_user'];
             ?>
                 <div class="user-group-wrapper">
                     <div class="user-header">
-                        <h3><?= htmlspecialchars($row['username'] ?? 'GUEST') ?></h3>
-                        <span>USER ID: #<?= $row['id_user'] ?? 'N/A' ?></span>
+                        <h3><?= tz_e($row['username'] ?? 'GUEST') ?></h3>
+                        <span>USER ID: #<?= tz_e($row['id_user'] ?? 'N/A') ?></span>
                     </div>
                     <div class="table-container">
                         <table>
@@ -520,38 +556,42 @@ select option {
 
                 <tr>
                     <td>
-                        <strong style="color: #fff;"><?= $row['game_name'] ?></strong><br>
-                        <small style="color: var(--primary); font-size: 10px;">#ORD-<?= $row['id_order'] ?> | <?= $row['paket'] ?></small>
+                        <strong style="color: #fff;"><?= tz_e($row['game_name']) ?></strong><br>
+                        <small style="color: var(--primary); font-size: 10px;">#ORD-<?= (int)$row['id_order'] ?> | <?= tz_e($row['paket']) ?></small>
                     </td>
-                    <td><span class="qty-badge"><?= $row['item_count'] ?>x</span></td>
+                    <td><span class="qty-badge"><?= (int)$row['item_count'] ?>x</span></td>
                     <td>
                         <div class="acc-box">
-                            <?php 
-                            $acc = json_decode($row['catatan'], true);
-                            if(is_array($acc)) {
-                                foreach($acc as $k => $v) echo "<b>$k:</b> " . htmlspecialchars($v) . "<br>";
-                            } else { echo htmlspecialchars($row['catatan']); }
+                            <?php
+                            $acc = json_decode((string)$row['catatan'], true);
+                            if (is_array($acc)) {
+                                foreach ($acc as $k => $v) echo '<b>' . tz_e($k) . ':</b> ' . tz_e($v) . '<br>';
+                            } else {
+                                echo tz_e($row['catatan']);
+                            }
                             ?>
                         </div>
                     </td>
-                    <td><b style="color: #fff;">Rp <?= number_format($row['total_price']) ?></b></td>
+                    <td><b style="color: #fff;">Rp <?= tz_e(number_format((int)$row['total_price'])) ?></b></td>
                     <td>
                         <form method="POST">
-                            <input type="hidden" name="id_order" value="<?= $row['id_order'] ?>">
-                            <span class="status-badge <?= strtolower($row['status']) ?>"><?= $row['status'] ?></span>
+                            <?= tz_csrf_field() ?>
+                            <input type="hidden" name="id_order" value="<?= (int)$row['id_order'] ?>">
+                            <span class="status-badge <?= tz_attr(strtolower((string)$row['status'])) ?>"><?= tz_e($row['status']) ?></span>
                             <div style="margin-top: 10px; display: flex; gap: 5px; justify-content: center;">
                                 <select name="status_baru">
-                                    <option value="PENDING" <?= $row['status'] == 'PENDING' ? 'selected' : '' ?>>Pending</option>
-                                    <option value="PROSES" <?= $row['status'] == 'PROSES' ? 'selected' : '' ?>>Proses</option>
-                                    <option value="DIKIRIM" <?= $row['status'] == 'DIKIRIM' ? 'selected' : '' ?>>Dikirim</option>
-                                    <option value="SELESAI" <?= $row['status'] == 'SELESAI' ? 'selected' : '' ?>>Selesai</option>
+                                    <?php foreach (['PENDING','PROSES','DIKIRIM','SELESAI'] as $opt): ?>
+                                        <option value="<?= tz_attr($opt) ?>" <?= strtoupper((string)$row['status']) === $opt ? 'selected' : '' ?>>
+                                            <?= tz_e(ucfirst(strtolower($opt))) ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <button type="submit" name="update_status" class="btn-set">SET</button>
                             </div>
                         </form>
                     </td>
                 </tr>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
             <?php echo '</tbody></table></div></div>'; ?>
         
         <?php else: ?>

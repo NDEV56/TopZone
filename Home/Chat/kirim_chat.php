@@ -29,11 +29,18 @@ if(isset($_SESSION['id_user'])) {
                                    VALUES ('$id_user', '$nama_file', 'user', 0)");
         }
     }
+    $ext = pathinfo($safe, PATHINFO_EXTENSION);
+    $gambarNama = 'IMG_USER_' . time() . '_' . bin2hex(random_bytes(3)) . '.' . $ext;
+    $dest = $uploadsDir . DIRECTORY_SEPARATOR . $gambarNama;
 
     // 3. Jika ada Teks
     if(!empty(trim($pesan))) {
         mysqli_query($koneksi, "INSERT INTO chat (id_user, pesan, pengirim, is_read) 
                                VALUES ('$id_user', '$pesan', 'user', 0)");
     }
+    echo 'ok';
+} catch (\Throwable $e) {
+    error_log('[topzone-kirim-chat] ' . $e->getMessage());
+    http_response_code(500);
+    echo 'db-fail';
 }
-?>

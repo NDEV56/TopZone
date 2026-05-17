@@ -1,6 +1,13 @@
-<?php 
-// Keluar 2 tingkat untuk ketemu koneksi.php
-include '../../koneksi.php'; 
+<?php
+/**
+ * admin_chat.php — HARDENED v3.1 (sync NAFI update)
+ *   • require_admin
+ *   • CSRF token dipasang di AJAX header
+ *   • XSS-safe (semua data dari server di-set lewat .text()/innerText)
+ */
+require_once __DIR__ . '/../../_security.php';
+tz_security_init();
+tz_require_admin();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -520,7 +527,8 @@ input[type="text"]:focus {
             <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg, image/gif" style="display:none;" onchange="handleImageSelect(this)">
             <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelect(this)">
 
-            <input type="text" id="adminMsg" placeholder="Ketik balasan..." autocomplete="off">
+            <input type="hidden" id="csrf_token" value="<?= tz_attr(tz_csrf_token()) ?>">
+            <input type="text" id="adminMsg" placeholder="Ketik balasan..." autocomplete="off" maxlength="1000">
             <button onclick="sendAdminChat()" style="background:#007bff; color:white; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                 <i class="fa-solid fa-paper-plane" style="font-size: 16px;"></i>
             </button>
@@ -672,21 +680,26 @@ input[type="text"]:focus {
 
     // Tambahkan parameter img di sini
     function openChat(id, name, foto) {
-        currentUserId = id;
-        $('#selected_user_id').val(id);
-        $('#chatHeader').html('Chat dengan: <span style="color:#fff">' + name + '</span>');
-        
-        // Update Panel Info Kanan
-        $('#infoName').text(name);
-        $('#infoID').text('ID: #' + id);
+        currentUserId = parseInt(id, 10);
+        if (!Number.isFinite(currentUserId) || currentUserId <= 0) return;
+        $('#selected_user_id').val(currentUserId);
 
-        // Set path foto ke folder uploads
-        // NAIK 2 TINGKAT (../../) karena admin_chat.php ada di Chat/Admin_Chat/
-        let pathFoto = "../../uploads/" + foto;
-        $('#infoPic').attr('src', pathFoto); 
+        // XSS-safe: pakai .text() bukan .html()
+        $('#chatHeader').empty()
+            .append('Chat dengan: ')
+            .append($('<span style="color:#fff"></span>').text(name));
+
+        // Update Panel Info Kanan — pakai .text()
+        $('#infoName').text(name);
+        $('#infoID').text('ID: #' + currentUserId);
+
+        // Sanitasi foto path — basename saja, tolak ../
+        let safeFoto = String(foto || 'Default.jpg').replace(/[\\/]/g, '');
+        let pathFoto = "../../uploads/" + safeFoto;
+        $('#infoPic').attr('src', pathFoto);
 
         $('.user-item').removeClass('active');
-        $('#user-' + id).addClass('active');
+        $('#user-' + currentUserId).addClass('active');
         loadMessages();
     }
     function loadMessages() {
@@ -705,18 +718,22 @@ input[type="text"]:focus {
     function sendAdminChat() {
         let msg = $('#adminMsg').val();
         if (!currentUserId || (msg.trim() == "" && !selectedFile)) return;
+        if (msg.length > 1000) { alert("Pesan terlalu panjang (max 1000 karakter)"); return; }
+
+        const csrfTok = document.getElementById('csrf_token').value;
 
         let formData = new FormData();
         formData.append('id_user', currentUserId);
         formData.append('pesan', msg);
+        formData.append('_csrf', csrfTok);
         if (selectedFile) {
             formData.append('gambar', selectedFile);
         }
 
         $.ajax({
-            // UBAH BAGIAN INI agar sesuai dengan nama file PHP kamu
-            url: 'ajax_admin_send_image.php', 
+            url: 'ajax_admin_send_image.php',
             type: 'POST',
+            headers: { 'X-CSRF-Token': csrfTok },
             data: formData,
             contentType: false,
             processData: false,
@@ -726,8 +743,15 @@ input[type="text"]:focus {
                 loadMessages();
                 loadUserList();
             },
-            error: function() {
-                alert("Gagal mengirim pesan. Cek koneksi atau file PHP.");
+            error: function(xhr) {
+                if (xhr.status === 401) {
+                    alert("Sesi habis. Silakan login admin lagi.");
+                    window.location.href = '../../../Login/tampilanlogin.php';
+                } else if (xhr.status === 413) {
+                    alert("File gambar terlalu besar (max 5 MB).");
+                } else {
+                    alert("Gagal mengirim pesan.");
+                }
             }
         });
     }
@@ -769,11 +793,15 @@ input[type="text"]:focus {
             label.classList.add('offline-color');
         }
 
-        // Kirim ke database lewat AJAX
+        // Kirim ke database lewat AJAX dengan CSRF token
+        const csrfTok = document.getElementById('csrf_token').value;
         fetch('update_status.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'status=' + status
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRF-Token': csrfTok
+            },
+            body: 'status=' + encodeURIComponent(status) + '&_csrf=' + encodeURIComponent(csrfTok)
         });
     }
 </script>

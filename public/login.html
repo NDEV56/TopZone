@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Masuk — TopZone Panel</title>
+<link rel="stylesheet" href="/styles.css" />
+<style>
+  body {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background:
+      radial-gradient(ellipse at top left, rgba(79,70,229,.18), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(22,163,74,.16), transparent 50%),
+      var(--bg);
+  }
+  .login-box {
+    width: 100%; max-width: 400px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px 32px;
+    box-shadow: var(--shadow-lg);
+  }
+  .login-logo { text-align: center; font-size: 2.6rem; margin-bottom: 8px; }
+  .login-title { text-align: center; font-size: 1.4rem; margin: 0 0 4px; }
+  .login-sub   { text-align: center; color: var(--text-muted); margin: 0 0 22px; font-size: .9rem;}
+  .login-error { display: none; padding: 10px 14px; background: rgba(220,38,38,.1);
+                 border-left: 3px solid var(--danger); border-radius: 4px;
+                 font-size: .9rem; margin-bottom: 14px; }
+  .login-error.visible { display: block; }
+  .help-bottom { text-align: center; color: var(--text-muted); font-size: .85rem; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <div class="login-logo">🎛️</div>
+  <h1 class="login-title">TopZone Control Panel</h1>
+  <p class="login-sub">Masukkan password panel untuk masuk</p>
+
+  <div class="login-error" id="err"></div>
+
+  <form id="login-form" autocomplete="on">
+    <div class="form-row">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             autocomplete="current-password" autofocus required minlength="1" />
+      <small class="help-text">
+        Lupa password? Buka file <code>.env</code> di komputermu, hapus baris
+        <code>GUI_PASSWORD=</code>, lalu restart panel.
+      </small>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-large" style="width:100%">
+      🔓 Masuk
+    </button>
+  </form>
+
+  <p class="help-bottom">
+    Panel ini hanya bisa diakses dari komputer ini saja.
+  </p>
+</div>
+
+<script>
+(async function () {
+  const form = document.getElementById("login-form");
+  const err  = document.getElementById("err");
+  const pwd  = document.getElementById("password");
+
+  // Cek otp di URL → auto-login
+  const params = new URLSearchParams(location.search);
+  const otp    = params.get("otp");
+  if (otp) {
+    try {
+      const r = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp }),
+      });
+      if (r.ok) { location.href = "/"; return; }
+    } catch (_) {}
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err.classList.remove("visible");
+    const submitBtn = form.querySelector("button[type='submit']");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "⏳ Mengecek…";
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pwd.value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        location.href = "/";
+      } else {
+        err.textContent = "❌ " + (data.error || "Login gagal.");
+        err.classList.add("visible");
+        pwd.value = "";
+        pwd.focus();
+      }
+    } catch (e) {
+      err.textContent = "❌ Tidak bisa konek ke server panel.";
+      err.classList.add("visible");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "🔓 Masuk";
+    }
+  });
+})();
+</script>
+</body>
+</html>

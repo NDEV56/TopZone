@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="referrer" content="no-referrer" />
+<title>TopZone — Panel Kontrol Server</title>
+<link rel="icon" href="/favicon.ico" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════╗ -->
+<!-- ║                   HEADER (atas)                          ║ -->
+<!-- ╚══════════════════════════════════════════════════════════╝ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <span class="logo-mark">🎛️</span>
+      <span class="logo-text"><strong>TopZone</strong> Control Panel</span>
+    </div>
+    <span id="version-badge" class="badge badge-soft">v3.1</span>
+  </div>
+  <div class="topbar-right">
+    <div id="phase-indicator" class="phase phase-idle" title="Status server saat ini">
+      <span class="phase-dot"></span>
+      <span class="phase-label">Memeriksa…</span>
+    </div>
+    <button id="btn-help" class="btn btn-ghost" title="Bantuan / Panduan">❓ Bantuan</button>
+    <button id="btn-logout" class="btn btn-ghost" title="Keluar dari panel" hidden>↪ Keluar</button>
+  </div>
+</header>
+
+<div id="lockdown-strip" class="lockdown-strip" data-level="none" hidden>
+  <span class="lockdown-strip-icon">🚨</span>
+  <strong>Lockdown <span id="lockdown-strip-level">none</span> AKTIF</strong>
+  <span class="muted" id="lockdown-strip-reason"></span>
+  <button class="btn-link" data-tab-link="security">Buka tab Keamanan →</button>
+</div>
+
+<!-- ╔══════════════════════════════════════════════════════════╗ -->
+<!-- ║          WIZARD (cuma muncul kalau belum di-setup)       ║ -->
+<!-- ╚══════════════════════════════════════════════════════════╝ -->
+<section id="wizard-screen" class="screen" hidden>
+  <div class="wizard-card">
+    <div class="wizard-header">
+      <h1>👋 Selamat datang di TopZone!</h1>
+      <p class="muted">
+        Panduan setup ini akan menuntun kamu pelan-pelan, langkah demi langkah,
+        sampai server siap dipakai. Kalau ragu, tinggal pakai pilihan default —
+        sudah aman untuk pemula.
+      </p>
+      <div class="wizard-progress">
+        <div class="step-pill" data-step="1"><span>1</span> Tunnel</div>
+        <div class="step-pill" data-step="2"><span>2</span> Token</div>
+        <div class="step-pill" data-step="3"><span>3</span> Server</div>
+        <div class="step-pill" data-step="4"><span>4</span> Keamanan</div>
+        <div class="step-pill" data-step="5"><span>5</span> Selesai</div>
+      </div>
+    </div>
+
+    <!-- STEP 1 — Tunnel -->
+    <div class="wizard-step" data-step="1">
+      <h2>Langkah 1 / 5 — Pilih Cara Membagikan Server ke Internet</h2>
+      <p class="muted">
+        "Tunnel" adalah teknologi yang membuat server lokal di komputermu
+        bisa dibuka dari HP atau komputer lain di luar rumah. Pilih satu
+        di bawah. <strong>Kalau bingung, pilih saja yang nomor 1 (ngrok).</strong>
+      </p>
+
+      <div class="option-grid">
+        <label class="option-card recommended" data-value="ngrok">
+          <input type="radio" name="provider" value="ngrok" checked />
+          <div class="option-title">🟢 ngrok <span class="tag tag-recommended">Disarankan</span></div>
+          <div class="option-desc">
+            Paling stabil & mudah. Butuh daftar gratis (5 menit) di
+            dashboard.ngrok.com untuk dapat token.
+          </div>
+        </label>
+
+        <label class="option-card" data-value="cloudflared">
+          <input type="radio" name="provider" value="cloudflared" />
+          <div class="option-title">🔶 Cloudflare Tunnel</div>
+          <div class="option-desc">
+            Tidak perlu daftar. Tapi harus install <code>cloudflared</code> dulu.
+            URL acak setiap kali. Cocok untuk testing cepat.
+          </div>
+        </label>
+
+        <label class="option-card" data-value="localtunnel">
+          <input type="radio" name="provider" value="localtunnel" />
+          <div class="option-title">🟣 LocalTunnel</div>
+          <div class="option-desc">
+            Gratis tanpa daftar, tapi kadang lambat. Install:
+            <code>npm i -g localtunnel</code>.
+          </div>
+        </label>
+
+        <label class="option-card" data-value="serveo">
+          <input type="radio" name="provider" value="serveo" />
+          <div class="option-title">🔵 Serveo</div>
+          <div class="option-desc">
+            Pakai SSH (sudah ada di Windows 10+). Tidak perlu install apa pun.
+            Tapi servernya sering down.
+          </div>
+        </label>
+
+        <label class="option-card" data-value="none">
+          <input type="radio" name="provider" value="none" />
+          <div class="option-title">⚪ Tanpa Tunnel</div>
+          <div class="option-desc">
+            Hanya jalan di komputer ini saja, tidak bisa diakses dari luar.
+            Cocok kalau hanya untuk uji coba sendiri.
+          </div>
+        </label>
+      </div>
+
+      <div class="wizard-buttons">
+        <button class="btn btn-primary btn-large" data-next="2">Lanjut →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 — Token -->
+    <div class="wizard-step" data-step="2" hidden>
+      <h2>Langkah 2 / 5 — Masukkan Token Ngrok</h2>
+
+      <div class="info-banner" id="ngrok-banner">
+        <strong>📋 Cara dapat token (5 menit, gratis):</strong>
+        <ol class="numbered">
+          <li>Buka link ini di browser baru:
+            <a href="https://dashboard.ngrok.com/signup" target="_blank" rel="noopener">
+              dashboard.ngrok.com/signup
+            </a>
+          </li>
+          <li>Daftar pakai email atau Google/GitHub.</li>
+          <li>Setelah login, buka:
+            <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" rel="noopener">
+              Your Authtoken
+            </a>
+          </li>
+          <li>Klik tombol <strong>"Copy"</strong> untuk salin token.</li>
+          <li>Tempel di kotak di bawah ini ↓</li>
+        </ol>
+      </div>
+
+      <div class="form-row">
+        <label for="ngrokToken">Token Ngrok <span class="required">*</span></label>
+        <input type="password" id="ngrokToken" autocomplete="off" spellcheck="false"
+               placeholder="2bX… (panjang sekitar 40-50 karakter)"
+               aria-describedby="ngrokToken-help" />
+        <small id="ngrokToken-help" class="help-text">
+          Token tidak akan terlihat. Disimpan di file <code>.env</code> di komputermu.
+          Kami tidak pernah mengirimnya ke mana-mana.
+        </small>
+        <div class="validation" id="ngrokToken-validation"></div>
+      </div>
+
+      <details class="advanced-toggle">
+        <summary>🛠️ Pengaturan lanjutan (boleh dilewati)</summary>
+        <div class="form-row">
+          <label for="ngrokDomain">Custom Domain Ngrok (opsional)</label>
+          <input type="text" id="ngrokDomain" placeholder="contoh: nama-keren.ngrok-free.app" />
+          <small class="help-text">
+            Hanya kalau kamu sudah punya domain ngrok dari paid plan atau
+            free static domain. Kosongkan kalau tidak tahu.
+          </small>
+        </div>
+      </details>
+
+      <div class="wizard-buttons">
+        <button class="btn btn-ghost" data-prev="1">← Kembali</button>
+        <button class="btn btn-primary btn-large" data-next="3">Lanjut →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 — Server -->
+    <div class="wizard-step" data-step="3" hidden>
+      <h2>Langkah 3 / 5 — Pilih Aplikasi Server Lokal</h2>
+      <p class="muted">
+        Server lokal adalah aplikasi yang menjalankan PHP di komputermu.
+        Kalau kamu sudah pakai XAMPP/Laragon/WAMP, pilih sesuai itu.
+        Kalau belum, pilih <strong>Auto-detect</strong>.
+      </p>
+
+      <div class="diagnose-panel" id="diagnose-panel">
+        <div class="diagnose-loading">🔎 Memindai komputermu untuk server yang sudah terinstall…</div>
+      </div>
+
+      <div class="form-row">
+        <label for="mode">Mode Server <span class="required">*</span></label>
+        <select id="mode">
+          <option value="auto" selected>Auto-detect (rekomendasi) — sistem akan cari sendiri</option>
+          <option value="xampp">XAMPP (Apache + MySQL)</option>
+          <option value="laragon">Laragon</option>
+          <option value="wamp">WampServer</option>
+          <option value="mamp">MAMP</option>
+          <option value="ampps">AMPPS</option>
+          <option value="openserver">OpenServer Panel</option>
+          <option value="usbwebserver">USBWebserver</option>
+          <option value="easyphp">EasyPHP</option>
+          <option value="php">PHP Built-in (otomatis spawn 'php -S')</option>
+          <option value="custom">Custom — tentukan port sendiri</option>
+        </select>
+        <div id="mode-tip" class="tip-box"></div>
+      </div>
+
+      <div class="form-row" id="customPort-row" hidden>
+        <label for="localPort">Port Server-mu</label>
+        <input type="number" id="localPort" min="1" max="65535" placeholder="contoh: 8080" />
+      </div>
+
+      <details class="advanced-toggle">
+        <summary>🛠️ Pengaturan PHP Built-in (kalau pilih 'php')</summary>
+        <div class="form-row">
+          <label for="phpPort">Port PHP</label>
+          <input type="number" id="phpPort" min="1024" max="65535" value="8080" />
+        </div>
+        <div class="form-row">
+          <label for="phpRoot">Folder Root PHP</label>
+          <input type="text" id="phpRoot" placeholder="contoh: ./Home" />
+          <small class="help-text">Folder yang akan dijadikan webroot. Default: folder Home/ di project ini.</small>
+        </div>
+      </details>
+
+      <div class="wizard-buttons">
+        <button class="btn btn-ghost" data-prev="2">← Kembali</button>
+        <button class="btn btn-primary btn-large" data-next="4">Lanjut →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 — Keamanan -->
+    <div class="wizard-step" data-step="4" hidden>
+      <h2>Langkah 4 / 5 — Keamanan Panel Kontrol</h2>
+      <p class="muted">
+        Panel kontrol ini hanya bisa diakses dari komputer ini saja secara
+        default. Jadi <strong>password tidak wajib</strong>. Tapi kalau kamu
+        ingin akses dari HP di Wi-Fi yang sama, isi password yang kuat.
+      </p>
+
+      <div class="form-row">
+        <label for="guiPassword">Password Panel (opsional)</label>
+        <input type="password" id="guiPassword" autocomplete="new-password"
+               placeholder="kosongkan = tanpa password" minlength="6" />
+        <small class="help-text">
+          Minimal 6 karakter. Disimpan dengan hash (scrypt) — tidak bisa dibalik
+          jadi password asli, bahkan kalau file <code>.env</code> bocor.
+        </small>
+        <div class="validation" id="guiPassword-validation"></div>
+      </div>
+
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="logRequests" checked />
+          <span>Catat setiap request yang masuk (rekomendasi ON)</span>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="tunnelFallback" checked />
+          <span>Coba tunnel lain otomatis kalau yang dipilih gagal</span>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label for="autoUpdate">Update otomatis dari GitHub</label>
+        <select id="autoUpdate">
+          <option value="ask" selected>Tanya dulu (paling aman, default)</option>
+          <option value="true">Pull otomatis</option>
+          <option value="false">Jangan pernah cek</option>
+        </select>
+        <small class="help-text">
+          Kalau temanmu push update di GitHub, sistem akan beri tahu.
+          Pilih "Pull otomatis" hanya kalau kamu yakin update selalu aman.
+        </small>
+      </div>
+
+      <div class="wizard-buttons">
+        <button class="btn btn-ghost" data-prev="3">← Kembali</button>
+        <button class="btn btn-primary btn-large" data-next="5">Lanjut →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5 — Selesai -->
+    <div class="wizard-step" data-step="5" hidden>
+      <h2>Langkah 5 / 5 — Konfirmasi</h2>
+      <p class="muted">
+        Cek ringkasan di bawah. Kalau ada yang salah, kembali ke langkah
+        sebelumnya. Kalau sudah benar, klik tombol Simpan & Mulai.
+      </p>
+
+      <div class="summary-card" id="summary-card"></div>
+
+      <div class="info-banner success">
+        💡 Setelah simpan, panel ini akan langsung berusaha menyalakan server-mu.
+        Kalau gagal — tenang, pesan error akan muncul dengan langkah perbaikan.
+      </div>
+
+      <div class="wizard-buttons">
+        <button class="btn btn-ghost" data-prev="4">← Kembali</button>
+        <button class="btn btn-success btn-large" id="wizard-submit">
+          ✅ Simpan & Mulai Server
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗ -->
+<!-- ║                  MAIN APP (setelah setup)                ║ -->
+<!-- ╚══════════════════════════════════════════════════════════╝ -->
+<main id="main-screen" class="screen" hidden>
+  <!-- Tabs -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="dashboard" role="tab">📊 Dashboard</button>
+    <button class="tab" data-tab="control"   role="tab">🎮 Kontrol</button>
+    <button class="tab" data-tab="logs"      role="tab">📜 Log</button>
+    <button class="tab" data-tab="diagnose"  role="tab">🔍 Diagnostik</button>
+    <button class="tab" data-tab="update"    role="tab">⬆️  Update</button>
+    <button class="tab" data-tab="storage"   role="tab">🧹 Bersihkan</button>
+    <button class="tab" data-tab="security"  role="tab">🛡️  Keamanan</button>
+    <button class="tab" data-tab="settings"  role="tab">⚙️  Pengaturan</button>
+    <button class="tab" data-tab="help"      role="tab">❓ Panduan</button>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <section class="tab-panel active" data-tab-panel="dashboard">
+    <div class="hero" id="hero">
+      <div class="hero-status" id="hero-status">
+        <div class="hero-status-icon">⚪</div>
+        <div class="hero-status-text">
+          <div class="hero-status-title">Server Belum Dijalankan</div>
+          <div class="hero-status-sub">Klik tombol di samping untuk mulai</div>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button id="hero-start" class="btn btn-success btn-xl">▶ Mulai Server</button>
+        <button id="hero-stop" class="btn btn-danger btn-xl" hidden>■ Matikan</button>
+      </div>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card stat-card">
+        <div class="stat-label">URL Lokal</div>
+        <div class="stat-value" id="stat-local">—</div>
+        <div class="stat-action">
+          <button class="btn-link" data-copy="stat-local">📋 Salin</button>
+          <button class="btn-link" data-open="stat-local">🌐 Buka</button>
+        </div>
+      </div>
+
+      <div class="card stat-card highlight">
+        <div class="stat-label">URL Publik (Tunnel)</div>
+        <div class="stat-value" id="stat-public">—</div>
+        <div class="stat-action">
+          <button class="btn-link" data-copy="stat-public">📋 Salin</button>
+          <button class="btn-link" data-open="stat-public">🌐 Buka</button>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Server Lokal</div>
+        <div class="stat-value" id="stat-server">—</div>
+        <div class="stat-action">
+          <span class="muted" id="stat-port">port: —</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-4">
+      <div class="card mini-card">
+        <div class="mini-label">Provider</div>
+        <div class="mini-value" id="stat-provider">—</div>
+      </div>
+      <div class="card mini-card">
+        <div class="mini-label">Total Request</div>
+        <div class="mini-value" id="stat-requests">0</div>
+      </div>
+      <div class="card mini-card">
+        <div class="mini-label">Uptime</div>
+        <div class="mini-value" id="stat-uptime">—</div>
+      </div>
+      <div class="card mini-card">
+        <div class="mini-label">Phase</div>
+        <div class="mini-value" id="stat-phase">idle</div>
+      </div>
+    </div>
+
+    <div class="card webhook-card">
+      <h3>📌 URL Webhook untuk Payment Gateway / API</h3>
+      <p class="muted">Tempel salah satu URL di bawah ke Midtrans / API Games / dll:</p>
+      <div class="webhook-list">
+        <div class="webhook-row">
+          <span class="webhook-label">Callback Pembayaran:</span>
+          <code class="webhook-url" id="wh-callback">—</code>
+          <button class="btn-link" data-copy="wh-callback">📋</button>
+        </div>
+        <div class="webhook-row">
+          <span class="webhook-label">Ambil Token Midtrans:</span>
+          <code class="webhook-url" id="wh-token">—</code>
+          <button class="btn-link" data-copy="wh-token">📋</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📡 Log Terbaru</h3>
+      <div id="dashboard-logs" class="log-stream-mini">
+        <div class="empty-state">Belum ada log. Mulai server untuk melihat aktivitas.</div>
+      </div>
+      <button class="btn-link" data-tab-link="logs">Lihat semua log →</button>
+    </div>
+  </section>
+
+  <!-- CONTROL -->
+  <section class="tab-panel" data-tab-panel="control" hidden>
+    <div class="card">
+      <h2>Kontrol Server</h2>
+      <p class="muted">
+        Tombol di sini sangat besar dan jelas — supaya tidak mungkin salah klik.
+      </p>
+
+      <div class="control-grid">
+        <button class="control-button start" id="ctrl-start">
+          <div class="ctrl-icon">▶</div>
+          <div class="ctrl-title">Mulai Server</div>
+          <div class="ctrl-desc">Deteksi server lokal, lalu buka tunnel publik</div>
+        </button>
+
+        <button class="control-button stop" id="ctrl-stop">
+          <div class="ctrl-icon">■</div>
+          <div class="ctrl-title">Matikan Server</div>
+          <div class="ctrl-desc">Tutup tunnel & PHP built-in (kalau ada)</div>
+        </button>
+
+        <button class="control-button restart" id="ctrl-restart">
+          <div class="ctrl-icon">⟳</div>
+          <div class="ctrl-title">Restart Server</div>
+          <div class="ctrl-desc">Matikan lalu nyalakan lagi (refresh tunnel)</div>
+        </button>
+      </div>
+
+      <div class="info-banner">
+        💡 <strong>Tips untuk pemula:</strong>
+        <ul>
+          <li>Sebelum klik Mulai, pastikan XAMPP/Laragon sudah START.</li>
+          <li>Kalau gagal, lihat tab <strong>Diagnostik</strong> — di sana ada
+              tombol untuk cek status komputermu.</li>
+          <li>Tab <strong>Log</strong> menunjukkan apa yang terjadi setiap detik.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGS -->
+  <section class="tab-panel" data-tab-panel="logs" hidden>
+    <div class="card">
+      <div class="logs-toolbar">
+        <div class="filter-group">
+          <button class="filter-btn active" data-level="all">Semua <span class="cnt" id="cnt-all">0</span></button>
+          <button class="filter-btn" data-level="common">Biasa <span class="cnt" id="cnt-common">0</span></button>
+          <button class="filter-btn" data-level="uncommon">Jarang <span class="cnt" id="cnt-uncommon">0</span></button>
+          <button class="filter-btn warning" data-level="warning">Peringatan <span class="cnt" id="cnt-warning">0</span></button>
+          <button class="filter-btn error" data-level="error">Error <span class="cnt" id="cnt-error">0</span></button>
+          <button class="filter-btn critical" data-level="critical">Kritis <span class="cnt" id="cnt-critical">0</span></button>
+          <button class="filter-btn security" data-level="security">Keamanan <span class="cnt" id="cnt-security">0</span></button>
+        </div>
+        <div class="logs-actions">
+          <input type="search" id="log-search" placeholder="Cari di log…" />
+          <label class="checkbox-label small">
+            <input type="checkbox" id="log-autoscroll" checked />
+            <span>Auto-scroll</span>
+          </label>
+          <button class="btn btn-ghost btn-sm" id="logs-export">💾 Ekspor</button>
+          <button class="btn btn-ghost btn-sm" id="logs-clear">🧹 Bersihkan</button>
+        </div>
+      </div>
+      <div id="log-stream" class="log-stream"></div>
+    </div>
+  </section>
+
+  <!-- DIAGNOSE -->
+  <section class="tab-panel" data-tab-panel="diagnose" hidden>
+    <div class="card">
+      <div class="card-header">
+        <h2>🔍 Diagnostik Sistem</h2>
+        <button class="btn btn-primary btn-sm" id="diag-refresh">🔄 Pindai Ulang</button>
+      </div>
+      <p class="muted">Halaman ini cek apakah komputermu siap menjalankan TopZone.</p>
+      <div id="diag-content" class="diag-content">
+        <div class="loading">Memuat…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- UPDATE -->
+  <section class="tab-panel" data-tab-panel="update" hidden>
+    <div class="card">
+      <h2>⬆️  Update dari GitHub</h2>
+      <p class="muted">
+        Kalau temanmu mengirim versi baru ke GitHub, kamu bisa tarik
+        ke komputer ini hanya dengan satu klik. Backup otomatis dibuat
+        sebelum update — jadi aman.
+      </p>
+
+      <div id="update-content">
+        <button class="btn btn-primary btn-large" id="update-check">
+          🔎 Cek Update Sekarang
+        </button>
+      </div>
+
+      <div class="info-banner">
+        🛡️ <strong>Pengaman update otomatis:</strong>
+        <ul>
+          <li>File <code>.env</code> dan <code>logs/</code> tidak akan tertimpa.</li>
+          <li>Backup ditulis ke folder <code>backups/</code> sebelum pull.</li>
+          <li>Kalau gagal merge, sistem otomatis rollback.</li>
+          <li>Kalau ada perubahan dependency, <code>npm install</code> jalan otomatis.</li>
+        </ul>
+      </div>
+
+      <div class="card-section">
+        <h3>Backup Tersedia</h3>
+        <div id="backup-list" class="backup-list">
+          <div class="empty-state muted">Belum ada backup. Backup dibuat otomatis tiap update.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STORAGE -->
+  <section class="tab-panel" data-tab-panel="storage" hidden>
+    <div class="card">
+      <div class="card-header">
+        <h2>🧹 Bersihkan File Sampah</h2>
+        <button class="btn btn-primary btn-sm" id="storage-scan">🔎 Pindai Sekarang</button>
+      </div>
+      <p class="muted">
+        Halaman ini cari & hapus file sampah yang sudah tidak terpakai untuk membebaskan storage.
+        <strong>Aman</strong> — file penting (.env, database, gambar yang masih dipakai, kode website)
+        tidak akan disentuh.
+      </p>
+
+      <div class="info-banner success">
+        🛡️ <strong>Cara kerja aman:</strong>
+        <ul>
+          <li>Hanya hapus dari folder <code>logs/</code>, <code>backups/</code>, <code>uploads/</code> (orphan), dan file <code>*.tmp</code> di root.</li>
+          <li>Default mode <strong>SIMULASI</strong> (dry-run) — kamu lihat dulu apa yang akan dihapus.</li>
+          <li>Klik <strong>HAPUS BENERAN</strong> hanya kalau yakin.</li>
+          <li>Foto profil & gambar game yang masih dipakai user otomatis di-skip (cek DB).</li>
+          <li>Setiap aksi ditulis ke <code>logs/cleanup-log.txt</code>.</li>
+        </ul>
+      </div>
+
+      <!-- Hasil scan total -->
+      <div class="grid grid-3" id="storage-summary" hidden>
+        <div class="mini-card">
+          <div class="mini-label">Total Item</div>
+          <div class="mini-value" id="storage-total-count">—</div>
+        </div>
+        <div class="mini-card highlight" style="background: linear-gradient(135deg, #16a34a, #15803d); color: #fff;">
+          <div class="mini-label" style="color: rgba(255,255,255,.85);">Bisa Dibebaskan</div>
+          <div class="mini-value" id="storage-total-size">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">DB Connection</div>
+          <div class="mini-value" id="storage-db">—</div>
+        </div>
+      </div>
+
+      <!-- Detail per kategori -->
+      <div id="storage-categories" class="storage-cats"></div>
+
+      <!-- Aksi -->
+      <div class="storage-actions" id="storage-actions" hidden>
+        <button class="btn btn-warning btn-large" id="storage-clean-dry">
+          👀 Tampilkan File Yang Akan Dihapus
+        </button>
+        <button class="btn btn-danger btn-large" id="storage-clean-apply">
+          🗑️ HAPUS BENERAN (Tidak Bisa Dibatalkan!)
+        </button>
+      </div>
+
+      <!-- Log preview -->
+      <div id="storage-log" class="storage-log-preview" hidden></div>
+    </div>
+
+    <div class="card">
+      <h3>📅 Auto-cleanup Terjadwal (Opsional)</h3>
+      <p class="muted">
+        Kamu bisa menambahkan task ke crontab/Task Scheduler untuk membersihkan
+        otomatis tiap minggu:
+      </p>
+      <div class="info-banner">
+        <strong>Linux/Mac (crontab):</strong>
+        <pre style="margin: 6px 0; padding: 10px; background: var(--bg-soft); border-radius: 6px; font-size: .85rem; overflow-x: auto;">0 3 * * 0 cd <?= ' ' ?>"<span id="auto-clean-path">/path/ke/TopZone</span>" && node server.js --clean --apply &gt;&gt; logs/cleanup-cron.log 2&gt;&amp;1</pre>
+        <strong>Windows (PowerShell):</strong>
+        <pre style="margin: 6px 0; padding: 10px; background: var(--bg-soft); border-radius: 6px; font-size: .85rem; overflow-x: auto;">schtasks /create /tn "TopZoneClean" /tr "node server.js --clean --apply" /sc weekly /d SUN /st 03:00</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECURITY -->
+  <section class="tab-panel" data-tab-panel="security" hidden>
+    <!-- Lockdown banner global -->
+    <div id="lockdown-banner" class="lockdown-banner" data-level="none" hidden>
+      <div class="lockdown-icon" id="lockdown-icon">🛡️</div>
+      <div class="lockdown-text">
+        <div class="lockdown-title" id="lockdown-title">Mode Normal</div>
+        <div class="lockdown-sub" id="lockdown-sub">Tidak ada serangan terdeteksi.</div>
+      </div>
+      <button id="lockdown-deactivate" class="btn btn-ghost btn-sm" hidden>↩ Nonaktifkan</button>
+    </div>
+
+    <!-- Anti-DDoS / firewall stats -->
+    <div class="card">
+      <h2>🛡️ Keamanan & Anti-DDoS</h2>
+      <p class="muted">Statistik hidup dari firewall multi-layer. Semua angka akan turun dengan sendirinya saat tidak ada serangan.</p>
+      <div class="grid grid-4">
+        <div class="mini-card">
+          <div class="mini-label">Sesi Aktif</div>
+          <div class="mini-value" id="sec-sessions">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">IP Diblokir</div>
+          <div class="mini-value" id="sec-blocked">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">Pola Mencurigakan</div>
+          <div class="mini-value" id="sec-suspicion">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">Koneksi Aktif</div>
+          <div class="mini-value" id="sec-conn">—</div>
+        </div>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="mini-card">
+          <div class="mini-label">RPS Saat Ini</div>
+          <div class="mini-value" id="sec-rps">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">Subnet Berbeda</div>
+          <div class="mini-value" id="sec-subnets">—</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">Mode Adaptif</div>
+          <div class="mini-value" id="sec-adaptive">—</div>
+        </div>
+      </div>
+
+      <h3>IP Yang Sedang Diblokir</h3>
+      <div id="blocked-list"><div class="empty-state muted">Tidak ada IP terblokir.</div></div>
+
+      <h3>IP Graylist (Limit Dipotong)</h3>
+      <div id="graylist-list"><div class="empty-state muted">Tidak ada IP di graylist.</div></div>
+
+      <h3>15 Aktivitas Mencurigakan Terbaru</h3>
+      <div id="suspicion-list"><div class="empty-state muted">Belum ada aktivitas mencurigakan.</div></div>
+    </div>
+
+    <!-- Emergency Lockdown -->
+    <div class="card lockdown-card">
+      <h2>🚨 Emergency Lockdown</h2>
+      <p class="muted">
+        Aktifkan kalau panel kontrol sedang dalam serangan berat. Mode <code>guarded</code>
+        cuma memperketat limit; <code>restricted</code> mematikan semua aksi state-changing
+        kecuali login/logout; <code>lockdown</code> mematikan semuanya kecuali endpoint health.
+      </p>
+      <div class="lockdown-buttons">
+        <button class="btn lockdown-btn guarded" data-level="guarded">
+          <span class="lvl-icon">🟡</span>
+          <span class="lvl-name">Guarded</span>
+          <span class="lvl-desc">Limit ketat, semua POST minta CSRF</span>
+        </button>
+        <button class="btn lockdown-btn restricted" data-level="restricted">
+          <span class="lvl-icon">🟠</span>
+          <span class="lvl-name">Restricted</span>
+          <span class="lvl-desc">Hanya GET + login/logout yang aktif</span>
+        </button>
+        <button class="btn lockdown-btn lockdown" data-level="lockdown">
+          <span class="lvl-icon">🔴</span>
+          <span class="lvl-name">Full Lockdown</span>
+          <span class="lvl-desc">Tutup total kecuali /api/health</span>
+        </button>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="lockdown-permanent" />
+          <span>Permanen (tanpa auto-expire)</span>
+        </label>
+        <label class="checkbox-label">
+          <span style="margin-right:8px">Durasi (menit):</span>
+          <input type="number" id="lockdown-duration" min="1" max="1440" value="30" style="width:90px" />
+        </label>
+      </div>
+      <div class="info-banner warning">
+        ⚠️ <strong>Cara kerja auto-trigger:</strong> kalau banyak indikator serangan
+        (SQLi attempt, brute force, RPS spike, banyak IP berbeda) tertangkap dalam 60 detik,
+        sistem otomatis naik tingkat — mulai dari guarded → restricted → full lockdown.
+        Mode normal kembali setelah 2 menit "tenang".
+      </div>
+      <h3>10 Trigger Lockdown Terakhir</h3>
+      <div id="lockdown-triggers" class="backup-list">
+        <div class="empty-state muted">Belum ada lockdown.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="tab-panel" data-tab-panel="settings" hidden>
+    <div class="card">
+      <h2>⚙️  Pengaturan</h2>
+      <p class="muted">Edit nilai di bawah lalu klik <strong>Simpan</strong>. Server akan diminta restart.</p>
+
+      <form id="settings-form" class="settings-form">
+        <div class="settings-section">
+          <h3>Tunnel</h3>
+          <div class="form-row">
+            <label>Provider</label>
+            <select name="TUNNEL_PROVIDER">
+              <option value="ngrok">ngrok</option>
+              <option value="cloudflared">cloudflared</option>
+              <option value="localtunnel">localtunnel</option>
+              <option value="serveo">serveo</option>
+              <option value="pinggy">pinggy</option>
+              <option value="none">none (local-only)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Token Ngrok</label>
+            <input type="password" name="ngrokToken" placeholder="kosongkan = tidak diubah" />
+          </div>
+          <div class="form-row">
+            <label>Custom Domain Ngrok</label>
+            <input type="text" name="NGROK_DOMAIN" placeholder="contoh: mysite.ngrok-free.app" />
+          </div>
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input type="checkbox" name="TUNNEL_FALLBACK" />
+              <span>Otomatis pakai tunnel lain kalau yang dipilih gagal</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Server Lokal</h3>
+          <div class="form-row">
+            <label>Mode Server</label>
+            <select name="SERVER_MODE">
+              <option value="auto">auto</option>
+              <option value="xampp">xampp</option>
+              <option value="laragon">laragon</option>
+              <option value="wamp">wamp</option>
+              <option value="mamp">mamp</option>
+              <option value="ampps">ampps</option>
+              <option value="openserver">openserver</option>
+              <option value="usbwebserver">usbwebserver</option>
+              <option value="easyphp">easyphp</option>
+              <option value="php">php</option>
+              <option value="custom">custom</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Port Lokal (kalau mode custom)</label>
+            <input type="number" name="LOCAL_PORT" min="0" max="65535" />
+          </div>
+          <div class="form-row">
+            <label>Port PHP (kalau mode php)</label>
+            <input type="number" name="PHP_PORT" min="1024" max="65535" />
+          </div>
+          <div class="form-row">
+            <label>Folder PHP_ROOT</label>
+            <input type="text" name="PHP_ROOT" />
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Keamanan & Log</h3>
+          <div class="form-row">
+            <label>Password Panel (kosongkan = tidak diubah)</label>
+            <input type="password" name="guiPassword" placeholder="min 6 karakter" />
+          </div>
+          <div class="form-row">
+            <label>Rate Limit (req/menit per IP)</label>
+            <input type="number" name="SEC_RATE_LIMIT" min="10" max="600" />
+          </div>
+          <div class="form-row">
+            <label>Block Setelah Login Gagal</label>
+            <input type="number" name="SEC_BLOCK_ON_FAIL" min="3" max="20" />
+          </div>
+          <div class="form-row">
+            <label>Durasi Block (detik)</label>
+            <input type="number" name="SEC_BLOCK_DURATION" min="60" max="86400" />
+          </div>
+          <div class="form-row">
+            <label>Level Log Minimum</label>
+            <select name="LOG_MIN_LEVEL">
+              <option value="common">common (semua)</option>
+              <option value="uncommon">uncommon</option>
+              <option value="warning">warning</option>
+              <option value="error">error</option>
+              <option value="critical">critical</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Retensi Log (hari)</label>
+            <input type="number" name="LOG_RETENTION_DAYS" min="1" max="365" />
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Update Otomatis</h3>
+          <div class="form-row">
+            <label>Mode Auto-Update</label>
+            <select name="AUTO_UPDATE">
+              <option value="ask">ask (tanya dulu)</option>
+              <option value="true">true (otomatis pull)</option>
+              <option value="false">false (jangan cek)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button type="submit" class="btn btn-primary btn-large">💾 Simpan</button>
+          <button type="button" class="btn btn-ghost" id="settings-reload">↻ Muat Ulang</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- HELP -->
+  <section class="tab-panel" data-tab-panel="help" hidden>
+    <div class="card help-card">
+      <h2>❓ Panduan untuk Pemula</h2>
+      <p class="muted">Pertanyaan paling sering ditanyakan:</p>
+
+      <details class="faq" open>
+        <summary>🎯 Bagaimana cara mulai server?</summary>
+        <ol>
+          <li>Buka XAMPP / Laragon / WAMP. Klik tombol <strong>Start</strong>
+              di baris Apache. Tunggu sampai berwarna hijau.</li>
+          <li>Kalau pakai database, klik Start juga di MySQL.</li>
+          <li>Kembali ke panel ini, buka tab <strong>Kontrol</strong>.</li>
+          <li>Klik tombol <strong>▶ Mulai Server</strong>.</li>
+          <li>Tunggu 5-15 detik. URL publik akan muncul di Dashboard.</li>
+          <li>Salin URL itu untuk dibagikan ke teman / Midtrans.</li>
+        </ol>
+      </details>
+
+      <details class="faq">
+        <summary>❌ Server gagal start, apa yang harus dilakukan?</summary>
+        <ol>
+          <li>Buka tab <strong>Diagnostik</strong> → klik Pindai Ulang.</li>
+          <li>Lihat baris berwarna merah → ikuti petunjuk di sebelahnya.</li>
+          <li>Cek tab <strong>Log</strong> → filter "Error" atau "Kritis".</li>
+          <li>Pastikan XAMPP/Laragon benar-benar START (bukan cuma terbuka).</li>
+          <li>Coba ganti port — kadang port 80 dipakai aplikasi lain (Skype, IIS).</li>
+        </ol>
+      </details>
+
+      <details class="faq">
+        <summary>🔑 Token Ngrok di mana dapat?</summary>
+        <ol>
+          <li>Buka <a href="https://dashboard.ngrok.com/signup" target="_blank" rel="noopener">dashboard.ngrok.com/signup</a></li>
+          <li>Daftar gratis (cukup email).</li>
+          <li>Setelah login, buka menu <strong>Your Authtoken</strong>.</li>
+          <li>Klik tombol <strong>Copy</strong>.</li>
+          <li>Tempel di tab <strong>Pengaturan</strong> → field "Token Ngrok".</li>
+          <li>Klik Simpan, lalu Restart.</li>
+        </ol>
+      </details>
+
+      <details class="faq">
+        <summary>🔄 Bagaimana update kalau temanku push ke GitHub?</summary>
+        <ol>
+          <li>Buka tab <strong>Update</strong>.</li>
+          <li>Klik tombol <strong>Cek Update</strong>.</li>
+          <li>Kalau ada commit baru, ringkasannya muncul.</li>
+          <li>Klik <strong>Tarik Update</strong>.</li>
+          <li>Backup otomatis dibuat → kalau gagal, otomatis rollback.</li>
+          <li>Restart server setelah update selesai.</li>
+        </ol>
+      </details>
+
+      <details class="faq">
+        <summary>🐌 Tunnel ngrok lambat, ada alternatif?</summary>
+        <p>Buka <strong>Pengaturan</strong> → ganti Provider ke
+           <code>cloudflared</code> atau <code>localtunnel</code>. Aktifkan
+           "Otomatis pakai tunnel lain kalau gagal" supaya kalau yang dipilih
+           down, sistem coba yang lain.</p>
+      </details>
+
+      <details class="faq">
+        <summary>📱 Bisa diakses dari HP?</summary>
+        <p>Tentu. URL publik (yang ada <code>.ngrok-free.app</code> atau
+           <code>.trycloudflare.com</code>) bisa dibuka dari mana saja —
+           HP, laptop teman, dst.</p>
+      </details>
+
+      <details class="faq">
+        <summary>🛡️ Apakah aman?</summary>
+        <ul>
+          <li>Token kamu disimpan di file <code>.env</code> di komputermu sendiri.</li>
+          <li>Panel ini default hanya bisa diakses dari <code>127.0.0.1</code>.</li>
+          <li>Setiap request mencurigakan (SQL injection, path traversal, dll)
+              langsung diblokir & dicatat di log Keamanan.</li>
+          <li>Brute force login → IP otomatis diblokir setelah 5 percobaan.</li>
+        </ul>
+      </details>
+
+      <details class="faq">
+        <summary>💼 File apa yang penting?</summary>
+        <ul>
+          <li><code>.env</code> — konfigurasi (token, mode, port).</li>
+          <li><code>server.js</code> — launcher CLI.</li>
+          <li><code>gui.js</code> — panel ini.</li>
+          <li><code>lib/</code> — modul-modul internal.</li>
+          <li><code>logs/</code> — log harian per kategori.</li>
+          <li><code>backups/</code> — snapshot sebelum tiap auto-update.</li>
+          <li><code>Home/</code> — folder website PHP-nya.</li>
+        </ul>
+      </details>
+
+      <p class="muted">
+        Masih bingung? Buka file
+        <a href="/docs/PANDUAN.md" target="_blank">docs/PANDUAN.md</a>
+        atau tanya ke teman developer-mu.
+      </p>
+    </div>
+  </section>
+</main>
+
+<!-- Toast container -->
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<!-- Confirm dialog -->
+<div id="confirm-overlay" class="overlay" hidden>
+  <div class="confirm-dialog">
+    <div class="confirm-icon" id="confirm-icon">⚠️</div>
+    <h3 id="confirm-title">Konfirmasi</h3>
+    <p id="confirm-message">Yakin?</p>
+    <div class="confirm-buttons">
+      <button class="btn btn-ghost" id="confirm-cancel">Batal</button>
+      <button class="btn btn-primary" id="confirm-ok">Ya, lanjut</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script src="/wizard.js"></script>
+<script src="/logs.js"></script>
+</body>
+</html>

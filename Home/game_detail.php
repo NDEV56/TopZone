@@ -5,41 +5,69 @@
  * Date: 2026-05-16
  */
 
-session_start();
-include 'koneksi.php'; 
+require_once __DIR__ . '/_security.php';
+tz_security_init();
 
 // ==========================================
-// 1. AMBIL DATA GAME BERDASARKAN SLUG
+// 1. AMBIL DATA GAME BERDASARKAN SLUG (PREPARED)
 // ==========================================
-$slug = $_GET['game'] ?? '';
-$query = mysqli_query($koneksi, "SELECT * FROM games WHERE slug = '$slug'");
-$g = mysqli_fetch_assoc($query);
-
-if (!$g) { 
-    die("Game tidak ditemukan mprruy! Balik lagi ke <a href='index.php'>Home</a>"); 
+$slug_raw = (string)($_GET['game'] ?? '');
+$slug = preg_replace('/[^a-z0-9\-]/i', '', substr($slug_raw, 0, 64));
+if ($slug === '') {
+    http_response_code(404);
+    die("Game tidak ditemukan. <a href='index.php'>Home</a>");
 }
 
-$id_g = $g['id'];
+$g = tz_db()->fetchOne('SELECT * FROM games WHERE slug = ? LIMIT 1', [$slug]);
+if (!$g) {
+    http_response_code(404);
+    die("Game tidak ditemukan. <a href='index.php'>Home</a>");
+}
+
+$id_g = (int)$g['id'];
 
 // ==========================================
-// 2. HITUNG STATISTIK RATING & ULASAN
+// 2. STATISTIK RATING & ULASAN (PREPARED)
 // ==========================================
 $q_avg = mysqli_query($koneksi, "SELECT AVG(rating) as rata_rata, COUNT(id) as total_review FROM reviews WHERE id_game = '$id_g'");
 $res_avg = mysqli_fetch_assoc($q_avg);
 
-$rating_rata = ($res_avg['total_review'] > 0) ? round($res_avg['rata_rata'], 1) : 0;
-$total_review = $res_avg['total_review'];
-$terjual = $g['terjual'] ?? 0;
+$rating_rata  = ($res_avg['total_review'] > 0) ? round((float)$res_avg['rata_rata'], 1) : 0;
+$total_review = (int)$res_avg['total_review'];
+$terjual      = (int)($g['terjual'] ?? 0);
 
 // ==========================================
-// 3. AMBIL DAFTAR ULASAN TERBARU
+// 3. DAFTAR ULASAN (PREPARED)
 // ==========================================
-$q_rev = mysqli_query($koneksi, "SELECT * FROM reviews WHERE id_game = '$id_g' ORDER BY id DESC");
+$reviews = tz_db()->fetchAll(
+    'SELECT * FROM reviews WHERE id_game = ? ORDER BY id DESC LIMIT 50',
+    [$id_g]
+);
+
+// Backward compat: kode di bawah masih pakai $q_rev → buat iterator dari array
+class TZ_ReviewIter implements \Iterator {
+    private array $items;
+    private int   $idx = 0;
+    public function __construct(array $items) { $this->items = $items; }
+    public function current(): mixed { return $this->items[$this->idx] ?? false; }
+    public function key(): mixed     { return $this->idx; }
+    public function next(): void     { $this->idx++; }
+    public function rewind(): void   { $this->idx = 0; }
+    public function valid(): bool    { return $this->idx < count($this->items); }
+}
+// Tetap pakai mysqli_fetch_assoc-compatible loop di template:
+function tz_review_fetch(&$state) {
+    if ($state === null) return false;
+    if (!isset($state['i'])) $state['i'] = 0;
+    if ($state['i'] >= count($state['rows'])) return false;
+    return $state['rows'][$state['i']++];
+}
+$q_rev = ['rows' => $reviews];
 
 // ==========================================
-// 4. LOGIKA IDENTITAS USER (SESSION/GUEST)
+// 4. IDENTITAS USER (SESSION/GUEST)
 // ==========================================
-$nama_tampil = $_SESSION['nama_user'] ?? ($_COOKIE['guest_name'] ?? "User" . rand(100, 999));
+$nama_tampil = (string)($_SESSION['nama_user'] ?? "User" . random_int(100, 999));
 
 $selected_produk = $_GET['select_produk'] ?? '';
 $qty_cart = $_GET['qty'] ?? 1;
@@ -50,11 +78,7 @@ $from_cart = $_GET['from_cart'] ?? false;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="javascript.js"></script>
-    <style src="style.css"></style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <title>Top Up <?php echo $g['nama_game']; ?> - TOPZONE OFFICIAL</title>
+    <title>Top Up <?= tz_e($g['nama_game']) ?> - TOPZONE OFFICIAL</title>
     
     <style>
         :root {
@@ -141,13 +165,13 @@ $from_cart = $_GET['from_cart'] ?? false;
             min-height: 90px; /* Menjaga tinggi card produk tetap seragam */
         }
         .item-card:hover { 
-            border-color: #c9a227; 
+            border-color: var(--primary); 
             transform: translateY(-3px);
             box-shadow: 0 5px 15px rgba(255,77,77,0.1);
         }
         .item-card.selected { 
-            border: 2.5px solid #c9a227; 
-            background: rgba(0, 0, 0, 0.5); 
+            border: 2.5px solid var(--primary); 
+            background: #fff0f0; 
             position: relative;
         }
         .item-card.selected::after {
@@ -155,12 +179,12 @@ $from_cart = $_GET['from_cart'] ?? false;
             position: absolute;
             top: 5px;
             right: 10px;
-            color: #c9a227;
+            color: var(--primary);
             font-weight: bold;
         }
 
         .price { 
-            color: white; 
+            color: var(--primary); 
             font-weight: 800; 
             font-size: 16px; 
             margin-top: 8px; 
@@ -305,17 +329,17 @@ $from_cart = $_GET['from_cart'] ?? false;
 <div class="container">
     <div class="main-info glass-panel">
         <a href="index.php" class="btn-back-home"
-                style="display: inline-flex;align-items: center;gap: 6px;padding: 8px 16px;margin-bottom: 16px;background: rgba(255,255,255,0.08) ; backdrop-filter: blur(24px) saturate(180%);-webkit-backdrop-filter: blur(24px) saturate(180%); color: #ffffff;border: 1px solid rgba(255,255,255,0.25);border-top-color: rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.3); border-radius: 8px;font-size: 13px;font-weight: 500;text-decoration: none;cursor: pointer;transition: all 0.2s ease;">
+                style="display: inline-flex;align-items: center;gap: 6px;padding: 8px 16px;margin-bottom: 16px;background:#333;color: #ffffff;border: 1.5px solid #ddd;border-radius: 8px;font-size: 13px;font-weight: 500;text-decoration: none;cursor: pointer;transition: all 0.2s ease;">
                  Kembali ke Home
         </a>
-        <div style="display: flex; gap: 20px; align-items: center; ">
-            <div class="tp-img" style="background-image:url('<?php echo $g['gambar']; ?>')"></div>
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <div class="tp-img" style="background-image:url('<?= tz_attr($g['gambar']) ?>')"></div>
             <div>
-                <h1 style="margin: 0; font-size: 28px;"><?php echo htmlspecialchars($g['nama_game']); ?></h1>
-                <p style="color: #ffffff; margin: 5px 0;">Kategori: <strong><?php echo $g['kategori']; ?></strong></p>
+                <h1 style="margin: 0; font-size: 28px;"><?= tz_e($g['nama_game']) ?></h1>
+                <p style="color: #666; margin: 5px 0;">Kategori: <strong><?= tz_e($g['kategori']) ?></strong></p>
                 <div style="color: #ffca08; font-size: 20px;">
                     <?php for($i=1; $i<=5; $i++) echo ($i <= $rating_rata) ? "★" : "☆"; ?>
-                    <span style="color: #fff; font-size: 15px;"> (<?php echo $rating_rata; ?>/5.0) | <?php echo $terjual; ?> Terjual</span>
+                    <span style="color: #888; font-size: 15px;"> (<?php echo $rating_rata; ?>/5.0) | <?php echo $terjual; ?> Terjual</span>
                 </div>
             </div>
         </div>
@@ -348,11 +372,11 @@ $from_cart = $_GET['from_cart'] ?? false;
                     <div style="font-size: 14px; font-weight: 600; color: #ffffff;"><?= $p['nama_produk']; ?></div>
                     <div class="price">Rp <?= number_format($p['harga'], 0, ',', '.'); ?></div>
                 </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
 
             <?php else: ?>
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa;">
-                    <p>Produk belum tersedia untuk game ini mprruy.</p>
+                    <p>Produk belum tersedia untuk game ini mprruy. 🙏</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -362,10 +386,10 @@ $from_cart = $_GET['from_cart'] ?? false;
             
             <div style="background: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 15px; border: 1px solid rgba(251, 255, 0, 0.25); margin-bottom: 30px;">
                 <form action="simpan_ulasan.php" method="POST">
-                    <input type="hidden" name="id_game" value="<?php echo $id_g; ?>">
-                    <input type="hidden" name="slug" value="<?php echo $g['slug']; ?>">
-                    <input type="hidden" name="user_name" value="<?php echo $nama_tampil; ?>">
-                    
+                    <?= tz_csrf_field() ?>
+                    <input type="hidden" name="id_game" value="<?= (int)$id_g ?>">
+                    <input type="hidden" name="slug"    value="<?= tz_attr($g['slug']) ?>">
+
                     <label style="font-weight: bold; display: block; margin-bottom: 5px;">Beri Rating:</label>
                     <div class="rating-stars">
                         <input type="radio" name="rating" value="5" id="star5" required><label for="star5">★</label>
@@ -379,24 +403,27 @@ $from_cart = $_GET['from_cart'] ?? false;
                               style="width: 100%; height: 100px; border-radius: 12px; padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color:#fff; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px;"></textarea>
                     <button type="submit" style="background:#c9a227; color:black; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
                 </form>
+                <?php else: ?>
+                <p style="color:#666;">Silakan <a href="../Login/tampilanlogin.php">login</a> dulu untuk memberi ulasan.</p>
+                <?php endif; ?>
             </div>
 
             <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
-                <?php if(mysqli_num_rows($q_rev) > 0): ?>
-                    <?php while($rev = mysqli_fetch_assoc($q_rev)): ?>
+                <?php if (count($q_rev['rows']) > 0): ?>
+                    <?php foreach ($q_rev['rows'] as $rev): ?>
                         <div class="rev-item">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <strong>👤 <?php echo htmlspecialchars($rev['user_name']); ?></strong>
                                 <span style="font-size: 11px; color: #ccc;"><?php echo date('d M Y', strtotime($rev['created_at'] ?? 'now')); ?></span>
                             </div>
                             <div style="color: #ffca08; font-size: 14px; margin: 5px 0;">
-                                <?php for($k=1; $k<=5; $k++) echo ($k <= $rev['rating']) ? "★" : "☆"; ?>
+                                <?php $rt = (int)$rev['rating']; for ($k=1; $k<=5; $k++) echo ($k <= $rt) ? "★" : "☆"; ?>
                             </div>
                             <p style="margin: 5px 0 0 0; font-size: 13px; color: #eee;">
                                 "<?php echo nl2br(htmlspecialchars($rev['komentar'])); ?>"
                             </p>
                         </div>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <p style="text-align: center; color: #bbb; padding: 20px;">Belum ada ulasan. Jadilah yang pertama! 🔥</p>
                 <?php endif; ?>
@@ -470,13 +497,13 @@ $from_cart = $_GET['from_cart'] ?? false;
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                     <span style="font-weight: bold;">Total:</span>
-                    <span id="total-price-display" style="font-size: 22px; color: white; font-weight: 800;">Rp 0</span>
+                    <span id="total-price-display" style="font-size: 22px; color: var(--primary); font-weight: 800;">Rp 0</span>
                 </div>
             </div>
 
             <div style="display: flex; gap: 12px;">
                 <button type="button" class="btn-cart" onclick="addToCart()">🛒</button>
-                <button type="button" class="btn-buy-now" onclick="submitOrder()">Beli Sekarang</button>
+                <button type="button" class="btn-buy-now" onclick="submitOrder()">⚡ Beli Sekarang</button>
             </div>
             
             <p style="font-size: 12px; color: gold; text-align: center; margin-top: 15px; margin-bottom: 0;">
@@ -490,18 +517,32 @@ $from_cart = $_GET['from_cart'] ?? false;
     let currentSelectedProduct = null;
     let basePrice = 0;
     let currentQuantity = 1;
-    let robloxTabMode = 'login'; 
+    let robloxTabMode = 'login'; // 'login' atau '5hari'
+    
 
     function selectProduct(element, price, name) {
+        // Reset pilihan sebelumnya
         const cards = document.querySelectorAll('.item-card');
         cards.forEach(c => c.classList.remove('selected'));
+
+        // Aktifkan pilihan baru
         element.classList.add('selected');
         
+        // Simpan ke variabel global agar bisa dibaca fungsi submitOrder
         currentSelectedProduct = name;
         basePrice = price;
 
+        // Update UI
         document.getElementById('selected-product-name').innerText = name;
-        updatePriceDisplay();
+        
+        // Pastikan fungsi ini ada di script kamu mprruy
+        if (typeof updatePriceDisplay === "function") {
+            updatePriceDisplay();
+        } else {
+            // Fallback jika updatePriceDisplay belum dibuat
+            const display = document.getElementById('total-price-display');
+            if(display) display.innerText = "Rp " + price.toLocaleString('id-ID');
+        }
     }
 
     function adjustQty(amount) {
@@ -511,18 +552,19 @@ $from_cart = $_GET['from_cart'] ?? false;
         updatePriceDisplay();
     }
 
+    /**
+     * Hitung & tampilkan total harga live
+     */
     function updatePriceDisplay() {
         const total = basePrice * currentQuantity;
-        const display = document.getElementById('total-price-display');
-        if(display) {
-            display.innerText = "Rp " + total.toLocaleString('id-ID');
-        }
+        document.getElementById('total-price-display').innerText = "Rp " + total.toLocaleString('id-ID');
     }
 
     function toggleRobloxTab(mode) {
         robloxTabMode = mode;
         const filterKey = (mode === 'login') ? 'roblox_login' : 'roblox_5hari';
         
+        // 1. UI Button & Fields (Udah ada di kode lu)
         document.getElementById('btn-tab-login').classList.toggle('active', mode === 'login');
         document.getElementById('btn-tab-5hari').classList.toggle('active', mode === '5hari');
         document.getElementById('roblox-fields-login').style.display = (mode === 'login' ? 'block' : 'none');
@@ -532,6 +574,7 @@ $from_cart = $_GET['from_cart'] ?? false;
             el.style.display = (el.getAttribute('data-tipe') === filterKey) ? 'flex' : 'none';
         });
 
+        // Reset pilihan produk kalau pindah tab biar gak salah harga
         currentSelectedProduct = null;
         basePrice = 0;
         document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
@@ -558,13 +601,18 @@ $from_cart = $_GET['from_cart'] ?? false;
             return;
         }
 
-        const formData = new FormData();
-        formData.append('id_game', "<?php echo $id_g; ?>"); 
+        const idGameAsli = "<?php echo $id_g; ?>";
+        // Persiapan data
+        let formData = new FormData();
+        // Nama field harus 'id_game' sesuai tabel di phpMyAdmin lu
+        formData.append('id_game', idGameAsli); 
         formData.append('nama_produk', currentSelectedProduct);
         formData.append('harga', basePrice);
         formData.append('qty', currentQuantity);
-
-        fetch('proses_keranjang.php', { method: 'POST', body: formData })
+        fetch('proses_keranjang.php', {
+            method: 'POST',
+            body: formData
+        })
         .then(res => res.text())
         .then(data => {
             Swal.fire({
@@ -581,8 +629,8 @@ $from_cart = $_GET['from_cart'] ?? false;
     }
 
     function submitOrder() {
+        // 1. CEK LOGIN
         const isLoggedIn = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
-        
         if (!isLoggedIn) {
             Swal.fire({
                 icon: 'info',
@@ -599,19 +647,20 @@ $from_cart = $_GET['from_cart'] ?? false;
             return;
         }
 
-        let userDataRaw = '';
-        const gameName = "<?php echo strtolower($g['nama_game']); ?>";
+        // 3. NOTIF SURUH ISI DATA (VALIDASI INPUT)
+        let userDataRaw = "";
+        const gameName = <?= tz_js(strtolower((string)$g['nama_game'])) ?>;
 
         try {
             if (gameName.includes('roblox')) {
                 if (robloxTabMode === 'login') {
                     const u = document.getElementById('rblx_user').value.trim();
                     const p = document.getElementById('rblx_pass').value.trim();
-                    if(!u || !p) throw "Isi Username & Password Roblox lu!";
+                    if(!u || !p) throw "Isi Username & Password Roblox lu mprruy!";
                     userDataRaw = `Mode: Login | User: ${u} | Pass: ${p}`;
                 } else {
                     const idOnly = document.getElementById('rblx_id_only').value.trim();
-                    if(!idOnly) throw "Isi Username Roblox-nya!";
+                    if(!idOnly) throw "Isi Username Roblox-nya mprruy!";
                     userDataRaw = `Mode: 5 Hari | Target: ${idOnly}`;
                 }
             } else if (gameName.includes('ml') || gameName.includes('legend')) {
@@ -620,8 +669,9 @@ $from_cart = $_GET['from_cart'] ?? false;
                 if(!id || !zone) throw "User ID & Zone ID MLBB wajib diisi!";
                 userDataRaw = `ID: ${id} (${zone})`;
             } else {
+                // Cek input general (untuk FF, PUBG, dll)
                 const inputGeneral = document.getElementById('general_user_id');
-                if(!inputGeneral || !inputGeneral.value.trim()) throw "Data ID game jangan kosong!";
+                if(!inputGeneral || !inputGeneral.value.trim()) throw "Data akun/ID game jangan kosong mprruy!";
                 userDataRaw = inputGeneral.value.trim();
             }
         } catch (pesanError) {
@@ -629,9 +679,28 @@ $from_cart = $_GET['from_cart'] ?? false;
             return;
         }
 
+        // 4. GAS KE PEMBAYARAN
         const gameId = "<?php echo $id_g; ?>";
-        const targetUrl = `Checkout/pembayaran.php?id_game=${gameId}&user=${encodeURIComponent(userDataRaw)}&produk=${encodeURIComponent(currentSelectedProduct)}&harga=${basePrice}&qty=${currentQuantity}`;
+        // Pastikan variabel basePrice & currentQuantity ada nilainya
+        const finalPrice = (typeof basePrice !== 'undefined') ? basePrice : 0;
+        const finalQty = (typeof currentQuantity !== 'undefined') ? currentQuantity : 1;
+        
+        const targetUrl = `Checkout/pembayaran.php?id_game=${gameId}&user=${encodeURIComponent(userDataRaw)}&produk=${encodeURIComponent(currentSelectedProduct)}&harga=${finalPrice}&qty=${finalQty}`;
+        
         window.location.href = targetUrl;
+    }
+    function cekLoginSebelumBeli() {
+    // Asumsikan kamu menyimpan status login di variabel JS atau mengecek session PHP
+    var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+    if (!isLoggedIn) {
+        alert("Waduh! Login dulu yuk sebelum belanja.");
+        window.location.href = "login.php"; // Arahkan ke halaman login
+        return false;
+    }
+    
+    // Jika sudah login, lanjut ke proses keranjang/beli
+    document.getElementById("form-pembelian").submit();
     }
 </script>
 

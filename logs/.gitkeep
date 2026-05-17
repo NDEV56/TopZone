@@ -1,0 +1,3 @@
+# Folder ini akan terisi otomatis saat server jalan.
+# Isinya: log harian per kategori (common, warning, error, critical, security, uncommon).
+# File .log otomatis di-rotasi kalau > 5 MB, dan dihapus setelah LOG_RETENTION_DAYS hari.
