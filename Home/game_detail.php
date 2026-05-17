@@ -359,24 +359,31 @@ $from_cart = $_GET['from_cart'] ?? false;
         <?php endif; ?>
 
         <div class="item-grid" id="product-list">
-            <?php 
-            $q_produk = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_g' ORDER BY harga ASC");
-            if(mysqli_num_rows($q_produk) > 0): 
-                while($p = mysqli_fetch_assoc($q_produk)): 
-                    $tipe_p = $p['tipe'] ?? 'default'; 
+            <?php
+            // PREPARED: hindari SQL injection lewat $id_g + escape XSS output
+            try {
+                $produk_list = tz_db()->fetchAll(
+                    'SELECT * FROM produk_game WHERE id_game = ? ORDER BY harga ASC',
+                    [(int)$id_g]
+                );
+            } catch (\Throwable $e) { $produk_list = []; }
+
+            if (count($produk_list) > 0):
+                foreach ($produk_list as $p):
+                    $tipe_p = (string)($p['tipe'] ?? 'default');
             ?>
-                <div class="item-card produk-item" 
-                    data-tipe="<?= $tipe_p ?>" 
-                    onclick="selectProduct(this, <?= $p['harga']; ?>, '<?= addslashes($p['nama_produk']); ?>')"
+                <div class="item-card produk-item"
+                    data-tipe="<?= tz_attr($tipe_p) ?>"
+                    onclick="selectProduct(this, <?= (int)$p['harga'] ?>, <?= tz_js((string)$p['nama_produk']) ?>)"
                     style="display: <?= ($gn_check == 'roblox' && $tipe_p != 'roblox_login') ? 'none' : 'flex' ?>;">
-                    <div style="font-size: 14px; font-weight: 600; color: #ffffff;"><?= $p['nama_produk']; ?></div>
-                    <div class="price">Rp <?= number_format($p['harga'], 0, ',', '.'); ?></div>
+                    <div style="font-size: 14px; font-weight: 600; color: #ffffff;"><?= tz_e($p['nama_produk']) ?></div>
+                    <div class="price">Rp <?= tz_e(number_format((int)$p['harga'], 0, ',', '.')) ?></div>
                 </div>
             <?php endforeach; ?>
 
             <?php else: ?>
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa;">
-                    <p>Produk belum tersedia untuk game ini mprruy. 🙏</p>
+                    <p>Produk belum tersedia untuk game ini.</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -385,6 +392,7 @@ $from_cart = $_GET['from_cart'] ?? false;
             <h3>2. Testimoni Pembeli</h3>
             
             <div style="background: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 15px; border: 1px solid rgba(251, 255, 0, 0.25); margin-bottom: 30px;">
+                <?php if (tz_is_logged_in()): ?>
                 <form action="simpan_ulasan.php" method="POST">
                     <?= tz_csrf_field() ?>
                     <input type="hidden" name="id_game" value="<?= (int)$id_g ?>">

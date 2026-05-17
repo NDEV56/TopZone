@@ -1,60 +1,79 @@
 <?php
 /**
- * search.php — HARDENED v3.1
- *   • Prepared statements (parameter binding untuk LIKE)
- *   • Output XSS-safe
+ * search.php — HARDENED v3.1.1 (preserve fitur case-insensitive Nafi)
+ *   • Prepared statements (anti SQL injection)
+ *   • Output XSS-safe via tz_e / tz_attr
  *   • Length cap pada input
- *   • Whitelist kategori
+ *   • Case-insensitive search (LOWER)
+ *   • Tetap response 'tidak ditemukan' untuk kompat dengan javascript.js
  */
 require_once __DIR__ . '/_security.php';
 tz_security_init();
 
-// Ambil parameter search dan kategori
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$kategori = isset($_GET['kategori']) ? trim($_GET['kategori']) : '';
+// Ambil + sanitasi input
+$search   = substr(trim((string)($_GET['search']   ?? '')), 0, 64);
+$kategori = substr(trim((string)($_GET['kategori'] ?? '')), 0, 32);
 
-// Ubah kata kunci ke huruf kecil biar pencarian bebas huruf besar/kecil bray
-$searchLower = strtolower($search);
+// Whitelist kategori
+$allowedKategori = ['Game','MOBA','FPS','Open World','semua',''];
+$katNorm = strtolower($kategori);
+if (!in_array($kategori, $allowedKategori, true) && !in_array($katNorm, ['semua',''], true)) {
+    $kategori = ''; // ignore invalid
+}
 
-// Pondasi dasar query
-$sql = "SELECT g.*, 
-               IFNULL(AVG(r.rating), 0) as rating_rata, 
-               COUNT(r.id) as total_ulasan
+// Bangun query dengan prepared statements
+$params = [];
+$sql = "SELECT g.*,
+               IFNULL(AVG(r.rating), 0) AS rating_rata,
+               COUNT(r.id) AS total_ulasan
         FROM games g
         LEFT JOIN reviews r ON g.id = r.id_game
-        WHERE 1=1"; // Menggunakan 1=1 agar penggabungan AND di bawah aman
+        WHERE 1=1";
 
-// Filter Kategori (Abaikan jika kategorinya kosong atau bernilai "Semua")
-if ($kategori !== '' && strtolower($kategori) !== 'semua') {
-    $sql .= " AND LOWER(g.kategori) = '" . mysqli_real_escape_string($conn, strtolower($kategori)) . "'";
+// Filter kategori (skip kalau kosong atau 'semua')
+if ($kategori !== '' && $katNorm !== 'semua') {
+    $sql .= " AND LOWER(g.kategori) = LOWER(?)";
+    $params[] = $kategori;
 }
 
-// Filter Pencarian Nama Game (Dibuat case-insensitive pakai LOWER)
+// Filter pencarian (case-insensitive)
 if ($search !== '') {
-    $sql .= " AND LOWER(g.nama_game) LIKE '%" . mysqli_real_escape_string($conn, $searchLower) . "%'";
+    // Escape karakter LIKE: %, _, \
+    $like = '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], strtolower($search)) . '%';
+    $sql .= " AND LOWER(g.nama_game) LIKE ?";
+    $params[] = $like;
 }
 
-// Kelompokkan berdasarkan ID Game
-$sql .= " GROUP BY g.id";
+$sql .= " GROUP BY g.id LIMIT 100";
 
-// Eksekusi query menggunakan variabel $conn sesuai file aslimu bray
-$result = mysqli_query($conn, $sql);
+try {
+    $rows = tz_db()->fetchAll($sql, $params);
+} catch (\Throwable $e) {
+    error_log('[topzone-search] ' . $e->getMessage());
+    echo 'tidak ditemukan';
+    exit;
+}
 
-if ($result && mysqli_num_rows($result) > 0) {
-    while ($g = mysqli_fetch_assoc($result)) {
-        // Render format kartu game persis bawaan index.php kamu
-        echo '
-        <a href="game_detail.php?game='.$g['slug'].'" class="tp-card">
-            <div class="tp-img" style="background-image:url(\''.$g['gambar'].'\')"></div>
-            <div class="tp-info">
-                <h4>'.$g['nama_game'].'</h4>
-                <div class="tp-meta">
-                    ⭐ '.number_format($g['rating_rata'], 1).' | '.$g['terjual'].' terjual
-                </div>
+if (count($rows) === 0) {
+    // String yang dikenali javascript.js sebagai "kosong" → tampilkan notFound
+    echo 'tidak ditemukan';
+    exit;
+}
+
+foreach ($rows as $g) {
+    $slug    = tz_attr($g['slug'] ?? '');
+    $gambar  = tz_attr($g['gambar'] ?? 'Default.jpg');
+    $nama    = tz_e($g['nama_game'] ?? '');
+    $rating  = number_format((float)($g['rating_rata'] ?? 0), 1);
+    $terjual = (int)($g['terjual'] ?? 0);
+    echo '
+    <a href="game_detail.php?game=' . $slug . '" class="tp-card">
+        <div class="tp-img" style="background-image:url(\'' . $gambar . '\')"></div>
+        <div class="tp-info">
+            <h4>' . $nama . '</h4>
+            <div class="tp-meta">
+                ⭐ ' . $rating . ' | ' . $terjual . ' terjual
             </div>
-        </a>';
-    }
-} else {
-    // Kirim string "tidak ditemukan" agar dibaca oleh cleanData.includes("tidak ditemukan") di JS kamu
-    echo "tidak ditemukan"; 
+        </div>
+    </a>';
 }

@@ -86,18 +86,29 @@ try {
     exit;
 }
 
-    echo '
-    <div class="user-item" id="user-'.$row['id'].'" onclick="openChat('.$row['id'].', \''.htmlspecialchars($row['username']).'\', \''.$foto_user.'\')" 
+foreach ($rows as $row) {
+    $id        = (int)$row['id'];
+    $username  = (string)($row['username'] ?? '');
+    $pesan     = (string)($row['pesan'] ?? '');
+    $foto_user = !empty($row['foto']) ? basename((string)$row['foto']) : 'Default.jpg';
+    $singkat   = (mb_strlen($pesan) > 30) ? mb_substr($pesan, 0, 30) . '...' : $pesan;
+    $waktu     = date('H:i', strtotime((string)$row['created_at']));
+?>
+    <div class="user-item" id="user-<?= $id ?>"
+         data-id="<?= $id ?>"
+         data-name="<?= tz_attr($username) ?>"
+         data-foto="<?= tz_attr($foto_user) ?>"
+         onclick="openChat(this.dataset.id, this.dataset.name, this.dataset.foto)"
          style="padding: 16px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); cursor: pointer; transition: all 0.2s ease; position: relative;">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="../../uploads/'.$foto_user.'" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+            <img src="../../uploads/<?= tz_attr($foto_user) ?>" onerror="this.src='../../Default.jpg'" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
             <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="user-name" style="font-weight: 600; font-size: 13.5px;">'.htmlspecialchars($row['username']).'</span>
-                    <span style="font-size: 11px; color: #647b9b;">'.$waktu.'</span>
+                    <span class="user-name" style="font-weight: 600; font-size: 13.5px;"><?= tz_e($username) ?></span>
+                    <span style="font-size: 11px; color: #647b9b;"><?= tz_e($waktu) ?></span>
                 </div>
                 <div style="font-size: 12px; color: #a3b8cc; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    '.htmlspecialchars($pesan_singkat).'
+                    <?= tz_e($singkat) ?>
                 </div>
             </div>
         </div>
