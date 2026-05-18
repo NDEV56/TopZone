@@ -2,32 +2,83 @@
 session_start();
 include '../koneksi.php'; 
 
-// 1. AMBIL DATA DARI URL (Disamakan dengan parameter: id_game, paket, harga)
-$id_game = mysqli_real_escape_string($koneksi, $_GET['id_game'] ?? '');
-$user_data_mentah = $_GET['user'] ?? '';
+$items_checkout = [];
+$total_tagihan = 0;
+$mode_checkout = ''; // Pengandaian mode: 'multi' (keranjang) atau 'single' (beli langsung)
 
-// Menggunakan 'paket' sesuai dengan parameter yang dikirim dari halaman produk sebelumnya
-$nama_produk = $_GET['paket'] ?? ($_GET['produk'] ?? 'Produk'); 
-$harga_satuan = (int)($_GET['harga'] ?? 0);
-$qty = (int)($_GET['qty'] ?? 1);
-
-// 2. AMBIL DATA DARI DATABASE (Cek Game & Tipe-nya)
-$nama_game = 'Game';
-$path_foto = "../assets/img/default.jpg"; // Set default cadangan jika tidak ketemu
-
-if (!empty($id_game)) {
-    $query_game = mysqli_query($koneksi, "SELECT * FROM games WHERE id = '$id_game'");
+// =========================================================================
+// LOGIKA 1: JIKA CHECKOUT DARI KERANJANG (MULTI ITEM VIA PARAMETER 'ids')
+// =========================================================================
+if (!empty($_GET['ids'])) {
+    $mode_checkout = 'multi';
     
-    if ($query_game && mysqli_num_rows($query_game) > 0) {
-        $data_game = mysqli_fetch_assoc($query_game);
-        $nama_game = $data_game['nama_game'] ?? 'Game';
-        
-        // Menggunakan kolom 'gambar' sesuai dengan struktur tabel games kamu bray
-        $nama_foto = $data_game['gambar'] ?? 'default.jpg'; 
-        
-        // Sesuaikan path folder gambar kamu
-        $path_foto = "../" . $nama_foto; 
+    // Pecah string ID (Misal: "1,2,3") menjadi array, lalu bersihkan dari SQL Injection
+    $ids_raw = explode(',', $_GET['ids']);
+    $ids_clean = array_map('intval', $ids_raw);
+    $ids_implode = implode(',', $ids_clean);
+
+    // Ambil data game dan catatan akun langsung dari database keranjang & games
+    $query = "SELECT k.id_keranjang, k.qty, k.harga, k.nama_produk, k.catatan, g.nama_game, g.gambar, g.id AS id_game 
+              FROM keranjang k 
+              LEFT JOIN games g ON k.id_game = g.id 
+              WHERE k.id_keranjang IN ($ids_implode)";
+    
+    $result = mysqli_query($koneksi, $query);
+    while ($row = mysqli_fetch_assoc($result)) {
+        $items_checkout[] = [
+            'id_game'     => $row['id_game'],
+            'nama_game'   => $row['nama_game'] ?? 'Game',
+            'gambar'      => $row['gambar'] ? "../" . $row['gambar'] : "../assets/img/default.jpg",
+            'nama_produk' => $row['nama_produk'],
+            'harga'       => (int)$row['harga'], // Harga satuan asli
+            'qty'         => (int)$row['qty'],
+            'user_data'   => $row['catatan'] // Menyimpan data akun bawaan dari keranjang
+        ];
+        // Total tagihan akumulasi: (harga satuan * qty) per item
+        $total_tagihan += ((int)$row['harga'] * (int)$row['qty']);
     }
+} 
+// =========================================================================
+// LOGIKA 2: JIKA BELI LANGSUNG DARI HALAMAN PRODUK (SINGLE ITEM)
+// =========================================================================
+elseif (!empty($_GET['id_game'])) {
+    $mode_checkout = 'single';
+    $id_game = (int)$_GET['id_game'];
+    $user_data_mentah = $_GET['user'] ?? '';
+    $nama_produk = $_GET['paket'] ?? ($_GET['produk'] ?? 'Produk'); 
+    $harga_satuan = (int)($_GET['harga'] ?? 0);
+    $qty = (int)($_GET['qty'] ?? 1);
+
+    // Ambil data cover & nama game dari DB
+    $nama_game = 'Game';
+    $path_foto = "../assets/img/default.jpg";
+    
+    $stmt_game = $koneksi->prepare("SELECT nama_game, gambar FROM games WHERE id = ?");
+    $stmt_game->bind_param("i", $id_game);
+    $stmt_game->execute();
+    $result_game = $stmt_game->get_result();
+    
+    if ($result_game && $result_game->num_rows > 0) {
+        $data_game = $result_game->fetch_assoc();
+        $nama_game = $data_game['nama_game'] ?? 'Game';
+        $path_foto = "../" . ($data_game['gambar'] ?? 'default.jpg'); 
+    }
+    $stmt_game->close();
+
+    // Masukkan ke array satu-satunya item
+    $items_checkout[] = [
+        'id_game'     => $id_game,
+        'nama_game'   => $nama_game,
+        'gambar'      => $path_foto,
+        'nama_produk' => $nama_produk,
+        'harga'       => $harga_satuan,
+        'qty'         => $qty,
+        'user_data'   => $user_data_mentah
+    ];
+    $total_tagihan = $harga_satuan * $qty;
+} else {
+    // Pengaman jika diakses tanpa parameter apa pun mprruy
+    die("<h2 style='color:#fff; text-align:center; font-family:sans-serif; padding-top:100px;'>Akses Ilegal Bray! Data produk tidak ditemukan.</h2>");
 }
 ?>
 
@@ -78,9 +129,9 @@ if (!empty($id_game)) {
             margin: auto; 
             width: 100%;
             box-sizing: border-box;
+            align-items: flex-start;
         }
 
-        /* Premium Liquid Glass Card */
         .card { 
             background: var(--glass-bg); 
             backdrop-filter: blur(20px) saturate(180%);
@@ -113,11 +164,21 @@ if (!empty($id_game)) {
             gap: 10px;
         }
 
-        h2 i {
-            color: var(--neon-accent);
+        h2 i { color: var(--neon-accent); }
+
+        /* Blok baris per item */
+        .item-checkout-block {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            background: rgba(0,0,0,0.15);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
-        /* Glass Form Inputs */
         .input-edit-data { 
             width: 100%; 
             padding: 12px 15px; 
@@ -140,7 +201,6 @@ if (!empty($id_game)) {
 
         .group-input { margin-bottom: 16px; }
 
-        /* Liquid Interactive Payment Box */
         .method-box { 
             padding: 20px; 
             background: rgba(255,255,255,0.03);
@@ -160,24 +220,20 @@ if (!empty($id_game)) {
             content: '';
             position: absolute;
             top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90% , transparent, rgba(255,255,255,0.08), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
             transition: 0.5s;
         }
-
         .method-box:hover::before { left: 100%; }
-
         .method-box:hover { 
             border-color: rgba(255,255,255,0.4);
             background: rgba(255,255,255,0.06);
         }
-
         .method-box.active { 
             border-color: var(--neon-accent); 
             background: rgba(255, 106, 0, 0.1);
             box-shadow: 0 0 20px rgba(255, 106, 0, 0.2);
         }
 
-        /* Luxury Checkout Button */
         .btn-pay { 
             width: 100%; 
             padding: 16px; 
@@ -201,7 +257,6 @@ if (!empty($id_game)) {
         .btn-pay:active:not(:disabled) { transform: scale(0.98); }
         .btn-pay:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-        /* Confirmation Alert Styling */
         #box-konfirmasi { 
             background: rgba(255, 106, 0, 0.08); 
             padding: 15px; 
@@ -212,7 +267,6 @@ if (!empty($id_game)) {
 
         hr { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0; }
 
-        /* Responsive Layout Grid */
         @media (max-width: 900px) {
             .container { flex-direction: column; padding: 15px; }
             body { align-items: flex-start; }
@@ -224,24 +278,32 @@ if (!empty($id_game)) {
 <div class="container animate__animated animate__fadeIn">
     <div style="flex: 2; width: 100%;">
         <div class="card">
-            <h2><i class="fa-solid : fa-gamepad"></i> Informasi Pesanan</h2>
-            <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-                <img src="<?= $path_foto ?>" style="width: 100px; height: 100px; border-radius: 16px; object-fit: cover; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
+            <h2><i class="fa-solid fa-gamepad"></i> Informasi Pesanan</h2>
+            
+            <?php foreach ($items_checkout as $index => $item): ?>
+            <div class="item-checkout-block" 
+                 data-idgame="<?= htmlspecialchars($item['id_game']) ?>" 
+                 data-produk="<?= htmlspecialchars($item['nama_produk']) ?>" 
+                 data-harga="<?= $item['harga'] ?>" 
+                 data-qty="<?= $item['qty'] ?>">
+                
+                <img src="<?= htmlspecialchars($item['gambar']) ?>" onerror="this.src='../assets/img/default.jpg'" style="width: 90px; height: 90px; border-radius: 16px; object-fit: cover; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.3);" alt="Game Cover">
                 
                 <div style="flex: 1; min-width: 200px;">
-                    <h3 style="margin:0; font-size: 1.35em; color: #fff; font-weight: 700;"><?= htmlspecialchars($nama_produk) ?></h3>
+                    <h3 style="margin:0; font-size: 1.3em; color: #fff; font-weight: 700;"><?= htmlspecialchars($item['nama_produk']) ?></h3>
                     <p style="margin:6px 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.95em;">
-                        <i class="fa-solid fa-layer-group" style="margin-right: 5px; color: var(--neon-glow);"></i> Game: <strong><?= htmlspecialchars($nama_game) ?></strong>
+                        <i class="fa-solid fa-layer-group" style="margin-right: 5px; color: var(--neon-glow);"></i> Game: <strong><?= htmlspecialchars($item['nama_game']) ?></strong> 
+                        &bull; <b style="color:var(--neon-glow);">Rp <?= number_format($item['harga'], 0, ',', '.') ?> (x<?= $item['qty'] ?>)</b>
                     </p>
 
-                    <div style="background: rgba(0,0,0,0.15); padding: 18px; border-radius: 14px; margin-top: 20px; border: 1px solid rgba(255,255,255,0.05);">
-                        <label style="font-size: 0.75em; color: var(--neon-glow); font-weight: 800; text-transform: uppercase; display: block; margin-bottom: 12px; letter-spacing: 1.5px;">
+                    <div style="background: rgba(0,0,0,0.15); padding: 15px; border-radius: 14px; margin-top: 15px; border: 1px solid rgba(255,255,255,0.05); border-left: 3px solid var(--neon-accent);">
+                        <label style="font-size: 0.75em; color: var(--neon-glow); font-weight: 800; text-transform: uppercase; display: block; margin-bottom: 12px; letter-spacing: 1px;">
                             <i class="fa-solid fa-user-gear"></i> Konfirmasi / Edit Data Akun:
                         </label>
                         
-                        <div id="container-input-data">
+                        <div class="container-input-data">
                             <?php 
-                            $acc_json = json_decode($user_data_mentah, true); 
+                            $acc_json = json_decode($item['user_data'], true); 
                             
                             if (is_array($acc_json)) {
                                 foreach ($acc_json as $label => $value): 
@@ -253,7 +315,7 @@ if (!empty($id_game)) {
                             <?php 
                                 endforeach;
                             } else {
-                                $data_list = explode('|', $user_data_mentah); 
+                                $data_list = explode('|', $item['user_data']); 
                                 foreach ($data_list as $baris): 
                                     if (empty(trim($baris))) continue;
                                     
@@ -278,11 +340,12 @@ if (!empty($id_game)) {
                     </div>
                 </div>
             </div>
+            <?php endforeach; ?>
         </div>
 
         <div class="card">
             <h2><i class="fa-solid fa-credit-card"></i> Metode Pembayaran</h2>
-            <div id="xendit-box" class="method-box" onclick="pilihMetode('Xendit Payment (QRIS, VA, Dana, dll)')">
+            <div id="xendit-box" class="method-box" onclick="pilihMetode(this, 'Xendit Payment (QRIS, VA, Dana, dll)')">
                 <div style="background: rgba(255,106,0,0.1); width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--neon-accent); font-size: 1.3rem;">
                     <i class="fa-solid fa-qrcode"></i>
                 </div>
@@ -297,18 +360,27 @@ if (!empty($id_game)) {
     <div style="flex: 1; width: 100%;">
         <div class="card" style="position: sticky; top: 20px;">
             <h2><i class="fa-solid fa-receipt"></i> Detail Pembayaran</h2>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: rgba(255,255,255,0.7);">
-                <span>Harga Satuan</span>
-                <span style="color: #fff; font-weight: 600;">Rp <?= number_format($harga_satuan, 0, ',', '.') ?></span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: rgba(255,255,255,0.7);">
-                <span>Jumlah</span>
-                <span style="color: #fff; font-weight: 600;">x<?= $qty ?></span>
-            </div>
-            <hr>
+            
+            <?php if ($mode_checkout === 'single'): ?>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: rgba(255,255,255,0.7);">
+                    <span>Harga Satuan</span>
+                    <span style="color: #fff; font-weight: 600;">Rp <?= number_format($items_checkout[0]['harga'], 0, ',', '.') ?></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: rgba(255,255,255,0.7);">
+                    <span>Jumlah</span>
+                    <span style="color: #fff; font-weight: 600;">x<?= $items_checkout[0]['qty'] ?></span>
+                </div>
+                <hr>
+            <?php else: ?>
+                <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-bottom: 12px;">
+                    <i class="fa-solid fa-boxes-stacked"></i> Gabungan (<?= count($items_checkout) ?>) Item Keranjang
+                </div>
+                <hr>
+            <?php endif; ?>
+
             <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.25em; margin-bottom: 20px; align-items: center;">
                 <span>Total Tagihan</span>
-                <span style="color: #fff; text-shadow: 0 0 10px rgba(255,106,0,0.4); font-weight: 800;">Rp <?= number_format($harga_satuan * $qty, 0, ',', '.') ?></span>
+                <span style="color: #fff; text-shadow: 0 0 10px rgba(255,106,0,0.4); font-weight: 800;">Rp <?= number_format($total_tagihan, 0, ',', '.') ?></span>
             </div>
 
             <div id="box-konfirmasi" class="animate__animated animate__fadeIn" style="display: none;">
@@ -326,39 +398,59 @@ if (!empty($id_game)) {
 <script>
 document.getElementById('pay-button').onclick = function() {
     const btn = this;
-    const allInputs = document.querySelectorAll('.input-edit-data');
-    let dataArray = [];
-    
-    allInputs.forEach(input => {
-        const label = input.getAttribute('data-label');
-        const val = input.value.trim();
-        if(val !== "") {
-            dataArray.push(label + ": " + val);
-        }
+    let finalPayload = [];
+    let isDataKosong = false;
+
+    // Kumpulkan data terupdate dari setiap blok game secara independen (mendukung multi/single otomatis)
+    document.querySelectorAll('.item-checkout-block').forEach(block => {
+        let tempAkun = [];
+        block.querySelectorAll('.input-edit-data').forEach(input => {
+            const label = input.getAttribute('data-label');
+            const val = input.value.trim();
+            if(val === "") {
+                isDataKosong = true;
+            }
+            tempAkun.push(label + ": " + val);
+        });
+
+        finalPayload.push({
+            id_game: block.getAttribute('data-idgame'),
+            produk: block.getAttribute('data-produk'),
+            harga: block.getAttribute('data-harga'), // harga satuan
+            qty: block.getAttribute('data-qty'),
+            user_data: tempAkun.join(' | ') // data gabungan khusus game ini
+        });
     });
 
-    const dataUserTerupdate = dataArray.join(' | ');
-
-    if (dataArray.length === 0) {
-        alert("Data pesanan gak boleh kosong mprruy!");
+    if (isDataKosong) {
+        alert("Data pesanan atau akun ada yang kosong mprruy! Harap lengkapi semua.");
         return;
     }
 
-    // Ubah status tombol jadi Loading State yang clean
+    // Ubah status tombol jadi Loading State
     btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Processing...";
     btn.disabled = true;
+
+    // Bangun data kiriman
+    let bodyData = {
+        'id_user': <?= json_encode($_SESSION['id_user'] ?? 0) ?>,
+        'total_bayar': '<?= $total_tagihan ?>',
+        'pesanan_multi': JSON.stringify(finalPayload) // Kirim full payload terstruktur array JSON
+    };
+
+    // Jaga komparasi kompatibilitas mundur jika 'ambil_token.php' lu masih butuh parameter lama untuk single item
+    if(finalPayload.length === 1) {
+        bodyData['id_game'] = finalPayload[0].id_game;
+        bodyData['produk']  = finalPayload[0].produk;
+        bodyData['harga']   = '<?= $total_tagihan ?>'; // Total harga akumulasi
+        bodyData['qty']     = finalPayload[0].qty;
+        bodyData['user']    = finalPayload[0].user_data;
+    }
 
     fetch('ambil_token.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-                'id_user': '<?= $_SESSION['id_user'] ?? 0 ?>',
-                'id_game': '<?= $id_game ?>',
-                'produk': '<?= $nama_produk ?>',
-                'harga': '<?= $harga_satuan * $qty ?>', 
-                'qty': '<?= $qty ?>',
-                'user': dataUserTerupdate 
-            })
+        body: new URLSearchParams(bodyData)
     })
     .then(res => res.json())
     .then(data => {
@@ -378,11 +470,15 @@ document.getElementById('pay-button').onclick = function() {
     });
 };
 
-function pilihMetode(nama) {
+function pilihMetode(element, nama) {
+    document.querySelectorAll('.method-box').forEach(box => {
+        box.classList.remove('active');
+    });
+    element.classList.add('active');
+    
     const confirmBox = document.getElementById('box-konfirmasi');
     confirmBox.style.display = 'block';
     document.getElementById('teks-metode').innerText = nama;
-    document.getElementById('xendit-box').classList.add('active');
     document.getElementById('pay-button').disabled = false;
 }
 </script>

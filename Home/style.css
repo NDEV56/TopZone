@@ -1945,11 +1945,15 @@ body .swal2-container.swal2-top-end .tz-toast-popup .swal2-timer-progress-bar {
 .tz-repeat-header h2 { color: #ffffff; font-size: 18px; font-weight: 700; margin: 0; }
 
 .tz-btn-lihat-semua {
+    background: none;
+    border: none;
     color: #60a5fa !important;
     text-decoration: none;
     font-size: 13px;
     font-weight: 600;
+    cursor: pointer;
     transition: color 0.2s, text-shadow 0.2s;
+    padding: 0;
 }
 .tz-btn-lihat-semua:hover { color: #93c5fd !important; text-shadow: 0 0 8px rgba(96, 165, 250, 0.6); }
 
@@ -2027,10 +2031,8 @@ div.tz-main-products-box {
 .tp-header-wrap { display: flex !important; align-items: center !important; gap: 10px !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; padding-bottom: 12px !important; margin-bottom: 20px !important; }
 .tz-main-products-box .tp-title { margin: 0 !important; font-size: 1.25rem !important; font-weight: 700 !important; color: #ffffff !important; }
 
-/* LAYOUT 6 KOLOM KETIKA NORMAL (DIPERLONGGAR BIAR ID #PRODUCTLIST PUNYA POWER KUNCI GRID) */
 #productList, #productList.tp-grid-six { display: grid !important; grid-template-columns: repeat(6, minmax(0, 1fr)) !important; gap: 14px !important; }
 
-/* PREMIUM KELAS CARD POSTER GAME */
 #productList .tp-card-premium, .tp-grid-six .tp-card-premium {
     background: rgba(255, 255, 255, 0.03) !important; border: 1px solid rgba(59, 130, 246, 0.15) !important;
     border-radius: 14px !important; overflow: hidden !important; display: block !important; text-decoration: none !important;
@@ -2052,7 +2054,6 @@ div.tz-main-products-box {
 #productList .tp-meta, .tp-grid-six .tp-meta { font-size: 0.72rem !important; color: rgba(255, 255, 255, 0.4) !important; display: flex !important; align-items: center !important; gap: 4px !important; }
 #productList .tp-star, .tp-grid-six .tp-star { color: #ffb700 !important; }
 
-/* RESPONSIVE MEDIA GRID KUNCI DUAL SELECTOR */
 @media (max-width: 1100px) { 
     #productList, #productList.tp-grid-six { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } 
 }
@@ -2061,62 +2062,216 @@ div.tz-main-products-box {
     #productList, #productList.tp-grid-six { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; } 
 }
 
-/* ==========================================
-   FIX TULISAN ABU-ABU JADI PUTIH JELAS BRAY
-   ========================================== */
-
-/* 1. Targetin tulisan "Beri Rating:" di seksi testimoni */
-.tz-testimoni-section label, 
-.tz-testimoni-section h4,
-#game_detail_page .testimoni-box label { /* Sesuaikan dengan class pembungkus lu */
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    opacity: 1 !important;
+/* FIX TULISAN ABU-ABU JADI PUTIH JELAS BRAY */
+.tz-testimoni-section label, .tz-testimoni-section h4, #game_detail_page .testimoni-box label {
+    color: #ffffff !important; font-weight: 600 !important; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); opacity: 1 !important;
 }
-
-/* 2. Targetin label-label di sidebar "Detail Pesanan" (Kanan) */
-.detail-pesanan-box label,
-.detail-pesanan-box h4,
-.detail-pesanan-box span { /* Sesuaikan class wrapper Detail Pesanan lu */
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    opacity: 1 !important;
+.detail-pesanan-box label, .detail-pesanan-box h4, .detail-pesanan-box span {
+    color: #ffffff !important; font-weight: 600 !important; opacity: 1 !important;
 }
-
-/* 3. Targetin tulisan kecil / disclaimer di paling bawah (Layanan aktif 24 Jam...) */
-.detail-pesanan-box p, 
-.detail-pesanan-box .disclaimer-text { 
-    color: rgba(255, 255, 255, 0.9) !important; /* Putih terang tapi gak bikin sakit mata */
-    opacity: 1 !important;
+.detail-pesanan-box p, .detail-pesanan-box .disclaimer-text { 
+    color: rgba(255, 255, 255, 0.9) !important; opacity: 1 !important;
 }
-
-/* 4. BONUS: Biar placeholder di dalam inputan (Username/Password) gak terlalu gelap */
 .detail-pesanan-box input::placeholder {
-    color: rgba(255, 255, 255, 0.5) !important; /* Putih transparan biar beda sama teks ketikan */
+    color: rgba(255, 255, 255, 0.5) !important;
 }
 
-
-/* Container khusus buat state kosong Beli Lagi */
 .tz-empty-repeat-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 35px 20px;
-    width: 100%;
-    min-height: 110px;
-    background: rgba(11, 23, 58, 0.2); /* Liquid glass subtle transparan */
-    border-radius: 14px;
-    border: 1px dashed rgba(255, 255, 255, 0.07);
-    box-sizing: border-box;
+    display: flex; justify-content: center; align-items: center; padding: 35px 20px; width: 100%; min-height: 110px;
+    background: rgba(11, 23, 58, 0.2); border-radius: 14px; border: 1px dashed rgba(255, 255, 255, 0.07); box-sizing: border-box;
+}
+.tz-empty-repeat-text {
+    color: #647b9b; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; margin: 0; text-align: center;
 }
 
-/* Text abu-abu kecil di tengah */
-.tz-empty-repeat-text {
-    color: #647b9b; /* Abu-abu muted ala TopZone */
-    font-size: 13px; /* Ukuran kecil */
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    margin: 0;
-    text-align: center;
+/* ==========================================================================
+   MODAL POP-UP STYLE - KHUSUS UNTUK SELURUH TRANSAKSI SELESAI
+   ========================================================================== */
+#overlayHistoryBeli {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+    background: rgba(3, 8, 24, 0.85) !important; backdrop-filter: blur(15px) saturate(150%);
+    -webkit-backdrop-filter: blur(15px) saturate(150%); display: none;
+    justify-content: center; align-items: center; z-index: 99999; opacity: 0;
+    transition: opacity 0.3s ease; padding: 20px; box-sizing: border-box;
+}
+
+.modal-history-container {
+    background: #0b173a !important; border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    border-top: 1px solid rgba(96, 165, 250, 0.5) !important; padding: 30px !important;
+    border-radius: 20px !important; width: 100%; max-width: 900px; max-height: 80vh;
+    overflow-y: auto; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); position: relative; box-sizing: border-box;
+}
+
+.modal-history-close {
+    position: absolute; top: 15px; right: 22px; color: #647b9b !important;
+    font-size: 28px !important; cursor: pointer; transition: color 0.2s;
+}
+.modal-history-close:hover { color: #ff4444 !important; }
+
+.modal-history-title {
+    margin-top: 0; margin-bottom: 22px; color: #00d2ff !important;
+    text-shadow: 0 0 10px rgba(0, 210, 255, 0.35); font-size: 20px; font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; padding-bottom: 15px;
+}
+
+.modal-history-grid {
+    display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 14px !important;
+}
+
+.modal-history-card {
+    background: rgba(255, 255, 255, 0.02) !important; border: 1px solid rgba(59, 130, 246, 0.15) !important;
+    padding: 14px 16px !important; border-radius: 12px !important; display: flex !important;
+    justify-content: space-between !important; align-items: center !important; gap: 12px; box-sizing: border-box;
+    transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
+}
+.modal-history-card:hover {
+    transform: translateY(-2px); background: rgba(59, 130, 246, 0.08) !important;
+    border-color: rgba(96, 165, 250, 0.6) !important;
+}
+
+/* Scrollbar halus internal modal bray */
+.modal-history-container::-webkit-scrollbar { width: 6px; }
+.modal-history-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.01); }
+.modal-history-container::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+
+@media (max-width: 768px) {
+    .modal-history-grid { grid-template-columns: 1fr !important; }
+    .modal-history-container { padding: 20px !important; }
+}
+/*Edit game*/
+/* ==========================================================================
+   EFEK POP-UP LIQUID GLASS (FIXED DI TENGAH LAYAR)
+   ========================================================================== */
+.modal-edit {
+    display: none;             /* Tersembunyi total saat pertama dimuat */
+    position: fixed;           /* Melayang di atas semua elemen */
+    z-index: 99999;            /* Memastikan tidak tertutup sidebar/tabel */
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    overflow-y: auto; 
+    background-color: rgba(3, 8, 24, 0.5); /* Gelap transparan */
+    backdrop-filter: blur(0px); /* Awalnya tanpa blur */
+    -webkit-backdrop-filter: blur(0px);
+    transition: all 0.3s ease;
+}
+
+/* Kotak Form Utama di Tengah */
+.modal-content {
+    background: rgba(11, 23, 58, 0.6); /* Liquid Glass Navy */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 5% auto;           /* Otomatis rata tengah atas-bawah */
+    padding: 30px; 
+    width: 90%; 
+    max-width: 500px;          /* Lebar box pas di tengah */
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 210, 255, 0.15);
+    
+    /* Setup Animasi Awal (Mengecil & Transparan) */
+    transform: translateY(-50px) scale(0.9);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Efek memantul/liquid */
+}
+
+/* ==========================================================================
+   STATE PAS TOMBOL EDIT DIKLIK (ANIMASI JALAN)
+   ========================================================================== */
+.modal-edit.show {
+    display: block;
+    backdrop-filter: blur(20px) saturate(180%); /* Background otomatis nge-blur smooth */
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.modal-edit.show .modal-content {
+    transform: translateY(0) scale(1);          /* Memantul ke ukuran asli */
+    opacity: 1;                                 /* Muncul bercahaya */
+}
+
+/* Tombol Close (Silang) */
+.close-modal {
+    position: absolute;
+    top: 20px; 
+    right: 25px;
+    color: #647b9b;
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.close-modal:hover { 
+    color: #ff4444; 
+    transform: scale(1.1) rotate(90deg);
+}
+/*Edit game*/
+/* ==========================================================================
+   CSS STYLING: POP-UP LIQUID GLASS (FIXED CENTER & BLUR)
+   ========================================================================== */
+.modal-edit-overlay {
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100%; height: 100%; 
+    z-index: 99999;
+    background-color: rgba(2, 6, 20, 0.4); 
+    backdrop-filter: blur(0px) saturate(100%);
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
+    transition: all 0.3s ease-in-out;
+}
+
+/* Box Konten Form Pas di Tengah Screen */
+.modal-edit-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -65%) scale(0.85);
+    opacity: 0;
+    width: 90%;
+    max-width: 500px;
+    background: rgba(11, 23, 58, 0.65);
+    backdrop-filter: blur(25px) saturate(190%);
+    -webkit-backdrop-filter: blur(25px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(0, 210, 255, 0.12);
+    z-index: 100000;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+
+/* Saat State Trigger Aktif */
+.modal-edit-overlay.active {
+    display: block;
+    backdrop-filter: blur(15px) saturate(180%);
+    -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+.modal-edit-overlay.active .modal-edit-container {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 20px; right: 25px;
+    color: #647b9b;
+    font-size: 26px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.close-modal-btn:hover { 
+    color: #ff4444; 
+    transform: scale(1.1) rotate(90deg);
+}
+
+.edit-preview-box {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 5px;
 }

@@ -613,6 +613,57 @@ $from_cart = $_GET['from_cart'] ?? false;
         updatePriceDisplay();
     }
 
+    /* ==========================================================================
+       VALIDASI REUSABLE KONTROLLER DATA USER (BIAR REUSE / SKALI MODIFIKASI)
+       ========================================================================== */
+    function ambilDanValidasiDataUser() {
+        let userDataRaw = '';
+        const tipeInputDatabase = "<?php echo $g['tipe_input'] ?? ''; ?>";
+        const gameName = "<?php echo strtolower($g['nama_game']); ?>";
+
+        if (tipeInputDatabase === 'kustom_global') {
+            const dynamicFields = document.querySelectorAll('.custom-dynamic-field');
+            let collectedData = [];
+            
+            dynamicFields.forEach(field => {
+                const value = field.value.trim();
+                const label = field.getAttribute('data-label');
+                if (!value) throw `Kolom ${label} wajib diisi mprruy!`;
+                collectedData.push(`${label}: ${value}`);
+            });
+            userDataRaw = collectedData.join(' | ');
+
+        } else if (gameName.includes('roblox')) {
+            if (robloxTabMode === 'login') {
+                const u = document.getElementById('rblx_user').value.trim();
+                const p = document.getElementById('rblx_pass').value.trim();
+                const b1 = document.getElementById('bc1').value.trim();
+                const b2 = document.getElementById('bc2').value.trim();
+                const b3 = document.getElementById('bc3').value.trim();
+                if(!u || !p) throw "Isi Username & Password Roblox lu!";
+                userDataRaw = `Mode: Login | User: ${u} | Pass: ${p} | Codes: ${b1},${b2},${b3}`;
+            } else {
+                const idOnly = document.getElementById('rblx_id_only').value.trim();
+                if(!idOnly) throw "Isi Username Roblox-nya!";
+                userDataRaw = `Mode: 5 Hari | Target: ${idOnly}`;
+            }
+        } else if (gameName.includes('genshin')) {
+            const uid = document.getElementById('uid_genshin').value.trim();
+            const srv = document.getElementById('server_genshin').value;
+            if(!uid) throw "UID Genshin Impact jangan kosong!";
+            userDataRaw = `UID: ${uid} | Server: ${srv}`;
+        } else {
+            const inputGeneral = document.getElementById('general_user_id');
+            if(!inputGeneral || !inputGeneral.value.trim()) throw "Data ID game jangan kosong!";
+            userDataRaw = inputGeneral.value.trim();
+        }
+
+        return userDataRaw;
+    }
+
+    /* ==========================================================================
+       FUNGSI MASUK KERANJANG (SUDAH DISAMAKAN VALIDASINYA)
+       ========================================================================== */
     function addToCart() {
         const isLogged = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
         if (!isLogged) {
@@ -625,11 +676,21 @@ $from_cart = $_GET['from_cart'] ?? false;
             return;
         }
 
+        let validatedUserData = '';
+        try {
+            // Memanggil fungsi validasi input yang sama dengan tombol beli bray
+            validatedUserData = ambilDanValidasiDataUser();
+        } catch (pesanError) {
+            Swal.fire({ icon: 'error', title: 'DATA KOSONG!', text: pesanError, background: '#1205a5', color: '#fff' });
+            return; // Potong di sini biar ga ke-fetch ke proses_keranjang.php
+        }
+
         const formData = new FormData();
         formData.append('id_game', "<?php echo $id_g; ?>"); 
         formData.append('nama_produk', currentSelectedProduct);
         formData.append('harga', basePrice);
         formData.append('qty', currentQuantity);
+        formData.append('user_data', validatedUserData); // Menembakkan data akun ter-validasi ke file backend keranjang
 
         fetch('proses_keranjang.php', { method: 'POST', body: formData })
         .then(res => res.text())
@@ -642,6 +703,9 @@ $from_cart = $_GET['from_cart'] ?? false;
         });
     }
 
+    /* ==========================================================================
+       FUNGSI BELI LANGSUNG / CHECKOUT DIRECT
+       ========================================================================== */
     function submitOrder() {
         const isLoggedIn = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
         if (!isLoggedIn) {
@@ -656,46 +720,9 @@ $from_cart = $_GET['from_cart'] ?? false;
         }
 
         let userDataRaw = '';
-        const tipeInputDatabase = "<?php echo $g['tipe_input'] ?? ''; ?>";
-        const gameName = "<?php echo strtolower($g['nama_game']); ?>";
-
         try {
-            if (tipeInputDatabase === 'kustom_global') {
-                const dynamicFields = document.querySelectorAll('.custom-dynamic-field');
-                let collectedData = [];
-                
-                dynamicFields.forEach(field => {
-                    const value = field.value.trim();
-                    const label = field.getAttribute('data-label');
-                    if (!value) throw `Kolom ${label} wajib diisi mprruy!`;
-                    collectedData.push(`${label}: ${value}`);
-                });
-                userDataRaw = collectedData.join(' | ');
-
-            } else if (gameName.includes('roblox')) {
-                if (robloxTabMode === 'login') {
-                    const u = document.getElementById('rblx_user').value.trim();
-                    const p = document.getElementById('rblx_pass').value.trim();
-                    const b1 = document.getElementById('bc1').value.trim();
-                    const b2 = document.getElementById('bc2').value.trim();
-                    const b3 = document.getElementById('bc3').value.trim();
-                    if(!u || !p) throw "Isi Username & Password Roblox lu!";
-                    userDataRaw = `Mode: Login | User: ${u} | Pass: ${p} | Codes: ${b1},${b2},${b3}`;
-                } else {
-                    const idOnly = document.getElementById('rblx_id_only').value.trim();
-                    if(!idOnly) throw "Isi Username Roblox-nya!";
-                    userDataRaw = `Mode: 5 Hari | Target: ${idOnly}`;
-                }
-            } else if (gameName.includes('genshin')) {
-                const uid = document.getElementById('uid_genshin').value.trim();
-                const srv = document.getElementById('server_genshin').value;
-                if(!uid) throw "UID Genshin Impact jangan kosong!";
-                userDataRaw = `UID: ${uid} | Server: ${srv}`;
-            } else {
-                const inputGeneral = document.getElementById('general_user_id');
-                if(!inputGeneral || !inputGeneral.value.trim()) throw "Data ID game jangan kosong!";
-                userDataRaw = inputGeneral.value.trim();
-            }
+            // Memanggil fungsi validasi input bray
+            userDataRaw = ambilDanValidasiDataUser();
         } catch (pesanError) {
             Swal.fire({ icon: 'error', title: 'DATA KOSONG!', text: pesanError, background: '#1205a5', color: '#fff' });
             return;

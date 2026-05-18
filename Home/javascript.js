@@ -1,16 +1,41 @@
+/* ===== SweetAlert2 Config ===== */
 const swalConfig = {
-        target: 'body',
-        background: 'rgba(20, 20, 20, 0.95)',
-        color: '#fff',
-        customClass: {
-            container: 'tz-swal-container'
-        },
-        didOpen: () => {
-            // Paksa container Swal ke kasta tertinggi (Z-Index 1M)
-            const container = document.querySelector('.swal2-container');
-            if (container) container.style.zIndex = '9999999';
-        }
-    };
+    target: 'body',
+    background: 'rgba(20, 20, 20, 0.95)',
+    color: '#fff',
+    customClass: {
+        container: 'tz-swal-container'
+    },
+    didOpen: () => {
+        // Paksa container Swal ke kasta tertinggi (Z-Index 1M)
+        const container = document.querySelector('.swal2-container');
+        if (container) container.style.zIndex = '9999999';
+    }
+};
+
+const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3500,
+    timerProgressBar: true,
+    background: 'transparent',
+    showClass: {
+        popup: 'animate__none' // MATIKAN animasi bawaan Swal agar CSS kita yang handle
+    },
+    hideClass: {
+        popup: 'animate__animated animate__fadeOutRight animate__faster'
+    },
+    customClass: {
+        popup: 'tz-toast-popup',
+        timerProgressBar: 'tz-toast-timer'
+    },
+    didOpen: (toast) => {
+        // Paksa ulang warna via JS kalau CSS masih kalah (Jaga-jaga)
+        toast.querySelector('.swal2-title').style.setProperty('color', '#ffffff', 'important');
+        toast.querySelector('.swal2-html-container').style.setProperty('color', '#ffffff', 'important');
+    }
+});
 
 /* ===== A. GLOBAL VARIABLES ===== */
 let kategoriAktif = "";
@@ -19,6 +44,7 @@ let selectedPrice = 0;
 let selectedProductName = "";
 let currentQty = 1;
 
+/* ===== B. REALTIME SEARCH & FILTER SYSTEM ===== */
 function loadData() {
     const searchInput = document.getElementById("searchInput");
     const slider = document.getElementById("tzHeroWrap"); 
@@ -189,7 +215,8 @@ function filterKategori(kat, el) {
         kategoriAktif = ""; 
         if (el) el.classList.remove("active");
         // Kalau dimatiin, balikin active ke menu "Semua"
-        document.querySelector('.tp-sidebar li:first-child').classList.add('active');
+        const firstSidebarLi = document.querySelector('.tp-sidebar li:first-child');
+        if (firstSidebarLi) firstSidebarLi.classList.add('active');
     } else {
         kategoriAktif = kat;
         document.querySelectorAll(".tp-sidebar li").forEach(li => li.classList.remove("active"));
@@ -199,6 +226,7 @@ function filterKategori(kat, el) {
     // 2. Panggil loadData buat narik data dari database lewat search.php
     loadData();
 }
+
 /* ===== C. KERANJANG (CART) SYSTEM - DATABASE CONNECTED ===== */
 function updateCartDisplay() {
     fetch('ambil_keranjang_db.php')
@@ -207,6 +235,22 @@ function updateCartDisplay() {
         const cartCount = document.getElementById("cartCount");
         const listContainer = document.getElementById("cartItemsList");
         
+        // 1. CEK APAKAH ADA EROR DARI BACKEND PHP BRAY
+        if (data && data.status === 'error') {
+            console.error("Database SQL Error:", data.message);
+            if (listContainer) {
+                listContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #ff4444;">
+                        <b>Waduh mprruy, DB Eror!</b>
+                        <p style="font-size: 11px; color: #aaa; margin-top: 5px; word-break: break-all;">
+                            ${data.message}
+                        </p>
+                    </div>
+                `;
+            }
+            return; // Hentikan script di sini biar gak maksain manggil .map()
+        }
+
         if (cartCount) cartCount.innerText = data.length;
         if (!listContainer) return;
 
@@ -216,9 +260,10 @@ function updateCartDisplay() {
             return;
         }
 
+        // Jalankan mapping data asli jika data terbukti berupa array aman
         listContainer.innerHTML = data.map(item => `
             <div class="cart-card" style="display:flex; gap:10px; border-bottom:1px solid #eee; padding:10px 0; align-items:center;">
-                <input type="checkbox" class="cart-checkbox" value="${item.id_keranjang}" data-price="${item.qty * item.harga}" onchange="hitungTotal()">
+                <input type="checkbox" class="cart-checkbox" value="${item.id_keranjang}" data-user="${item.catatan || ''}" data-price="${item.qty * item.harga}" onchange="hitungTotal()">
                 
                 <img src="${item.gambar}" onerror="this.src='Default.jpg'" style="width:55px; height:55px; border-radius:8px; object-fit:cover; border:1px solid #ddd;">
                 
@@ -253,8 +298,33 @@ function updateCartDisplay() {
         
     }).catch(err => console.error("Cart Error:", err));
 }
+
+function prosesCheckout() {
+    const dipilih = document.querySelectorAll('.cart-checkbox:checked');
+    
+    if (dipilih.length === 0) {
+        Toast.fire({
+            icon: 'error',
+            html: `<span class="tz-toast-title">PILIH PRODUK BRAY!</span><p class="tz-toast-content">Centang dulu barangnya mprruy!</p>`
+        });
+        return;
+    }
+
+    // Cuma ambil ID keranjang yang dicentang
+    let ids = [];
+    dipilih.forEach(cb => {
+        ids.push(cb.value);
+    });
+
+    // Lempar parameter 'ids' ke pembayaran.php (Data akun biar backend PHP yang narik dari DB)
+    const targetUrl = "../Home/Checkout/pembayaran.php?ids=" + ids.join(',');
+    window.location.href = targetUrl;
+}
+
 function ubahQty(id, delta) {
     const qtySpan = document.getElementById(`qty-${id}`);
+    if (!qtySpan) return;
+    
     let newQty = parseInt(qtySpan.innerText) + delta;
     if (newQty < 1) return;
 
@@ -303,7 +373,6 @@ function hapusItemDB(id) {
                         const remainingItems = document.querySelectorAll('.cart-card');
                         if (remainingItems.length === 0) {
                             // --- KUNCI: ANIMASIIN PANEL CHECKOUT BIAR ILANG ---
-                            // Cari container bawah (tempat total tagihan & tombol bayar)
                             const listContainer = document.getElementById("cartItemsList");
                             
                             if (listContainer) {
@@ -319,15 +388,18 @@ function hapusItemDB(id) {
                                     `;
                                     listContainer.style.opacity = '1';
                                     setTimeout(() => {
-                                        document.getElementById('emptyMsg').style.opacity = '1';
-                                        document.getElementById('emptyMsg').style.transform = 'translateY(0)';
+                                        const emptyMsg = document.getElementById('emptyMsg');
+                                        if(emptyMsg) {
+                                            emptyMsg.style.opacity = '1';
+                                            emptyMsg.style.transform = 'translateY(0)';
+                                        }
                                     }, 50);
                                 }, 500);
                             }
                         }
                         
                         // Update angka badge & hitung ulang total
-                        if (typeof hitungTotal === "function") hitungTotal();
+                        hitungTotal();
                         const cartCount = document.getElementById("cartCount");
                         if(cartCount) cartCount.innerText = remainingItems.length;
 
@@ -345,10 +417,12 @@ function hitungTotal() {
     let total = 0;
     document.querySelectorAll('.cart-checkbox:checked').forEach(cb => {
         const kartu = cb.closest('.cart-card');
-        const hargaText = kartu.querySelector('span[style*="color:#03ac0e"]').innerText;
-        const harga = parseInt(hargaText.replace(/[^0-9]/g, ''));
-        const qty = parseInt(kartu.querySelector('span[id^="qty-"]').innerText);
-        total += (harga * qty);
+        if (kartu) {
+            const hargaText = kartu.querySelector('span[style*="color:#03ac0e"]').innerText;
+            const harga = parseInt(hargaText.replace(/[^0-9]/g, ''));
+            const qty = parseInt(kartu.querySelector('span[id^="qty-"]').innerText);
+            total += (harga * qty);
+        }
     });
     const el = document.getElementById('totalHargaCart');
     if (el) el.innerText = "Rp " + total.toLocaleString('id-ID');
@@ -356,6 +430,7 @@ function hitungTotal() {
 
 function tambahEventChecklist() {
     document.querySelectorAll('.cart-checkbox').forEach(cb => {
+        cb.removeEventListener('change', hitungTotal); // Hindari penumpukan listener
         cb.addEventListener('change', hitungTotal);
     });
 }
@@ -363,10 +438,13 @@ function tambahEventChecklist() {
 /* ===== D. SIDEBAR & MODAL CONTROLS ===== */
 function toggleCartSidebar() {
     const cartSidebar = document.getElementById("cartSidebar");
+    const profileSidebar = document.getElementById("profileSidebar");
     const overlay = document.getElementById("panelOverlay");
     
+    if(!cartSidebar) return;
+
     // Tutup profil kalau lagi kebuka
-    if(document.getElementById("profileSidebar")) document.getElementById("profileSidebar").classList.remove("active");
+    if(profileSidebar) profileSidebar.classList.remove("active");
     
     cartSidebar.classList.toggle("active");
     if(overlay) overlay.style.display = cartSidebar.classList.contains("active") ? "block" : "none";
@@ -379,6 +457,8 @@ function toggleProfileSidebar() {
     const cartSidebar = document.getElementById("cartSidebar");
     const overlay = document.getElementById("panelOverlay");
     
+    if(!sidebar) return;
+
     if(cartSidebar) cartSidebar.classList.remove("active");
     sidebar.classList.toggle("active");
     if(overlay) overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
@@ -405,16 +485,61 @@ function eksekusiTambah(id_game) {
         return;
     }
     
-    if (selectedPrice === 0) {
+    if (selectedPrice === 0 || !selectedProductName) {
         alert("Pilih paketnya dulu mprruy!");
         return;
     }
 
+    // 1. AMBIL DATA USER / UID SECARA DINAMIS SESUAI JENIS GAME BRAY
+    let userDataRaw = "";
+    try {
+        const gameTitleEl = document.querySelector('.tz-game-title');
+        const gameName = gameTitleEl ? gameTitleEl.innerText.toLowerCase() : "";
+
+        if (gameName.includes('roblox')) {
+            const mode = document.getElementById('roblox_mode') ? document.getElementById('roblox_mode').value : 'login';
+            if (mode === 'login') {
+                const u = document.getElementById('rblx_user').value.trim();
+                const p = document.getElementById('rblx_pass').value.trim();
+                const b1 = document.getElementById('rblx_backup1').value.trim();
+                const b2 = document.getElementById('rblx_backup2').value.trim();
+                const b3 = document.getElementById('rblx_backup3').value.trim();
+                if(!u || !p) throw "Username & Password Roblox wajib diisi mprruy!";
+                userDataRaw = `Mode: Login | User: ${u} | Pass: ${p} | Backup Codes: ${b1},${b2},${b3}`;
+            } else {
+                const idOnly = document.getElementById('rblx_id_only').value.trim();
+                if(!idOnly) throw "Isi Username Roblox-nya bray!";
+                userDataRaw = `Mode: 5 Hari | Target: ${idOnly}`;
+            }
+        } else if (gameName.includes('genshin')) {
+            const uid = document.getElementById('uid_genshin').value.trim();
+            const srv = document.getElementById('server_genshin') ? document.getElementById('server_genshin').value : '';
+            if(!uid) throw "UID Genshin Impact jangan kosong bray!";
+            userDataRaw = `UID: ${uid} | Server: ${srv}`;
+        } else {
+            // Skenario untuk game umum (Mobile Legends, Free Fire, dll)
+            const inputGeneral = document.getElementById('general_user_id');
+            if(!inputGeneral || !inputGeneral.value.trim()) throw "Data ID / Target Akun Game jangan kosong mprruy!";
+            userDataRaw = inputGeneral.value.trim();
+        }
+    } catch (pesanError) {
+        Swal.fire({ 
+            icon: 'error', 
+            title: 'DATA BELUM LENGKAP!', 
+            text: pesanError, 
+            background: 'rgba(20, 20, 20, 0.95)', 
+            color: '#fff' 
+        });
+        return;
+    }
+
+    // 2. BUNGKUS KE FORMDATA UNTUK DIKIRIM KE BACKEND PHP
     let fd = new FormData();
-    fd.append('id_game', id_game); // KIRIM ID GAME-NYA KE PHP
-    fd.append('nama_produk', selectedProductName);
+    fd.append('id_game', id_game); 
+    fd.append('nama_produk', selectedProductName); 
     fd.append('harga', selectedPrice);
     fd.append('qty', currentQty);
+    fd.append('user_data', userDataRaw); 
 
     fetch('proses_keranjang.php', {
         method: 'POST',
@@ -422,94 +547,42 @@ function eksekusiTambah(id_game) {
     })
     .then(res => res.text())
     .then(hasil => {
-             Toast.fire({
-                icon: 'success',
-                html: `<span class="tz-toast-title">BERHASIL</span><p class="tz-toast-content"><b>${currentSelectedProduct}</b> masuk keranjang!</p>`
-            })
-        updateCartDisplay();
+         Toast.fire({
+              icon: 'success',
+              html: `<span class="tz-toast-title">BERHASIL</span><p class="tz-toast-content"><b>${selectedProductName}</b> masuk keranjang!</p>`
+         });
+         updateCartDisplay();
+    })
+    .catch(err => {
+        console.error("Gagal tambah keranjang:", err);
+        alert("Eror saat menyambungkan ke database bray!");
     });
 }
 
-function prosesCheckout() {
-    const dipilih = document.querySelectorAll('.cart-checkbox:checked');
-    
-    if (dipilih.length === 0) {
-            Toast.fire({
-                icon: 'error',
-                html: `<span class="tz-toast-title">LAU PILIH PRODUK DULU NAPA!</span><p class="tz-toast-content">Pilih dulu sono!</p>`
-            })
-        return;
-    }
-
-    // Ambil ID keranjang yang dicentang
-    let ids = Array.from(dipilih).map(cb => cb.value);
-
-    // ARAHKAN KE FOLDER Checkout DAN FILE pembayaran.php
-    // Gunakan path yang benar: Checkout/pembayaran.php
-    window.location.href = "../Home/Checkout/pembayaran.php?ids=" + ids.join(',');
-}
-
-/* ===== F. INITIALIZE ON LOAD ===== */
-/* ===== F. INITIALIZE ON LOAD ===== */
+/* ===== F. INITIALIZE ON LOAD & HERO SLIDER ===== */
 document.addEventListener("DOMContentLoaded", () => {
-    // loadData(); // <--- KOMENTARIN ATAU HAPUS BARIS INI BIAR GAK DOUBLE RENDER
+    // Jalankan render keranjang pertama kali bray
     updateCartDisplay();
 
-    // Slider Auto-Play Tetap Jalan
-    const track = document.getElementById("sliderTrack");
-    const slides = document.querySelectorAll(".tp-slide");
-    if (track && slides.length > 0) {
-        setInterval(() => {
-            let sliderWrap = document.getElementById("sliderWrap");
-            if (sliderWrap && sliderWrap.style.display !== "none") {
-                sliderIndex = (sliderIndex + 1) % slides.length;
-                track.style.transform = `translateX(-${sliderIndex * 100}%)`;
-            }
-        }, 3000);
+    // Setup Klik Overlay buat nutup semua panel sidebar
+    const overlay = document.getElementById("panelOverlay");
+    if(overlay) {
+        overlay.onclick = function() {
+            const cartSidebar = document.getElementById("cartSidebar");
+            const profileSidebar = document.getElementById("profileSidebar");
+            if(cartSidebar) cartSidebar.classList.remove("active");
+            if(profileSidebar) profileSidebar.classList.remove("active");
+            this.style.display = "none";
+        };
     }
-});
 
-// Klik Overlay buat nutup semua panel
-const overlay = document.getElementById("panelOverlay");
-if(overlay) {
-    overlay.onclick = function() {
-        document.getElementById("cartSidebar").classList.remove("active");
-        document.getElementById("profileSidebar").classList.remove("active");
-        this.style.display = "none";
-    };
-}
-const Toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 3500,
-    timerProgressBar: true,
-    background: 'transparent',
-    showClass: {
-        popup: 'animate__none' // MATIKAN animasi bawaan Swal agar CSS kita yang handle
-    },
-    hideClass: {
-        popup: 'animate__animated animate__fadeOutRight animate__faster'
-    },
-    customClass: {
-        popup: 'tz-toast-popup',
-        timerProgressBar: 'tz-toast-timer'
-    },
-    didOpen: (toast) => {
-        // Paksa ulang warna via JS kalau CSS masih kalah (Jaga-jaga)
-        toast.querySelector('.swal2-title').style.setProperty('color', '#ffffff', 'important');
-        toast.querySelector('.swal2-html-container').style.setProperty('color', '#ffffff', 'important');
-    }
-});
-
-//Slider
-document.addEventListener("DOMContentLoaded", function() {
+    // LOGIC UTAMA INTEGRASI HERO SLIDER `tzHeroTrack`
     const track = document.getElementById("tzHeroTrack");
     const prevBtn = document.getElementById("tzPrevBtn");
     const nextBtn = document.getElementById("tzNextBtn");
     const dotsContainer = document.getElementById("tzHeroDots");
 
-    if (!track || !dotsContainer) return; // Penjaga eror bray
+    if (!track || !dotsContainer) return; 
 
     const slides = Array.from(track.children);
     let currentIndex = 0;
@@ -527,8 +600,12 @@ document.addEventListener("DOMContentLoaded", function() {
         dotsContainer.appendChild(dot);
     });
 
-    // 2. Fungsi Utama Pergeseran Gambar & Reset Loading
+    // 2. Fungsi Pergeseran Gambar & Reset Loading Progress Bar via CSS Animation Trigger
     function goToSlide(index) {
+        // Stop logic jika slider dibungkus / disembunyikan pas mode pencarian aktif
+        const sliderWrap = document.getElementById("tzHeroWrap");
+        if (sliderWrap && sliderWrap.style.display === "none") return;
+
         if (index < 0) {
             currentIndex = slides.length - 1;
         } else if (index >= slides.length) {
@@ -537,40 +614,40 @@ document.addEventListener("DOMContentLoaded", function() {
             currentIndex = index;
         }
 
-        // Jalankan animasi geser
+        // Jalankan animasi geser frame bray
         track.style.transform = `translateX(-${currentIndex * 100}%)`;
 
-        // Ambil elemen titik ter-update untuk dibersihkan listener lamanya bray
+        // Bersihkan style / listener lama pada indikator
         const currentDots = Array.from(dotsContainer.children);
         currentDots.forEach(dot => {
             dot.classList.remove("tz-active");
             
-            // Trik kloning murni buat memicu ulang durasi CSS loading biar gak balapan
+            // Kloning DOM node untuk reset state CSS Animation linear loading bar-nya bray
             const newDot = dot.cloneNode(true);
-            dot.parentNode.replaceChild(newDot, dot);
+            if(dot.parentNode) dot.parentNode.replaceChild(newDot, dot);
         });
 
-        // Ambil ulang referensi titik yang baru selesai di-clone
+        // Ambil ulang referensi array dot baru pasca kloning selesai
         const updatedDots = Array.from(dotsContainer.children);
 
-        // Pasang ulang trigger click manual ke titik-titik baru bray
+        // Pasang ulang trigger click manual ke dot baru
         updatedDots.forEach((d, i) => {
             d.addEventListener("click", () => goToSlide(i));
         });
 
-        // Nyalakan status aktif di titik saat ini
+        // Aktifkan indikator bar saat ini
         const activeDot = updatedDots[currentIndex];
         if (activeDot) {
             activeDot.classList.add("tz-active");
 
-            // Kunci Utama: Slide baru geser kalau animasi loading di CSS beres 100%
+            // Kunci Utama: Slide otomatis bergeser jika animasi bar bawaan CSS sudah mencapai 100% (animationend)
             activeDot.addEventListener("animationend", function() {
                 goToSlide(currentIndex + 1);
             }, { once: true });
         }
     }
 
-    // 3. Pasang Event untuk Tombol Navigasi Kiri & Kanan
+    // 3. Pasang Event untuk Tombol Navigasi Kiri & Kanan Slider Hero
     if (prevBtn) {
         prevBtn.addEventListener("click", () => goToSlide(currentIndex - 1));
     }
@@ -578,6 +655,6 @@ document.addEventListener("DOMContentLoaded", function() {
         nextBtn.addEventListener("click", () => goToSlide(currentIndex + 1));
     }
 
-    // 4. Nyalakan inisialisasi awal slider bray
+    // 4. Nyalakan inisialisasi awal slider pertama kali bray!
     goToSlide(0);
 });

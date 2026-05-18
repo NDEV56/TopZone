@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>TopZone Admin - Kelola Game</title>
-    <style>
+    <link rel="stylesheet" href="style.css">
+<style>
         /* ==========================================================================
         RESET & VARIABEL UTAMA (Topzone Blue Navy Theme)
         ========================================================================== */
@@ -24,6 +25,8 @@
             --glass-border: rgba(255, 255, 255, 0.06);
             --text-main: #ffffff;
             --text-muted: #647b9b;
+            --success: #00ffaa;
+            --danger: #ff4444;
         }
 
         body { 
@@ -106,13 +109,37 @@
         }
 
         /* ==========================================================================
-        MAIN CONTENT VIEW
+        MAIN CONTENT VIEW & LAYOUT UTILITY
         ========================================================================= */
         .content { 
             margin-left: 220px; 
             padding: 30px; 
             width: calc(100% - 220px); 
             box-sizing: border-box; 
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            color: var(--text-main);
+            letter-spacing: 0.5px;
+            border-left: 4px solid var(--topzone-blue);
+            padding-left: 12px;
+        }
+
+        /* Grid Layout khusus split halaman Atur Data */
+        .grid-manage-data {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        @media (max-width: 992px) {
+            .grid-manage-data {
+                grid-template-columns: 1fr;
+            }
         }
 
         .form-card { 
@@ -128,6 +155,12 @@
 
         .form-group { 
             margin-bottom: 20px; 
+        }
+
+        .form-group-inline {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
         }
 
         label { 
@@ -172,7 +205,6 @@
             margin-top: 5px;
         }
 
-        /* Visual Box Dropzone Kustom */
         .image-upload-box {
             position: relative;
             width: 100%;
@@ -191,19 +223,16 @@
             box-sizing: border-box;
         }
 
-        /* Efek Hover Glowing Area Upload */
         .image-upload-box:hover {
             border-color: var(--primary);
             background: rgba(0, 210, 255, 0.03);
             box-shadow: 0 0 25px rgba(0, 210, 255, 0.15);
         }
 
-        /* Sembunyikan input asli bawaan browser agar clean */
         #hidden-file-input {
             display: none !important;
         }
 
-        /* Placeholder awal (Text & Ikon) */
         .upload-placeholder {
             text-align: center;
             transition: all 0.3s ease;
@@ -229,7 +258,6 @@
             font-weight: 500;
         }
 
-        /* Container Live Preview */
         .preview-image-container {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -243,7 +271,6 @@
             box-sizing: border-box;
         }
 
-        /* Image Object Preview */
         #img-live-preview {
             max-width: 100%;
             max-height: 100%;
@@ -253,7 +280,6 @@
             box-shadow: 0 5px 25px rgba(0,0,0,0.5);
         }
 
-        /* Floating Badge Trigger Ganti Gambar */
         .btn-change-image {
             position: absolute;
             bottom: 10px;
@@ -275,13 +301,11 @@
             box-shadow: 0 0 10px rgba(0, 92, 255, 0.5);
         }
 
-        /* Animasi Transisi saat File Dimasukkan */
         @keyframes previewScaleIn {
             from { opacity: 0; transform: scale(0.93); }
             to { opacity: 1; transform: scale(1); }
         }
 
-        /* State ketika file telah dipilih admin */
         .image-upload-box.has-file .upload-placeholder {
             opacity: 0;
             transform: scale(0.8);
@@ -451,7 +475,7 @@
 
         .btn-remove-row { 
             background: rgba(255, 68, 68, 0.1); 
-            color: #ff4444; 
+            color: var(--danger); 
             border: 1px solid rgba(255, 68, 68, 0.3); 
             border-radius: 8px; 
             cursor: pointer; 
@@ -462,7 +486,7 @@
         }
 
         .btn-remove-row:hover:not([disabled]) {
-            background: #ff4444;
+            background: var(--danger);
             color: #fff;
         }
 
@@ -491,13 +515,21 @@
 
         .btn-custom-remove {
             background: rgba(255, 68, 68, 0.15);
-            color: #ff4444;
+            color: var(--danger);
             border: 1px solid rgba(255, 68, 68, 0.3);
         }
-        .btn-custom-remove:hover { background: #ff4444; color: #fff; }
+        .btn-custom-remove:hover { background: var(--danger); color: #fff; }
+
+        /* Tombol Spesifik Form Inline Kecil */
+        .btn-inline-submit {
+            height: 44px;
+            width: auto;
+            padding: 0 20px;
+            white-space: nowrap;
+        }
 
         /* ==========================================================================
-        TABLE STYLE
+        TABLE STYLE (OPTIMIZED FOR ALIGNMENT & BUTTONS)
         ========================================================================== */
         .table-container { 
             background: rgba(11, 23, 58, 0.45);
@@ -507,17 +539,96 @@
             padding: 20px; 
             border: 1px solid var(--glass-border);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 40px;
         }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; padding: 15px; border-bottom: 2px solid rgba(255, 255, 255, 0.06); color: var(--primary); font-size: 12px; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); font-size: 14px; color: var(--text-main); vertical-align: middle; }
-        .game-img { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
-        .btn-small { padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-edit { border: 1px solid var(--primary); color: var(--primary); background: rgba(0, 210, 255, 0.05); margin-right: 5px; }
-        .btn-edit:hover { background: var(--primary); color: var(--navy-deep); }
-        .btn-delete { border: 1px solid #ff4444; color: #ff4444; background: rgba(255, 68, 68, 0.05); }
-        .btn-delete:hover { background: #ff4444; color: #fff; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+        }
+
+        th { 
+            text-align: left; 
+            padding: 15px; 
+            border-bottom: 2px solid rgba(255, 255, 255, 0.06); 
+            color: var(--primary); 
+            font-size: 12px; 
+            text-transform: uppercase; 
+        }
+
+        td { 
+            padding: 15px; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03); 
+            font-size: 14px; 
+            color: var(--text-main); 
+            vertical-align: middle; 
+        }
+
+        .game-img { 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 8px; 
+            object-fit: cover; 
+        }
+
+        /* Penyelarasan Kolom */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+
+        /* Badge Status Kategori / Metode */
+        .badge-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-status.active {
+            background: rgba(0, 255, 170, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(0, 255, 170, 0.2);
+        }
+
+        /* Container Tombol Aksi dengan Flexbox & Gap Konstan */
+        .action-group {
+            display: inline-flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .btn-small { 
+            padding: 6px 14px; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: 600; 
+            font-size: 11px; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 5px; 
+            white-space: nowrap; 
+        }
+
+        .btn-edit { 
+            border: 1px solid var(--primary); 
+            color: var(--primary); 
+            background: rgba(0, 210, 255, 0.05); 
+        }
+        .btn-edit:hover { 
+            background: var(--primary); 
+            color: var(--navy-deep); 
+        }
+
+        .btn-delete { 
+            border: 1px solid var(--danger); 
+            color: var(--danger); 
+            background: rgba(255, 68, 68, 0.05); 
+        }
+        .btn-delete:hover { 
+            background: var(--danger); 
+            color: #fff; 
+        }
     </style>
 </head>
 <body>
@@ -570,18 +681,15 @@
                     <label>Upload Logo Game (Gambar)</label>
                     <div class="upload-container">
                         <div class="image-upload-box" id="upload-box" onclick="document.getElementById('hidden-file-input').click()">
-                            
                             <div class="upload-placeholder">
                                 <div class="upload-icon">📸</div>
                                 <div class="upload-text">Klik atau seret logo game kesini bray...</div>
                             </div>
-
                             <div class="preview-image-container">
                                 <img id="img-live-preview" src="#" alt="Preview">
                                 <div class="btn-change-image">Ganti Gambar</div>
                             </div>
                         </div>
-
                         <input type="file" name="gambar" id="hidden-file-input" accept="image/*" required onchange="handleLivePreview(this)">
                     </div>
                 </div>
@@ -638,10 +746,10 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Logo</th>
-                        <th>Nama Game / Slug</th>
-                        <th>Kategori</th>
-                        <th>Aksi Cepat</th>
+                        <th width="10%">Logo</th>
+                        <th width="35%">Nama Game / Slug</th>
+                        <th width="20%" class="text-center">Kategori</th>
+                        <th width="35%" class="text-right">Aksi Cepat</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -655,10 +763,25 @@
                             <strong style="color: #fff;"><?= $row['nama_game'] ?></strong><br>
                             <small style="color: var(--primary); font-size: 10px;"><?= $row['slug'] ?></small>
                         </td>
-                        <td><small style="color: #888;"><?= $row['kategori'] ?></small></td>
-                        <td>
-                            <a href="admin_paket.php?game=<?= $row['slug'] ?>" class="btn-small btn-edit">➕ Kelola Paket</a>
-                            <a href="hapus_game.php?id=<?= $row['id'] ?>" class="btn-small btn-delete" onclick="return confirm('⚠️ Hapus game ini?')">🗑️ Hapus Game</a>
+                        <td class="text-center">
+                            <small style="color: #888;"><?= $row['kategori'] ?></small>
+                        </td>
+                        <td class="text-right">
+                            <div class="action-group">
+                                <button type="button" class="btn-small" style="background: rgba(0, 210, 255, 0.15); color: #00d2ff; border: 1px solid rgba(0, 210, 255, 0.3); padding: 6px 14px; cursor: pointer;"
+                                        onclick="bukaModalEdit(this)"
+                                        data-id="<?= $row['id'] ?>"
+                                        data-nama="<?= $row['nama_game'] ?>"
+                                        data-slug="<?= $row['slug'] ?>"
+                                        data-deskripsi="<?= $row['deskripsi'] ?>"
+                                        data-kategori="<?= $row['kategori'] ?>"
+                                        data-tipe="<?= $row['tipe_voucher'] ?>"
+                                        data-gambar="<?= $row['gambar'] ?>">
+                                    ✏️ Edit Game
+                                </button>
+                                <a href="admin_paket.php?game=<?= $row['slug'] ?>" class="btn-small btn-edit">➕ Kelola Paket</a>
+                                <a href="hapus_game.php?id=<?= $row['id'] ?>" class="btn-small btn-delete" onclick="return confirm('⚠️ Hapus game ini?')">🗑️ Hapus Game</a>
+                            </div>
                         </td>
                     </tr>
                     <?php endwhile; ?>
@@ -667,25 +790,78 @@
         </div>
     </div>
 
-    <script>
+    <div id="overlayEditGame" class="modal-edit-overlay">
+        <div class="modal-edit-container">
+            <span class="close-modal-btn" onclick="tutupModalEdit()">&times;</span>
+            <h3 style="margin-top: 0; margin-bottom: 25px; color: #00d2ff; text-shadow: 0 0 10px rgba(0, 210, 255, 0.35); font-size: 20px;">✏️ Edit Data Game</h3>
+            
+            <form action="proses_edit_game.php" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="id_game" id="edit_id">
+
+                <div class="form-group">
+                    <label>Nama Game</label>
+                    <input type="text" name="nama_game" id="edit_nama" required style="width:100%; box-sizing:border-box;">
+                </div>
+                
+                <div class="form-group">
+                    <label>Slug URL</label>
+                    <input type="text" name="slug" id="edit_slug" required style="width:100%; box-sizing:border-box;">
+                </div>
+
+                <div class="form-group">
+                    <label>Deskripsi Game</label>
+                    <textarea name="deskripsi" id="edit_deskripsi" rows="3" style="width:100%; box-sizing:border-box;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <select name="kategori" id="edit_kategori" style="width:100%; box-sizing:border-box;">
+                        <option value="Game">General Game</option>
+                        <option value="MOBA">MOBA</option>
+                        <option value="FPS">FPS</option>
+                        <option value="Open World">Open World</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Mata Uang / Merk Voucher</label>
+                    <input type="text" name="tipe_voucher" id="edit_tipe" required style="width:100%; box-sizing:border-box;">
+                </div>
+
+                <div class="form-group">
+                    <label>Logo Game Saat Ini</label>
+                    <div class="edit-preview-box">
+                        <img id="edit_preview_lama" src="" style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1);">
+                        <div>
+                            <small style="color: #647b9b; display:block; margin-bottom: 4px;">Ganti File Logo (Opsional)</small>
+                            <input type="file" name="gambar" accept="image/*" style="font-size: 11px; color:#fff; border:none; background:none; padding:0;">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" name="update" class="btn-action" style="margin-top: 20px; background: linear-gradient(45deg, #005cff, #00d2ff); width: 100%; padding: 12px; border: none; font-weight: bold; letter-spacing: 0.5px;">SIMPAN PERUBAHAN</button>
+            </form>
+        </div>
+    </div>
+
+<script>
+        // Generator auto slug dari nama game
         function buatSlug(val) {
             let slug = val.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-');
             document.getElementById('slug').value = slug;
         }
 
-        /* FUNGSI UNTUK MENANGANI LIVE PREVIEW GAMBAR */
+        // Live preview uploader logo game baru
         function handleLivePreview(input) {
             const uploadBox = document.getElementById('upload-box');
             const previewImg = document.getElementById('img-live-preview');
 
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-
                 reader.onload = function(e) {
                     previewImg.src = e.target.result;
-                    uploadBox.classList.add('has-file'); // Memicu animasi & transisi CSS
+                    uploadBox.classList.add('has-file'); 
                 }
-
                 reader.readAsDataURL(input.files[0]);
             } else {
                 previewImg.src = '#';
@@ -693,7 +869,7 @@
             }
         }
 
-        // Interaksi dinamis paket bawaan
+        // Validasi field kosong penanda attribute required dinamis
         function cekValidasiPaket(el) {
             const row = el.closest('.paket-row');
             const inputs = row.querySelectorAll('.p-input');
@@ -712,6 +888,9 @@
             });
         }
 
+        // ==========================================================================
+        // FIX UTAMA: LOGIKA SINKRONISASI FORM INPUT KUSTOM DENGAN DROPDOWN PAKET
+        // ==========================================================================
         function cekTipePaket() {
             const wrapperGlobal = document.getElementById('wrapper_cakupan_global');
             const gInputPertama = document.getElementById('g_input_pertama');
@@ -724,18 +903,21 @@
                 }
             });
 
+            // Jika ada baris paket yang milih tipe 'custom', langsung munculin panel kuningnya
             if (adaKustom) {
                 wrapperGlobal.style.display = 'block';
                 gInputPertama.setAttribute('required', 'required');
-                handleSwitchCakupan();
+                handleSwitchCakupan(); // Jalankan sinkronisasi visibilitas dropdown
             } else {
+                // Sembunyiin kalau tipe custom dilepas dari semua select
                 wrapperGlobal.style.display = 'none';
                 gInputPertama.removeAttribute('required');
                 gInputPertama.value = '';
                 resetFieldGlobalTambahan();
                 
+                // Pastikan dropdown di baris paket kelihatan lagi semuanya
                 const semuaSelectWrapper = document.querySelectorAll('.wrapper-select-tipe');
-                allSelectWrapper.forEach(el => el.style.display = 'block');
+                semuaSelectWrapper.forEach(el => el.style.display = 'block');
             }
         }
 
@@ -743,22 +925,27 @@
             const switchEl = document.getElementById('switch_segame');
             const statusText = document.getElementById('text_status_switch');
             const semuaSelectWrapper = document.querySelectorAll('.wrapper-select-tipe');
+            const wrapperGlobal = document.getElementById('wrapper_cakupan_global');
 
-            if (!switchEl.checked) {
-                statusText.innerText = "Data Satu Game";
-                statusText.className = "switch-label-text glow-active-left";
-                semuaSelectWrapper.forEach(el => {
-                    el.style.display = 'none';
-                });
-            } else {
-                statusText.innerText = "Data Non-Segame";
-                statusText.className = "switch-label-text glow-active-right";
-                semuaSelectWrapper.forEach(el => {
-                    el.style.display = 'block';
-                });
+            // Jalankan rule sembunyi-muncul dropdown paket CUMA kalau panel kustom lagi aktif
+            if (wrapperGlobal.style.display === 'block') {
+                if (!switchEl.checked) {
+                    statusText.innerText = "Data Satu Game";
+                    statusText.className = "switch-label-text glow-active-left";
+                    semuaSelectWrapper.forEach(el => {
+                        el.style.display = 'none'; // Sembunyikan dropdown tiap baris karena ikut setelan global
+                    });
+                } else {
+                    statusText.innerText = "Data Non-Segame";
+                    statusText.className = "switch-label-text glow-active-right";
+                    semuaSelectWrapper.forEach(el => {
+                        el.style.display = 'block'; // Munculkan kembali dropdown biar bisa disetel beda-beda per baris
+                    });
+                }
             }
         }
 
+        // Tambah kolom input custom label baru secara dinamis
         function tambahInputGlobalField(btn) {
             const container = btn.closest('.custom-fields-container');
             const newItem = document.createElement('div');
@@ -782,11 +969,13 @@
             }
         }
 
+        // Tambah baris paket baru secara realtime
         function tambahPaket() {
             const container = document.getElementById('paket-list');
             const switchEl = document.getElementById('switch_segame');
             const wrapperGlobal = document.getElementById('wrapper_cakupan_global');
 
+            // Cek kondisi apakah dropdown di baris baru wajib langsung sembunyi atau tidak
             let harusSembunyi = (!switchEl.checked && wrapperGlobal.style.display === 'block');
 
             const row = document.createElement('div');
@@ -818,9 +1007,10 @@
                 btn.parentElement.remove();
             }
             cekStatusTombolHapus();
-            cekTipePaket();
+            cekTipePaket(); // Cek ulang status select setelah baris berkurang
         }
 
+        // Filter tombol minus agar baris pertama tidak bisa dihapus jika tinggal satu-satunya
         function cekStatusTombolHapus() {
             const container = document.getElementById('paket-list');
             const semuaTombol = container.querySelectorAll('.btn-remove-row');
@@ -838,11 +1028,13 @@
             }
         }
 
+        // Masking input mata uang Rupiah
         function formatRupiah(input) {
             let value = input.value.replace(/[^0-9]/g, ''); 
             input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, "."); 
         }
 
+        // Sanitasi data sebelum dikirim ke PHP
         function cleanRupiahBeforeSubmit() {
             const hargaInputs = document.querySelectorAll('.input-harga-paket');
             hargaInputs.forEach(input => {
@@ -859,6 +1051,48 @@
                 });
             }
         }
+
+        /* ==========================================================================
+        CONTROLLER TRIGGER MODAL EDIT POP-UP
+        ========================================================================== */
+        function bukaModalEdit(btn) {
+            const overlay = document.getElementById('overlayEditGame');
+            
+            document.getElementById('edit_id').value = btn.getAttribute('data-id');
+            document.getElementById('edit_nama').value = btn.getAttribute('data-nama');
+            document.getElementById('edit_slug').value = btn.getAttribute('data-slug');
+            document.getElementById('edit_deskripsi').value = btn.getAttribute('data-deskripsi');
+            document.getElementById('edit_kategori').value = btn.getAttribute('data-kategori');
+            document.getElementById('edit_tipe').value = btn.getAttribute('data-tipe');
+            document.getElementById('edit_preview_lama').src = btn.getAttribute('data-gambar');
+
+            overlay.style.display = "flex"; 
+            
+            setTimeout(() => {
+                overlay.classList.add('active');
+            }, 20);
+        }
+
+        function tutupModalEdit() {
+            const overlay = document.getElementById('overlayEditGame');
+            overlay.classList.remove('active');
+            
+            setTimeout(() => {
+                overlay.style.display = "none";
+            }, 400);
+        }
+
+        window.addEventListener('click', function(e) {
+            const overlay = document.getElementById('overlayEditGame');
+            if (e.target === overlay) {
+                tutupModalEdit();
+            }
+        });
+
+        // TRIGGER UTAMA: Cek kondisi form pertama kali dimuat saat refresh halaman
+        document.addEventListener("DOMContentLoaded", function() {
+            cekTipePaket();
+        });
     </script>
 </body>
 </html>

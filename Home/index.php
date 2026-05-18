@@ -7,36 +7,57 @@ $is_real_user = isset($_SESSION['id_user']);
 $is_logged_in = isset($_SESSION['nama_user']); 
 $id_user_skrg = $_SESSION['id_user'] ?? 0;
 
-// 2. LOGIKA CALLBACK / UPDATE STATUS (Pending -> proses)
+// 2. LOGIKA CALLBACK / UPDATE STATUS (Pending -> proses) DI HALAMAN HOME
 if (isset($_GET['status']) && $_GET['status'] == 'success' && $is_real_user) {
-    $update_status = "UPDATE orders SET status = 'proses' 
-                      WHERE id_user = '$id_user_skrg' AND status = 'pending'";
-    mysqli_query($koneksi, $update_status);
+    
+    // Ambil external_id spesifik dari url redirect xendit bray
+    $ext_id_skrg = mysqli_real_escape_string($koneksi, $_GET['ext_id'] ?? '');
+
+    if (!empty($ext_id_skrg)) {
+        
+        // =========================================================================
+        // CARA PAMUNGKAS ANTI-GAGAL:
+        // Hapus semua item di keranjang milik user ini, yang ID GAME-nya terdaftar
+        // di dalam invoice orders yang barusan dibayar!
+        // =========================================================================
+        $sql_bersih_keranjang = "DELETE FROM keranjang 
+                                 WHERE id_user = '$id_user_skrg' 
+                                 AND id_game IN (
+                                     SELECT g.id FROM games g
+                                     INNER JOIN orders o ON (o.game_name COLLATE utf8mb4_general_ci) = (g.nama_game COLLATE utf8mb4_general_ci)
+                                     WHERE o.external_id = '$ext_id_skrg'
+                                 )";
+                                   
+        mysqli_query($koneksi, $sql_bersih_keranjang);
+
+        // Update status orders menjadi proses
+        $update_status = "UPDATE orders SET status = 'proses' 
+                          WHERE id_user = '$id_user_skrg' AND external_id = '$ext_id_skrg'";
+        mysqli_query($koneksi, $update_status);
+    } else {
+        // Fallback cadangan
+        $update_status = "UPDATE orders SET status = 'proses' WHERE id_user = '$id_user_skrg' AND status = 'pending'";
+        mysqli_query($koneksi, $update_status);
+    }
+    
+    // Reset URL biar rapi dan tetep stay di dalam folder /Home/
     header("Location: index.php");
     exit();
 }
-
 // 3. QUERY PRODUK UTAMA
 $query = "SELECT * FROM games"; 
 $result = mysqli_query($koneksi, $query);
 
-// 4. FUNGSI SAKTI NYOCOKKIN TEKS (Sudah diperbaiki agar ID User terbaca)
+// 4. FUNGSI SAKTI NYOCOKKIN TEKS (Tetap aman dengan paksaan Collation)
 if (!function_exists('getOrders')) {
     function getOrders($koneksi, $id_user, $status) {
-        // PERHATIKAN: $id_user di sini diambil dari parameter fungsi agar tidak kosong!
         $sql = "SELECT o.*, 
                 COALESCE(
-                    -- Cara 1: Cek apakah nama game ada di dalam teks paket
-                    (SELECT g.nama_game FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
-                    -- Cara 2: Cek berdasarkan harga
-                    (SELECT g.harga FROM games g WHERE g.harga = o.total_price LIMIT 1),
-                    -- Cara 3: Cadangan
+                    (SELECT g.nama_game FROM games g WHERE (o.game_name COLLATE utf8mb4_general_ci) LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
                     'TopZone Product'
                 ) as nama_game_asli,
                 COALESCE(
-                    -- Menggunakan g.gambar sesuai struktur tabel games kamu
-                    (SELECT g.gambar FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
-                    (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                    (SELECT g.gambar FROM games g WHERE (o.game_name COLLATE utf8mb4_general_ci) LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
                     'Default.jpg'
                 ) as gambar_game_asli
                 FROM orders o 
@@ -53,12 +74,10 @@ $count_pending = $count_proses = $count_dikirim = $count_selesai = 0;
 $q_pending = $q_proses = $q_dikirim = $q_selesai = null;
 
 if ($is_real_user) {
-    // Hitung Keranjang (Pastikan variabel koneksi menggunakan $koneksi bray)
     $res_keranjang = mysqli_query($koneksi, "SELECT SUM(qty) as total FROM keranjang WHERE id_user = '$id_user_skrg'");
     $data_keranjang = mysqli_fetch_assoc($res_keranjang);
     $jumlah_keranjang = $data_keranjang['total'] ?? 0;
     
-    // Eksekusi Query per Status
     $q_pending = getOrders($koneksi, $id_user_skrg, 'pending');
     $count_pending = mysqli_num_rows($q_pending);
 
@@ -182,7 +201,7 @@ if ($is_real_user) {
 
         <?php 
         if ($is_real_user): 
-            // TAMBAHKAN o.catatan ke dalam SELECT bray
+            // Ambil 4 teratas untuk beranda
             $query_beli_lagi = "
                 SELECT o.game_name, o.total_price, o.catatan,
                 COALESCE(
@@ -219,7 +238,7 @@ if ($is_real_user) {
                     <h2>Beli Lagi Yuk</h2>
                 </div>
                 <?php if ($result_beli_lagi && mysqli_num_rows($result_beli_lagi) > 0): ?>
-                    <a href="riwayat_transaksi.php" class="tz-btn-lihat-semua">Lihat Semua ❯</a>
+                    <button type="button" class="tz-btn-lihat-semua" onclick="bukaModalHistory()">Lihat Semua ❯</button>
                 <?php endif; ?>
             </div>
 
@@ -251,6 +270,68 @@ if ($is_real_user) {
                     <p class="tz-empty-repeat-text">Kosong mpruyyy, beli dulu sono...</p>
                 </div>
             <?php endif; ?>
+        </div>
+
+        <div id="overlayHistoryBeli">
+            <div class="modal-history-container">
+                <span class="modal-history-close" onclick="tutupModalHistory()">&times;</span>
+                <h3 class="modal-history-title">Seluruh Riwayat Pembelian Selesai</h3>
+                
+                <div class="modal-history-grid">
+                    <?php
+                    // Query meload seluruh history dengan status selesai bray
+                    $query_all_history = "
+                        SELECT o.game_name, o.total_price, o.catatan,
+                        COALESCE(
+                            (SELECT g.id FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                            (SELECT g.id FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                            0
+                        ) as id_game_asli,
+                        COALESCE(
+                            (SELECT g.nama_game FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                            'TopZone Product'
+                        ) as nama_game_asli,
+                        COALESCE(
+                            (SELECT g.gambar FROM games g WHERE o.game_name LIKE CONCAT('%', g.nama_game, '%') LIMIT 1),
+                            (SELECT g.gambar FROM games g WHERE g.harga = o.total_price LIMIT 1),
+                            'Default.jpg'
+                        ) as gambar_game_asli
+                        FROM orders o
+                        WHERE o.id_user = '$id_user_skrg' AND o.status = 'selesai'
+                        ORDER BY o.id_order DESC
+                    ";
+                    $result_all = mysqli_query($koneksi, $query_all_history);
+
+                    if ($result_all && mysqli_num_rows($result_all) > 0):
+                        while($all_row = mysqli_fetch_assoc($result_all)):
+                    ?>
+                        <div class="modal-history-card">
+                            <div class="tz-repeat-info-wrap">
+                                <div class="tz-repeat-img-container">
+                                    <img src="<?php echo $all_row['gambar_game_asli']; ?>" class="tz-repeat-img">
+                                </div>
+                                <div class="tz-repeat-details">
+                                    <h4 class="tz-game-name"><?php echo $all_row['nama_game_asli']; ?></h4>
+                                    <p class="tz-game-paket"><?php echo $all_row['game_name']; ?></p>
+                                    <p class="tz-game-price">Rp <?php echo number_format($all_row['total_price'], 0, ',', '.'); ?></p>
+                                </div>
+                            </div>
+                            <div class="tz-repeat-action-wrap">
+                                <a href="Checkout/pembayaran.php?id_game=<?php echo $all_row['id_game_asli']; ?>&paket=<?php echo urlencode($all_row['game_name']); ?>&harga=<?php echo $all_row['total_price']; ?>&user=<?php echo urlencode($all_row['catatan']); ?>" class="tz-btn-beli-lagi">
+                                    Beli Lagi
+                                </a>
+                            </div>
+                        </div>
+                    <?php 
+                        endwhile;
+                    else:
+                    ?>
+                        <div class="tz-empty-repeat-container" style="grid-column: span 2;">
+                            <p class="tz-empty-repeat-text">Belum ada riwayat transaksi selesai bray.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
         <?php 
         endif; 
@@ -1765,6 +1846,30 @@ document.addEventListener('click', function(event) {
     }
 });
 document.addEventListener('keydown', (e) => { if(e.key === "Escape") closeAllSidebars(); });
+
+function bukaModalHistory() {
+    const overlay = document.getElementById('overlayHistoryBeli');
+    overlay.style.display = "flex"; 
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+    }, 20);
+    }
+
+function tutupModalHistory() {
+    const overlay = document.getElementById('overlayHistoryBeli');
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+        overlay.style.display = "none";
+    }, 300);
+    }
+
+    // Auto close kalau user sembarang klik di area luar kotak bray
+window.addEventListener('click', function(e) {
+    const overlay = document.getElementById('overlayHistoryBeli');
+    if (e.target === overlay) {
+        tutupModalHistory();
+    }
+    });
 </script>
 </body>
 </html>
