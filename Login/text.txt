@@ -1,0 +1,2369 @@
+tampilandaftar.css
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+ 
+
+:root {
+
+     --navy:     #050e2e;
+
+     --blue1:    #0a1a5c;
+
+     --blue2:    #0d2480;
+
+     --gold:     #c9a227;
+
+     --gold2:    #f0cc5e;
+
+     --white:    #e8eeff;
+
+     --input-bg: rgba(255,255,255,0.07);
+
+     --border:   rgba(201,162,39,0.45);
+
+     --error:    #ff4d6d;
+
+     --success:  #36d399;
+
+}
+
+ 
+
+body {
+
+  min-height: 100vh;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-family: 'Rajdhani', sans-serif;
+
+  width: 100%; height: 100vh;
+
+  overflow: hidden;
+
+  background: #03091a;
+
+}
+
+ 
+
+  /* ── Aurora orb layer ── */
+
+.orb-layer {
+
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%; height: 100%;
+
+  pointer-events: none;
+
+}
+
+ 
+
+.orb {
+
+  position: absolute;
+
+  border-radius: 50%;
+
+  filter: blur(90px);
+
+  mix-blend-mode: screen;
+
+  will-change: transform;
+
+  animation-timing-function: ease-in-out;
+
+  animation-iteration-count: infinite;
+
+  animation-direction: alternate;
+
+}
+
+ 
+
+  /* 4 warna: darkest navy → deep blue → mid blue → bright blue */
+
+.o1 {
+
+  width: 70vw; height: 55vh;
+
+  background: radial-gradient(ellipse, rgba(10,50,160,0.72) 0%, #050e2e 50%);
+
+  top: -10vh; left: -10vw;
+
+  animation: drift1 18s ease-in-out infinite alternate;
+
+}
+
+.o2 {
+
+  width: 60vw; height: 50vh;
+
+  background: radial-gradient(ellipse, rgba(30,100,220,0.60) 0%, #050e2e 50%);
+
+  top: 10vh; right: -15vw;
+
+  animation: drift2 22s ease-in-out infinite alternate;
+
+}
+
+.o3 {
+
+  width: 55vw; height: 45vh;
+
+  background: radial-gradient(ellipse, rgba(55,148,255,0.45) 0%, rgba(20,70,180,0.0) 50%);
+
+  top: 30vh; left: 15vw;
+
+  animation: drift3 26s ease-in-out infinite alternate;
+
+}
+
+.o4 {
+
+  width: 50vw; height: 40vh;
+
+  background: radial-gradient(ellipse, rgba(90,190,255,0.35) 0%, rgba(30,100,210,0.0) 50%);
+
+  bottom: -5vh; right: 5vw;
+
+  animation: drift4 20s ease-in-out infinite alternate;
+
+}
+
+.o5 {
+
+  width: 45vw; height: 38vh;
+
+  background: radial-gradient(ellipse, rgba(15,60,180,0.55) 0%, #050e2e 50%);
+
+  bottom: 10vh; left: -5vw;
+
+  animation: drift5 24s ease-in-out infinite alternate;
+
+}
+
+.o6 {
+
+  width: 40vw; height: 35vh;
+
+  background: radial-gradient(ellipse, rgba(70,170,255,0.30) 0%, rgba(20,80,200,0.0) 50%);
+
+  top: 20vh; left: 40vw;
+
+  animation: drift6 30s ease-in-out infinite alternate;
+
+}
+
+ 
+
+@keyframes drift1 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  50%  { transform: translate(8vw, 6vh) scale(1.08); }
+
+  100% { transform: translate(3vw, 12vh) scale(0.95); }
+
+}
+
+@keyframes drift2 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  40%  { transform: translate(-10vw, 8vh) scale(1.1); }
+
+  100% { transform: translate(-5vw, 15vh) scale(0.92); }
+
+}
+
+@keyframes drift3 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  60%  { transform: translate(12vw, -8vh) scale(1.05); }
+
+  100% { transform: translate(6vw, -15vh) scale(1.12); }
+
+}
+
+@keyframes drift4 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  50%  { transform: translate(-8vw, -10vh) scale(1.06); }
+
+  100% { transform: translate(-15vw, -5vh) scale(0.94); }
+
+}
+
+@keyframes drift5 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  45%  { transform: translate(10vw, -6vh) scale(1.09); }
+
+  100% { transform: translate(5vw, -12vh) scale(1.03); }
+
+}
+
+@keyframes drift6 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  55%  { transform: translate(-7vw, 10vh) scale(1.07); }
+
+  100% { transform: translate(-12vw, 4vh) scale(0.96); }
+
+}
+
+ 
+
+  /* ── Finishing layers ── */
+
+.noise-overlay {
+
+  position: absolute;
+
+  inset: 0;
+
+  opacity: 0.025;
+
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  background-size: 200px 200px;
+
+  pointer-events: none;
+
+}
+
+ 
+
+.vignette {
+
+  position: absolute;
+
+  inset: 0;
+
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(3,9,26,0.85) 100%);
+
+  pointer-events: none;
+
+}
+
+ 
+
+.top-fade {
+
+  position: absolute;
+
+  top: 0; left: 0; right: 0;
+
+  height: 25vh;
+
+  background: linear-gradient(to bottom, rgba(3,9,26,1) 0%, transparent 100%);
+
+  pointer-events: none;
+
+}
+
+ 
+
+.bottom-fade {
+
+  position: absolute;
+
+  bottom: 0; left: 0; right: 0;
+
+  height: 20vh;
+
+  background: linear-gradient(to top, rgba(3,9,26,0.9) 0%, transparent 100%);
+
+  pointer-events: none;
+
+}
+
+ 
+
+.card {
+
+  position: relative;
+
+  isolation: isolate;
+
+  width: 360px;
+
+  height: 550px;
+
+  border-radius: 20px;
+
+  color: var(--gold);
+
+  padding: 20px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  backdrop-filter: blur(24px) saturate(180%);
+
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  border-top-color: rgba(255, 255, 255, 0.5);
+
+  box-shadow:
+
+  0 8px 32px rgba(0, 0, 0, 0.4),
+
+  inset 0 1px 0 rgba(255,255,255,0.3);
+
+  transition: 0.5s;
+
+}
+
+ 
+
+.card::before {
+
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  border-radius: 20px;
+
+  padding: 4px; /* Ketebalan border */
+
+  background: radial-gradient(
+
+    600px circle at var(--x) var(--y),
+
+    var(--gold),
+
+    transparent 60%
+
+  );
+
+  -webkit-mask: 
+
+    linear-gradient(#fff 0 0) content-box, 
+
+    linear-gradient(#fff 0 0);
+
+  mask: 
+
+    linear-gradient(#fff 0 0) content-box, 
+
+    linear-gradient(#fff 0 0);
+
+  -webkit-mask-composite: xor;
+
+  mask-composite: exclude;
+
+  opacity: 0;
+
+  z-index: -1;
+
+  transition: opacity 0.5s;
+
+}
+
+
+
+.card::after {
+
+  border-radius: 18px;
+
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  background: radial-gradient(
+
+    600px circle at var(--x) var(--y),
+
+    rgba(255, 191, 0, 0.15), 
+
+    transparent 100%
+
+  );
+
+  pointer-events: none;
+
+  opacity: 0;
+
+  transition: opacity 0.4s ease;
+
+}
+
+
+
+.card:hover::before,
+
+.card:hover::after {
+
+  opacity: 4;
+
+}
+
+ 
+
+.logo-wrap {
+
+     display: flex; flex-direction: column; align-items: center;
+
+     gap: 10px; margin-bottom: 28px;
+
+}
+
+
+
+.logo-img {
+
+     width: 80px;
+
+     height: auto; 
+
+     object-fit: contain;
+
+     filter: drop-shadow(0 0 12px rgba(201,162,39,.55));
+
+     animation: pulse 3s ease-in-out infinite;
+
+}
+
+
+
+@keyframes pulse {
+
+     0%,100% { filter: drop-shadow(0 0 10px rgba(201,162,39,.5)); }
+
+     50%      { filter: drop-shadow(0 0 24px rgba(201,162,39,.85)); }
+
+}
+
+
+
+.logo-fallback {
+
+     width: 72px;
+
+     height: 72px;
+
+     background: linear-gradient(135deg, var(--gold), var(--gold2));
+
+     clip-path: polygon(20% 0%,80% 0%,100% 50%,80% 100%,20% 100%,0% 50%);
+
+     display: flex; 
+
+     align-items: center; 
+
+     justify-content: center;
+
+     font-family: 'Orbitron', sans-serif; 
+
+     font-weight: 900; 
+
+     font-size: 26px;
+
+     color: var(--navy);
+
+     filter: drop-shadow(0 0 12px rgba(201,162,39,.55));
+
+     animation: pulse 3s ease-in-out infinite;
+
+}
+
+
+
+.logo-text {
+
+     font-family: 'Orbitron', sans-serif;
+
+     font-weight: 900; 
+
+     font-size: 20px; 
+
+     letter-spacing: 4px;
+
+     background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
+
+     -webkit-background-clip: text; 
+
+     -webkit-text-fill-color: transparent;
+
+     background-clip: text;
+
+}
+
+
+
+.logo-sub {
+
+     font-size: 11px; 
+
+     letter-spacing: 2px; 
+
+     text-transform: uppercase;
+
+     color: rgba(201,162,39,.6); 
+
+     margin-top: -4px;
+
+}
+
+ 
+
+.field { 
+
+     margin-bottom: 16px; 
+
+     position: relative; 
+
+}
+
+
+
+label {
+
+     display: block; 
+
+     font-size: 11px;
+
+     letter-spacing: 1.5px; 
+
+     text-transform: uppercase;
+
+     color: rgba(201,162,39,.75);
+
+      margin-bottom: 6px;
+
+}
+
+ 
+
+.input-wrap { 
+
+     position: relative; 
+
+}
+
+
+
+.input-icon {
+
+     position: absolute; 
+
+     left: 12px; top: 50%; 
+
+     transform: translateY(-50%);
+
+     width: 16px; 
+
+     height: 16px; 
+
+     opacity: .45; 
+
+     pointer-events: none;
+
+}
+
+ 
+
+input[type="text"],
+
+input[type="email"],
+
+input[type="password"] {
+
+     width: 100%;
+
+     background: var(--input-bg);
+
+     border: 1px solid rgba(201,162,39,.25);
+
+     border-radius: 8px;
+
+     padding: 11px 14px 11px 38px;
+
+     color: var(--white);
+
+     font-family: 'Rajdhani', sans-serif;
+
+     font-size: 15px; 
+
+     letter-spacing: .5px;
+
+     outline: 1px solid rgba(255, 255, 255, 0.06);
+
+     transition: border-color .25s, box-shadow .25s;
+
+}
+
+
+
+input:focus {
+
+     border-color: var(--gold);
+
+     box-shadow: 0 0 0 3px rgba(201,162,39,.15);
+
+}
+
+    
+
+input.error  {
+
+     border-color: var(--error); 
+
+}
+
+    
+
+input.valid  { 
+
+     border-color: var(--success); 
+
+}
+
+    
+
+input::placeholder { 
+
+     color: rgba(255,255,255,.22); 
+
+}
+
+ 
+
+    
+
+.hint {
+
+     font-size: 11px; 
+
+     margin-top: 4px; 
+
+     padding-left: 2px;
+
+     display: none;
+
+}
+
+    
+
+.hint.show { 
+
+     display: block; 
+
+}
+
+    
+
+.hint.err  { 
+
+     color: var(--error); 
+
+}
+
+    
+
+.hint.ok   { 
+
+     color: var(--success); 
+
+}
+
+ 
+
+.toggle-pw {
+
+     position: absolute; 
+
+     right: 12px; top: 50%; 
+
+     transform: translateY(-50%);
+
+     cursor: pointer; 
+
+     opacity: .4; 
+
+     transition: opacity .2s;
+
+}
+
+    
+
+.toggle-pw:hover { 
+
+     opacity: .8; 
+
+}
+
+    
+
+.toggle-pw svg { 
+
+     width: 18px; 
+
+     height: 18px; 
+
+     fill: var(--white); 
+
+     display: block;
+
+}
+
+ 
+
+.strength-bar {
+
+     display: flex; 
+
+     gap: 4px; 
+
+     margin-top: 6px;
+
+}
+
+    
+
+.strength-seg {
+
+     flex: 1; 
+
+     height: 3px; 
+
+     border-radius: 4px;
+
+     background: rgba(255,255,255,.1);
+
+     transition: background .3s;
+
+}
+
+ 
+
+.divider-row {
+
+     display: flex; 
+
+     align-items: center; 
+
+     gap: 10px;
+
+     margin: 4px 0 16px;
+
+}
+
+    
+
+.divider-row span { 
+
+     font-size: 11px; 
+
+     color: rgba(255,255,255,.25); 
+
+     white-space: nowrap; 
+
+}
+
+    
+
+.divider-row::before, .divider-row::after {
+
+     content: ''; 
+
+     flex: 1; 
+
+     height: 1px;
+
+     background: rgba(201,162,39,.2);
+
+}
+
+ 
+
+.btn-wrap { 
+
+     display: flex; 
+
+     justify-content: center; 
+
+     margin-top: 6px; 
+
+}
+
+
+
+.btn-daftar {
+
+     padding: 13px 48px;
+
+     background: transparent;
+
+     border: 1px solid var(--border);
+
+     border-radius: 8px;
+
+     font-family: 'Orbitron', sans-serif;
+
+     font-weight: 700;
+
+     font-size: 13px;
+
+     letter-spacing: 3px;
+
+     color: #ffffff;
+
+     cursor: pointer;
+
+     backdrop-filter: blur(10px);
+
+     box-shadow: 0 4px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(201,162,39,.2);
+
+     transition: background .3s, transform .15s, box-shadow .3s, border-color .3s;
+
+}
+
+    
+
+.btn-daftar:hover {
+
+     background: rgba(255, 215, 100, 0.1);
+
+     box-shadow: 0 0 25px rgba(6, 27, 122, 0.4);
+
+     color: #fff;
+
+}
+
+    
+
+.btn-daftar:active { 
+
+     transform: translateY(1px); 
+
+}
+
+    
+
+.footer-link {
+
+     margin-top: 20px; 
+
+     text-align: center;
+
+     font-size: 13px; 
+
+     color: rgba(255,255,255,.4);
+
+}
+
+    
+
+.footer-link a {
+
+     color: var(--gold2); 
+
+     text-decoration: none;
+
+     transition: color .2s;
+
+}
+
+    
+
+.footer-link a:hover { 
+
+     color: #fff; 
+
+}
+
+ 
+
+.success-overlay {
+
+     display: none;
+
+     position: absolute; 
+
+     inset: 0;
+
+     background: linear-gradient(160deg, rgba(13,36,128,.85) 0%, rgba(5,14,46,.95) 100%);
+
+     border-radius: 20px;
+
+     backdrop-filter: blur(10px);
+
+     z-index: 10;
+
+     flex-direction: column; 
+
+     align-items: center; 
+
+     justify-content: center;
+
+     gap: 16px; 
+
+     text-align: center;
+
+     padding: 32px;
+
+}
+
+    
+
+.success-overlay.show { 
+
+     display: flex; 
+
+     animation: fadeUp .4s ease; 
+
+}
+
+    
+
+.success-icon {
+
+     width: 64px; 
+
+     height: 64px; 
+
+     border-radius: 50%;
+
+     background: rgba(54,211,153,.15);
+
+     border: 2px solid var(--success);
+
+     display: flex; 
+
+     align-items: center; 
+
+     justify-content: center;
+
+     font-size: 28px;
+
+}
+
+
+
+.success-title {
+
+     font-family: 'Orbitron', sans-serif; 
+
+     font-weight: 700;
+
+     font-size: 16px; 
+
+     letter-spacing: 2px; 
+
+     color: var(--success);
+
+}
+
+    
+
+.success-msg { 
+
+     font-size: 13px; 
+
+     color: rgba(255,255,255,.6);
+
+     line-height: 1.6; 
+
+}
+
+    
+
+.btn-to-login {
+
+     padding: 11px 36px;
+
+     background: linear-gradient(160deg, rgba(13,36,128,.7) 0%, rgba(5,14,46,.9) 100%);
+
+     border: 1px solid var(--border); 
+
+     border-radius: 8px;
+
+     font-family: 'Orbitron', sans-serif; 
+
+     font-weight: 700;
+
+     font-size: 11px; 
+
+     letter-spacing: 2px; 
+
+     color: #fff;
+
+     cursor: pointer; 
+
+     margin-top: 8px;
+
+     transition: border-color .2s, box-shadow .2s;
+
+}
+
+    
+
+.btn-to-login:hover { 
+
+     border-color: var(--gold); 
+
+     box-shadow: 0 4px 20px rgba(201,162,39,.25); 
+
+}
+
+
+
+tampilandaftar.php
+
+<?php
+
+session_start();
+
+include '../Home/koneksi.php';
+
+
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
+    $nama  = mysqli_real_escape_string($conn, $_POST['nama']);
+
+    $user  = mysqli_real_escape_string($conn, $_POST['username']);
+
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+
+    $pass  = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
+
+
+    $cek = mysqli_query($conn, "SELECT * FROM users WHERE username = '$user'");
+
+    if(mysqli_num_rows($cek) > 0) {
+
+        echo "<script>alert('Username udah dipake mprruy!'); window.location='tampilandaftar.php';</script>";
+
+    } else {
+
+        // Samain Default.jpg biar gambarnya muncul di sidebar
+
+        $query = "INSERT INTO users (nama_user, username, email, password, foto) 
+
+                  VALUES ('$nama', '$user', '$email', '$pass', 'Default.jpg')";
+
+
+
+        if(mysqli_query($conn, $query)) {
+
+            echo "<script>alert('Daftar berhasil! Login ya mprruy.'); window.location='tampilanlogin.php';</script>";
+
+        } else {
+
+            echo "Gagal daftar: " . mysqli_error($conn);
+
+        }
+
+    }
+
+}
+
+?> 
+
+<!DOCTYPE html>
+
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Daftar Akun - TopZone</title>
+
+    <link rel="stylesheet" href="tampilandaftar.css">
+
+</head>
+
+<body>
+
+
+
+<div id="stage">
+
+        <div class="orb-layer">
+
+            <div class="orb o1"></div>
+
+            <div class="orb o2"></div>
+
+            <div class="orb o3"></div>
+
+            <div class="orb o4"></div>
+
+            <div class="orb o5"></div>
+
+            <div class="orb o6"></div>
+
+        </div>
+
+ 
+
+        <div class="noise-overlay"></div>
+
+        <div class="vignette"></div>
+
+        <div class="top-fade"></div>
+
+        <div class="bottom-fade"></div>
+
+
+
+    <div class="card">
+
+       <div class="logo-wrap">
+
+            <img class="logo-img" src="logotopzone.png" alt="TopZone Logo"/>
+
+            <div class="logo-text">TOPZONE</div>
+
+        </div>
+
+
+
+        <form action="tampilandaftar.php" method="POST">
+
+            <div class="field">
+
+                <label>Nama Lengkap</label>
+
+                <input type="text" name="nama" placeholder="Masukkan nama lengkap" required>
+
+            </div>
+
+            <div class="field">
+
+                <label>Username</label>
+
+                <input type="text" name="username" placeholder="Minimal 4 karakter" required>
+
+            </div>
+
+            <div class="field">
+
+                <label>Email</label>
+
+                <input type="email" name="email" placeholder="contoh@email.com" required>
+
+            </div>
+
+            <div class="field">
+
+                <label>Password</label>
+
+                <input type="password" name="password" placeholder="Minimal 8 karakter" required>
+
+            </div>
+
+            <div class="btn-wrap">
+
+                <button type="submit" class="btn-daftar">DAFTAR SEKARANG</button>
+
+            </div>
+
+        </form>
+
+
+
+       <div class="footer-link">
+
+            Masuk sebagai <a href="masuk_guest.php">Guest</a>
+
+        </div>
+
+        
+
+        <div class="footer-link">
+
+            Sudah punya akun? <a href="tampilanlogin.php">Masuk di sini</a>
+
+        </div>
+
+
+
+        <script>
+
+            let cards = document.querySelectorAll('.card');
+
+            cards.forEach(card => {
+
+                card.onmousemove = function(e) {
+
+                   let x = e.pageX - card.offsetLeft;
+
+                   let y = e.pageY - card.offsetTop;
+
+
+
+                   card.style.setProperty('--x', x + 'px');
+
+                   card.style.setProperty('--y', y + 'px');
+
+                };
+
+            })
+
+        </script>
+
+        
+
+    </div>
+
+</body>
+
+</html>
+
+
+
+tampilanlogin.css
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+
+
+:root {
+
+  --navy:   #050e2e;
+
+  --blue1:  #0a1a5c;
+
+  --blue2:  #0d2480;
+
+  --gold:   #c9a227;
+
+  --gold2:  #f0cc5e;
+
+  --white:  #e8eeff;
+
+  --input-bg: rgba(255,255,255,0.07);
+
+  --border:   rgba(201,162,39,0.45);
+
+}
+
+
+
+body {
+
+  min-height: 100vh;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-family: 'Rajdhani', sans-serif;
+
+  width: 100%; height: 100vh;
+
+  overflow: hidden;
+
+  background: #1205a5;
+
+}
+
+ 
+
+  /* ── Aurora orb layer ── */
+
+.orb-layer {
+
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%; height: 100%;
+
+  pointer-events: none;
+
+}
+
+ 
+
+.orb {
+
+  position: absolute;
+
+  border-radius: 50%;
+
+  filter: blur(90px);
+
+  mix-blend-mode: screen;
+
+  will-change: transform;
+
+  animation-timing-function: ease-in-out;
+
+  animation-iteration-count: infinite;
+
+  animation-direction: alternate;
+
+}
+
+ 
+
+  /* 4 warna: darkest navy → deep blue → mid blue → bright blue */
+
+.o1 {
+
+  width: 70vw; height: 55vh;
+
+  background: radial-gradient(ellipse, rgba(10,50,160,0.72) 0%, #050e2e 50%);
+
+  top: -10vh; left: -10vw;
+
+  animation: drift1 18s ease-in-out infinite alternate;
+
+}
+
+.o2 {
+
+  width: 60vw; height: 50vh;
+
+  background: radial-gradient(ellipse, rgba(30,100,220,0.60) 0%, #050e2e 50%);
+
+  top: 10vh; right: -15vw;
+
+  animation: drift2 22s ease-in-out infinite alternate;
+
+}
+
+.o3 {
+
+  width: 55vw; height: 45vh;
+
+  background: radial-gradient(ellipse, rgba(55,148,255,0.45) 0%, rgba(20,70,180,0.0) 50%);
+
+  top: 30vh; left: 15vw;
+
+  animation: drift3 26s ease-in-out infinite alternate;
+
+}
+
+.o4 {
+
+  width: 50vw; height: 40vh;
+
+  background: radial-gradient(ellipse, rgba(90,190,255,0.35) 0%, rgba(30,100,210,0.0) 50%);
+
+  bottom: -5vh; right: 5vw;
+
+  animation: drift4 20s ease-in-out infinite alternate;
+
+}
+
+.o5 {
+
+  width: 45vw; height: 38vh;
+
+  background: radial-gradient(ellipse, rgba(15,60,180,0.55) 0%, #050e2e 50%);
+
+  bottom: 10vh; left: -5vw;
+
+  animation: drift5 24s ease-in-out infinite alternate;
+
+}
+
+.o6 {
+
+  width: 40vw; height: 35vh;
+
+  background: radial-gradient(ellipse, rgba(70,170,255,0.30) 0%, rgba(20,80,200,0.0) 50%);
+
+  top: 20vh; left: 40vw;
+
+  animation: drift6 30s ease-in-out infinite alternate;
+
+}
+
+ 
+
+@keyframes drift1 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  50%  { transform: translate(8vw, 6vh) scale(1.08); }
+
+  100% { transform: translate(3vw, 12vh) scale(0.95); }
+
+}
+
+@keyframes drift2 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  40%  { transform: translate(-10vw, 8vh) scale(1.1); }
+
+  100% { transform: translate(-5vw, 15vh) scale(0.92); }
+
+}
+
+@keyframes drift3 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  60%  { transform: translate(12vw, -8vh) scale(1.05); }
+
+  100% { transform: translate(6vw, -15vh) scale(1.12); }
+
+}
+
+@keyframes drift4 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  50%  { transform: translate(-8vw, -10vh) scale(1.06); }
+
+  100% { transform: translate(-15vw, -5vh) scale(0.94); }
+
+}
+
+@keyframes drift5 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  45%  { transform: translate(10vw, -6vh) scale(1.09); }
+
+  100% { transform: translate(5vw, -12vh) scale(1.03); }
+
+}
+
+@keyframes drift6 {
+
+  0%   { transform: translate(0, 0) scale(1); }
+
+  55%  { transform: translate(-7vw, 10vh) scale(1.07); }
+
+  100% { transform: translate(-12vw, 4vh) scale(0.96); }
+
+}
+
+ 
+
+  /* ── Finishing layers ── */
+
+.noise-overlay {
+
+  position: absolute;
+
+  inset: 0;
+
+  opacity: 0.025;
+
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  background-size: 200px 200px;
+
+  pointer-events: none;
+
+}
+
+ 
+
+.vignette {
+
+  position: absolute;
+
+  inset: 0;
+
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(3,9,26,0.85) 100%);
+
+  pointer-events: none;
+
+}
+
+ 
+
+.top-fade {
+
+  position: absolute;
+
+  top: 0; left: 0; right: 0;
+
+  height: 25vh;
+
+  background: linear-gradient(to bottom, rgba(3,9,26,1) 0%, transparent 100%);
+
+  pointer-events: none;
+
+}
+
+ 
+
+.bottom-fade {
+
+  position: absolute;
+
+  bottom: 0; left: 0; right: 0;
+
+  height: 20vh;
+
+  background: linear-gradient(to top, rgba(3,9,26,0.9) 0%, transparent 100%);
+
+  pointer-events: none;
+
+}
+
+ 
+
+.card {
+
+  position: relative;
+
+  isolation: isolate;
+
+  width: 360px;
+
+  height: 550px;
+
+  border-radius: 20px;
+
+  color: var(--gold);
+
+  padding: 20px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  backdrop-filter: blur(24px) saturate(180%);
+
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  border-top-color: rgba(255, 255, 255, 0.5);
+
+  box-shadow:
+
+  0 8px 32px rgba(0, 0, 0, 0.4),
+
+  inset 0 1px 0 rgba(255,255,255,0.3);
+
+  transition: 0.5s;
+
+}
+
+ 
+
+.card::before {
+
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  border-radius: 20px;
+
+  padding: 4px; /* Ketebalan border */
+
+  background: radial-gradient(
+
+    600px circle at var(--x) var(--y),
+
+    var(--gold),
+
+    transparent 60%
+
+  );
+
+  -webkit-mask: 
+
+    linear-gradient(#fff 0 0) content-box, 
+
+    linear-gradient(#fff 0 0);
+
+  mask: 
+
+    linear-gradient(#fff 0 0) content-box, 
+
+    linear-gradient(#fff 0 0);
+
+  -webkit-mask-composite: xor;
+
+  mask-composite: exclude;
+
+  opacity: 0;
+
+  z-index: -1;
+
+  transition: opacity 0.5s;
+
+}
+
+
+
+.card::after {
+
+  border-radius: 18px;
+
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  background: radial-gradient(
+
+    600px circle at var(--x) var(--y),
+
+    rgba(255, 191, 0, 0.15), 
+
+    transparent 100%
+
+  );
+
+  pointer-events: none;
+
+  opacity: 0;
+
+  transition: opacity 0.4s ease;
+
+}
+
+
+
+.card:hover::before,
+
+.card:hover::after {
+
+  opacity: 4;
+
+}
+
+
+
+.logo-wrap {
+
+  display: flex; 
+
+  flex-direction: column; 
+
+  align-items: center;
+
+  gap: 10px; 
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.logo-img {
+
+  width: 90px;
+
+  height: auto;
+
+  object-fit: contain;
+
+  filter: drop-shadow(0 0 12px rgba(201,162,39,.55));
+
+  animation: pulse 3s ease-in-out infinite;
+
+}
+
+
+
+@keyframes pulse {
+
+  0%,100% { filter: drop-shadow(0 0 10px rgba(201,162,39,.5)); }
+
+  50% { filter: drop-shadow(0 0 24px rgba(201,162,39,.85)); }
+
+}
+
+
+
+.logo-text {
+
+  font-family: 'Orbitron', sans-serif;
+
+  font-weight: 900;
+
+  font-size: 22px;
+
+  letter-spacing: 4px;
+
+  background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
+
+  -webkit-background-clip: text;
+
+  -webkit-text-fill-color: transparent;
+
+  background-clip: text;
+
+  text-shadow: none;
+
+}
+
+    
+
+.field { 
+
+  position: relative;
+
+  margin-bottom: 1.5rem;
+
+}
+
+
+
+label {
+
+  font-family: 'Orbitron', sans-serif;
+
+  display: block;
+
+  font-size: 12px;
+
+  letter-spacing: 1.5px;
+
+  text-transform: uppercase;
+
+  color: rgba(201,162,39,.75);
+
+  margin-bottom: 4px;
+
+}
+
+
+
+input[type="text"],
+
+input[type="password"] {
+
+  width: 100%;
+
+    padding: 12px 15px;
+
+    background: rgba(255, 255, 255, 0.08);
+
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    border-radius: 8px;
+
+    color: white;
+
+    outline: 1px solid rgba(255, 255, 255, 0.06);
+
+    transition: all 0.4s ease;
+
+    font-size: 0.9rem;
+
+    letter-spacing: 1px;
+
+}
+
+
+
+input:focus {
+
+  background: rgba(255, 255, 255, 0.12);
+
+  border-color: rgba(255, 215, 100, 0.6);
+
+  box-shadow: 0 0 15px rgba(255, 215, 100, 0.3);
+
+}
+
+
+
+input::placeholder {
+
+  color: rgba(255,255,255,.25); 
+
+}
+
+
+
+.btn-wrap {
+
+  display: flex;
+
+  justify-content: center;
+
+  margin-top: 8px;
+
+}
+
+
+
+.btn-login {
+
+  padding: 13px 48px;
+
+  background: transparent;
+
+  border: 1px solid var(--border);
+
+  border-radius: 8px;
+
+  font-family: 'Orbitron', sans-serif;
+
+  font-weight: 700;
+
+  font-size: 13px;
+
+  letter-spacing: 3px;
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  backdrop-filter: blur(10px);
+
+  box-shadow: 0 4px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(201,162,39,.2);
+
+  transition: background .3s, transform .15s, box-shadow .3s, border-color .3s;
+
+}
+
+
+
+.btn-login:hover {
+
+  background: rgba(255, 215, 100, 0.1);
+
+  box-shadow: 0 0 25px rgba(6, 27, 122, 0.4);
+
+  color: #fff;
+
+}
+
+
+
+.btn-login:active { 
+
+  transform: translateY(1px); 
+
+}
+
+ 
+
+.footer-link {
+
+  margin-top: 20px; text-align: center;
+
+  font-size: 13px; color: rgba(255,255,255,.4);
+
+}
+
+
+
+.footer-link a {
+
+  color: var(--gold2);
+
+  text-decoration: none;
+
+  transition: color .3s;
+
+}
+
+
+
+.footer-link a:hover { 
+
+  color: #e7f70b; 
+
+}
+
+tampilanlogin.php
+
+<?php
+
+session_start();
+
+include '../Home/koneksi.php';
+
+
+
+if (isset($_POST['btn_simpan'])) {
+
+    // PASTIKAN NAMA SESSION-NYA SAMA (Kalau di login pakai id_user, di sini id_user)
+
+    $id_user = $_SESSION['id_user']; 
+
+    
+
+    if (empty($id_user)) {
+
+        die("Waduh mprruy, ID lo gak kebaca. Coba login ulang!");
+
+    }
+
+
+
+    $nama_baru = mysqli_real_escape_string($conn, $_POST['nama_user']);
+
+    $user_baru = mysqli_real_escape_string($conn, $_POST['username']);
+
+    $email_baru = mysqli_real_escape_string($conn, $_POST['email']);
+
+    $pass_baru = $_POST['password'];
+
+    $foto_data = $_POST['foto_base64'];
+
+
+
+    // Ambil foto lama dari session
+
+    $nama_file = $_SESSION['foto'] ?? 'Default.jpg';
+
+
+
+    // 1. Cek urusan Foto
+
+    if (!empty($foto_data)) {
+
+        // Hapus foto lama biar gak menuh-menuhin storage (Opsional)
+
+        if ($nama_file != 'Default.jpg' && file_exists('uploads/' . $nama_file)) {
+
+            unlink('uploads/' . $nama_file);
+
+        }
+
+
+
+        list($type, $foto_data) = explode(';', $foto_data);
+
+        list(, $foto_data)      = explode(',', $foto_data);
+
+        $data = base64_decode($foto_data);
+
+        
+
+        // Nama file baru
+
+        $nama_file = 'pp_' . $id_user . '_' . time() . '.png';
+
+        file_put_contents('uploads/' . $nama_file, $data);
+
+        
+
+        // UPDATE SESSION FOTO
+
+        $_SESSION['foto'] = $nama_file;
+
+    }
+
+
+
+    // 2. Build Query Update
+
+    $sql_update = "UPDATE users SET 
+
+                   nama_user = '$nama_baru', 
+
+                   username = '$user_baru', 
+
+                   email = '$email_baru', 
+
+                   foto = '$nama_file'";
+
+    
+
+    if (!empty($pass_baru)) {
+
+        $hashed_pass = password_hash($pass_baru, PASSWORD_DEFAULT);
+
+        $sql_update .= ", password = '$hashed_pass'";
+
+    }
+
+
+
+    // PASTIKAN 'id' di sini nama kolom di Tabel MySQL lo
+
+    $sql_update .= " WHERE id = '$id_user'"; 
+
+    
+
+    if (mysqli_query($conn, $sql_update)) {
+
+        // UPDATE SEMUA SESSION BIAR SINKRON
+
+        $_SESSION['nama_user'] = $nama_baru;
+
+        $_SESSION['username'] = $user_baru;
+
+        $_SESSION['email'] = $email_baru;
+
+        $_SESSION['foto'] = $nama_file; // Pastikan ini terupdate
+
+        
+
+        echo "<script>alert('Profil Berhasil Diupdate Permanen!'); window.location='index.php';</script>";
+
+    } else {
+
+        die("Waduh Error DB mprruy: " . mysqli_error($conn));
+
+    }
+
+}
+
+?>
+
+<!DOCTYPE html>
+
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Login - TopZone</title>
+
+    <link rel="stylesheet" href="tampilanlogin.css">
+
+</head>
+
+<body>
+
+    <div id="stage">
+
+ 
+
+        <div class="orb-layer">
+
+            <div class="orb o1"></div>
+
+            <div class="orb o2"></div>
+
+            <div class="orb o3"></div>
+
+            <div class="orb o4"></div>
+
+            <div class="orb o5"></div>
+
+            <div class="orb o6"></div>
+
+        </div>
+
+ 
+
+        <div class="noise-overlay"></div>
+
+        <div class="vignette"></div>
+
+        <div class="top-fade"></div>
+
+        <div class="bottom-fade"></div>
+
+
+
+    <div class="card">
+
+        <div class="logo-wrap">
+
+            <img class="logo-img" src="logotopzone.png" alt="TopZone Logo"/>
+
+            <div class="logo-text">TOPZONE</div>
+
+        </div>
+
+
+
+        <form action="login_proses.php" method="POST">
+
+            <div class="field">
+
+                <label>Username</label>
+
+                <input type="text" name="username" placeholder="Masukkan username" required>
+
+            </div>
+
+            <div class="field">
+
+                <label>Password</label>
+
+                <input type="password" name="password" placeholder="Masukkan password" required>
+
+            </div>
+
+            <div class="btn-wrap">
+
+                <button type="submit" name="btn_login" class="btn-login">LOGIN</button>
+
+            </div>
+
+        </form>
+
+
+
+        <div class="footer-link">
+
+            Masuk sebagai <a href="masuk_guest.php">Guest</a>
+
+        </div>
+
+        
+
+        <div class="footer-link">
+
+            Belum punya akun? <a href="tampilandaftar.php">Daftar di sini</a>
+
+        </div>
+
+
+
+         <script>
+
+            let cards = document.querySelectorAll('.card');
+
+            cards.forEach(card => {
+
+                card.onmousemove = function(e) {
+
+                   let x = e.pageX - card.offsetLeft;
+
+                   let y = e.pageY - card.offsetTop;
+
+
+
+                   card.style.setProperty('--x', x + 'px');
+
+                   card.style.setProperty('--y', y + 'px');
+
+                };
+
+            })
+
+        </script>
+
+        
+
+    </div> 
+
+</body>
+
+</html>
+
+tampilandaftar.js
+
+function togglePw(id, el) {
+
+     const input = document.getElementById(id);
+
+     const isText = input.type === 'text';
+
+     input.type = isText ? 'password' : 'text';
+
+     el.style.opacity = isText ? '.4' : '.8';
+
+}
+
+ 
+
+function checkStrength(val) {
+
+     const segs = [
+
+          document.getElementById('s1'), 
+
+          document.getElementById('s2'),
+
+          document.getElementById('s3'), 
+
+          document.getElementById('s4')
+
+     ];
+
+     let score = 0;
+
+     if (val.length >= 8)  score++;
+
+     if (/[A-Z]/.test(val)) score++;
+
+     if (/[0-9]/.test(val)) score++;
+
+     if (/[^A-Za-z0-9]/.test(val)) score++;
+
+ 
+
+     const colors = ['#ff4d6d','#ff9a3c','#f0cc5e','#36d399'];
+
+     segs.forEach((s, i) => {
+
+        s.style.background = i < score ? colors[score - 1] : 'rgba(255,255,255,.1)';
+
+     });
+
+}
+
+ 
+
+function validate() {
+
+     let ok = true;
+
+ 
+
+     const nama = document.getElementById('nama');
+
+     const hNama = document.getElementById('hintNama');
+
+     if (!nama.value.trim()) {
+
+        nama.className = 'error'; 
+
+        hNama.className = 'hint err show'; 
+
+        ok = false;
+
+     } 
+
+     else {
+
+        nama.className = 'valid'; 
+
+        hNama.className = 'hint'; 
+
+     }
+
+ 
+
+     const user = document.getElementById('username');
+
+     const hUser = document.getElementById('hintUsername');
+
+     if (user.value.trim().length < 4) {
+
+        user.className = 'error'; 
+
+        hUser.className = 'hint err show'; 
+
+        ok = false;
+
+     } 
+
+     else { 
+
+        user.className = 'valid';
+
+        hUser.className = 'hint'; }
+
+ 
+
+     const email = document.getElementById('email');
+
+     const hEmail = document.getElementById('hintEmail');
+
+     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+     if (!emailRe.test(email.value)) {
+
+        email.className = 'error'; 
+
+        hEmail.className = 'hint err show'; 
+
+        ok = false;
+
+     } 
+
+     else { 
+
+        email.className = 'valid'; 
+
+        hEmail.className = 'hint'; 
+
+     }
+
+ 
+
+     const pw = document.getElementById('password');
+
+     const hPw = document.getElementById('hintPw');
+
+     if (pw.value.length < 8) {
+
+        pw.className = 'error'; 
+
+        hPw.className = 'hint err show'; 
+
+        ok = false;
+
+     } 
+
+     else { 
+
+        pw.className = 'valid'; 
+
+        hPw.className = 'hint'; 
+
+     }
+
+ 
+
+     const kf = document.getElementById('konfirmasi');
+
+     const hKf = document.getElementById('hintKonfirmasi');
+
+     if (kf.value !== pw.value || !kf.value) {
+
+        kf.className = 'error'; 
+
+        hKf.className = 'hint err show'; 
+
+        ok = false;
+
+     } 
+
+     else { 
+
+        kf.className = 'valid';
+
+        hKf.className = 'hint'; 
+
+     }
+
+ 
+
+      return ok;
+
+}
+
+ 
+
+function submitForm() {
+
+     if (validate()) {
+
+        document.getElementById('successOverlay').classList.add('show');
+
+     }
+
+}
+
+
+
+samain, dan kasi animasi, kasi kasi liquid glaas(sasmain kek di tampilan login), dan kasi biar ada kek mata di dalam kolom input password, kalo di daftar berarti ada dua kan passwordnya. sistemnya kek gitu ae
