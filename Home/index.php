@@ -582,35 +582,39 @@ if ($is_real_user) {
                         </div>
 
                         <!-- Detail List Order -->
-                        <div id="det_<?= $st['id'] ?>" style="display:none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed <?= $st['border'] ?>;">
+<div id="det_<?= $st['id'] ?>" style="display:none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed <?= $st['border'] ?>;">
                             <?php if($st['count'] > 0): 
                                 mysqli_data_seek($st['q'], 0); 
                                 while($d = mysqli_fetch_assoc($st['q'])): ?>
-                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                    <!-- Gunakan 'gambar_game_asli' hasil JOIN dari Fungsi Sakti lo -->
+                                
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; background: rgba(16, 28, 70, 0.45); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 10px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.15); box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.05);">
+                                    
                                     <img src="<?= !empty($d['gambar_game_asli']) ? $d['gambar_game_asli'] : 'Default.jpg' ?>" 
                                         onerror="this.src='./Default.jpg'" 
-                                        style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
+                                        style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(56, 189, 248, 0.3);">
 
                                     <div style="flex: 1;">
-                                        <!-- Pake nama_game_asli biar gak muncul 'TopZone Product' -->
-                                        <div style="font-size: 11px; font-weight: bold; color: #333;">
+                                        <div style="font-size: 12px; font-weight: 700; color: #ffffff; letter-spacing: 0.3px; text-shadow: 0 0 10px rgba(255,255,255,0.1);">
                                             <?= $d['nama_game_asli'] ?>
                                         </div>
                                         
-                                        <div style="font-size: 9px; color: #424242;">
-                                            Paket: <?= $d['paket'] ?>
+                                        <div style="font-size: 10px; color: #94a3b8; margin-top: 2px; font-weight: 500;">
+                                            Paket: <span style="color: #38bdf8;"><?= $d['paket'] ?></span>
                                         </div>
                                     </div>
+                                    
                                     <?php if($st['id'] == 'dikirim'): ?>
                                         <button onclick="event.stopPropagation(); window.location.href='konfirmasi.php?id=<?= $d['id_order'] ?>'" 
-                                                style="background: #9c27b0; color: white; border: none; padding: 5px 8px; border-radius: 5px; font-size: 9px; cursor: pointer;">
+                                                style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 9px; font-weight: bold; cursor: pointer; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3); transition: all 0.2s ease;"
+                                                onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 15px rgba(124, 58, 237, 0.5)';"
+                                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(124, 58, 237, 0.3)';">
                                             TERIMA
                                         </button>
                                     <?php endif; ?>
                                 </div>
+                                
                             <?php endwhile; else: ?>
-                                <div style="font-size: 10px; color: #bebebe; text-align: center;">Belum ada pesanan nih bre.</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 10px 0; font-weight: 500;">Belum ada pesanan nih bre.</div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1704,32 +1708,60 @@ function closeCamera() {
 }
 
 function confirmSelesai(idOrder) {
-    Swal.fire({
-        title: 'YAKIN BRAY?',
-        text: "Pastikan pesanan emang udah masuk ke akun lu!",
+    // Menggunakan Toast untuk konfirmasi dengan timer/durasi di bawahnya
+    Toast.fire({
         icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Udah Masuk!',
-        cancelButtonText: 'Bentar, Cek Lagi',
-        background: 'rgba(20, 20, 20, 0.8)',
-        color: '#ffffff'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('update_status.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'id_order=' + idOrder
-            })
-            .then(response => response.text())
-            .then(data => {
-                if (data.trim() === "success") {
-                    Toast.fire({ icon: 'success', html: `<span class="tz-toast-title">MANTAP!</span><p class="tz-toast-content">Status pesanan berhasil diupdate.</p>` }).then(() => { location.reload(); });
-                } else {
-                    Toast.fire({ icon: 'error', html: `<span class="tz-toast-title">GAGAL!</span><p class="tz-toast-content">${data}</p>` });
-                }
-            }).catch(err => console.error(err));
+        html: `
+            <span class="tz-toast-title">YAKIN BRAY?</span>
+            <p class="tz-toast-content" style="margin-bottom: 8px;">Pastikan pesanan emang udah masuk ke akun lu!</p>
+            <div style="display: flex; gap: 5px; justify-content: flex-end;">
+                <button id="btn-toast-yes" class="swal2-confirm swal2-styled" style="padding: 4px 10px; font-size: 12px; background-color: #3085d6; margin: 0;">Ya</button>
+                <button id="btn-toast-no" class="swal2-cancel swal2-styled" style="padding: 4px 10px; font-size: 12px; background-color: #d33; margin: 0;">Gak</button>
+            </div>
+        `,
+        timer: 7000, // Durasi 7 detik (bisa diatur sesuai keinginan)
+        timerProgressBar: true, // Garis durasi berjalan di bagian rada bawah toast
+        showConfirmButton: false, // Sembunyikan tombol bawaan agar pas dengan layout toast
+        didOpen: (toast) => {
+            // Pasang event listener manual untuk tombol di dalam Toast
+            const btnYes = toast.querySelector('#btn-toast-yes');
+            const btnNo = toast.querySelector('#btn-toast-no');
+
+            if (btnYes) {
+                btnYes.addEventListener('click', () => {
+                    Swal.close(); // Tutup toast konfirmasi
+
+                    // Jalankan proses update data
+                    fetch('update_status.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'id_order=' + idOrder
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        if (data.trim() === "success") {
+                            Toast.fire({ 
+                                icon: 'success', 
+                                html: `<span class="tz-toast-title">MANTAP!</span><p class="tz-toast-content">Status pesanan berhasil diupdate.</p>` 
+                            }).then(() => { 
+                                location.reload(); 
+                            });
+                        } else {
+                            Toast.fire({ 
+                                icon: 'error', 
+                                html: `<span class="tz-toast-title">GAGAL!</span><p class="tz-toast-content">${data}</p>` 
+                            });
+                        }
+                    })
+                    .catch(err => console.error(err));
+                });
+            }
+
+            if (btnNo) {
+                btnNo.addEventListener('click', () => {
+                    Swal.close(); // Tutup jika batal bray
+                });
+            }
         }
     });
 }

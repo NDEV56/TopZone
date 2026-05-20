@@ -554,23 +554,86 @@ $from_cart = $_GET['from_cart'] ?? false;
     let currentQuantity = <?php echo $qty_cart; ?>;
     let robloxTabMode = 'login'; 
 
+    // Fungsi Toast dengan Efek Liquid Glass Premium & Minimalis
+    function tampilkanToast(ikon, pesan) {
+        Swal.fire({
+            icon: ikon,
+            title: pesan,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2500, // Durasi tayang 2.5 detik
+            timerProgressBar: true,
+            background: 'rgba(255, 255, 255, 0.08)', // Efek Transparan Kaca mprruy
+            color: '#ffffff',
+            html: `
+                <style>
+                    /* Styling khusus biar dapet efek blur kaca tembus pandang */
+                    .swal2-toast.swal2-show {
+                        backdrop-filter: blur(12px) !important;
+                        -webkit-backdrop-filter: blur(12px) !important;
+                        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+                        border-radius: 12px !important;
+                        padding: 12px 20px !important;
+                    }
+                    /* Merapikan posisi text mprruy */
+                    .swal2-toast .swal2-title {
+                        font-family: 'Poppins', sans-serif !important;
+                        font-size: 14px !important;
+                        font-weight: 500 !important;
+                        margin-left: 8px !important;
+                        color: #ffffff !important;
+                    }
+                    /* Mengubah garis durasi menjadi neon tipis estetik */
+                    .swal2-toast .swal2-timer-progress-bar {
+                        background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important;
+                        height: 3px !important;
+                        border-radius: 0 0 12px 12px !important;
+                    }
+                </style>
+            `,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         const paramProduk = <?php echo json_encode($selected_produk); ?>;
         if (paramProduk && paramProduk.trim() !== '') {
-            const cards = document.querySelectorAll('.produk-item');
+            const cards = document.querySelectorAll('.produk-item, .item-card');
             let foundCard = null;
+            
             cards.forEach(card => {
                 const cardName = card.getAttribute('data-name');
                 if (cardName && cardName.toLowerCase().includes(paramProduk.toLowerCase())) {
                     foundCard = card;
                 }
             });
-            if (foundCard) foundCard.click();
+            
+            if (foundCard) {
+                const tipeProduk = foundCard.getAttribute('data-tipe');
+                if (tipeProduk === 'roblox_5hari') {
+                    toggleRobloxTab('5hari');
+                    const updatedCards = document.querySelectorAll('.produk-item, .item-card');
+                    updatedCards.forEach(card => {
+                        const cardName = card.getAttribute('data-name');
+                        if (cardName && cardName.toLowerCase().includes(paramProduk.toLowerCase())) {
+                            card.click();
+                        }
+                    });
+                } else {
+                    if (tipeProduk === 'roblox_login') toggleRobloxTab('login');
+                    foundCard.click();
+                }
+            }
         }
     });
 
     function selectProduct(element, price, name) {
-        const cards = document.querySelectorAll('.item-card');
+        const cards = document.querySelectorAll('.item-card, .produk-item');
         cards.forEach(c => c.classList.remove('selected'));
         element.classList.add('selected');
         
@@ -597,10 +660,15 @@ $from_cart = $_GET['from_cart'] ?? false;
         robloxTabMode = mode;
         const filterKey = (mode === 'login') ? 'roblox_login' : 'roblox_5hari';
         
-        document.getElementById('btn-tab-login').classList.toggle('active', mode === 'login');
-        document.getElementById('btn-tab-5hari').classList.toggle('active', mode === '5hari');
-        document.getElementById('roblox-fields-login').style.display = (mode === 'login' ? 'block' : 'none');
-        document.getElementById('roblox-fields-5hari').style.display = (mode === '5hari' ? 'block' : 'none');
+        const btnLogin = document.getElementById('btn-tab-login');
+        const btn5Hari = document.getElementById('btn-tab-5hari');
+        const fieldsLogin = document.getElementById('roblox-fields-login');
+        const fields5Hari = document.getElementById('roblox-fields-5hari');
+
+        if(btnLogin) btnLogin.classList.toggle('active', mode === 'login');
+        if(btn5Hari) btn5Hari.classList.toggle('active', mode === '5hari');
+        if(fieldsLogin) fieldsLogin.style.display = (mode === 'login' ? 'block' : 'none');
+        if(fields5Hari) fields5Hari.style.display = (mode === '5hari' ? 'block' : 'none');
 
         document.querySelectorAll('.produk-item').forEach(el => {
             el.style.display = (el.getAttribute('data-tipe') === filterKey) ? 'flex' : 'none';
@@ -608,18 +676,18 @@ $from_cart = $_GET['from_cart'] ?? false;
 
         currentSelectedProduct = null;
         basePrice = 0;
-        document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.item-card, .produk-item').forEach(c => c.classList.remove('selected'));
         document.getElementById('selected-product-name').innerText = '-';
         updatePriceDisplay();
     }
 
     /* ==========================================================================
-       VALIDASI REUSABLE KONTROLLER DATA USER (BIAR REUSE / SKALI MODIFIKASI)
+       VALIDASI REUSABLE KONTROLLER DATA USER
        ========================================================================== */
     function ambilDanValidasiDataUser() {
         let userDataRaw = '';
         const tipeInputDatabase = "<?php echo $g['tipe_input'] ?? ''; ?>";
-        const gameName = "<?php echo strtolower($g['nama_game']); ?>";
+        const gameName = "<?php echo strtolower($g['nama_game'] ?? ''); ?>";
 
         if (tipeInputDatabase === 'kustom_global') {
             const dynamicFields = document.querySelectorAll('.custom-dynamic-field');
@@ -662,27 +730,26 @@ $from_cart = $_GET['from_cart'] ?? false;
     }
 
     /* ==========================================================================
-       FUNGSI MASUK KERANJANG (SUDAH DISAMAKAN VALIDASINYA)
+       FUNGSI MASUK KERANJANG
        ========================================================================== */
     function addToCart() {
         const isLogged = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
         if (!isLogged) {
-            Swal.fire({ icon: 'warning', title: 'LOGIN DULU!', text: 'Akun lu belum nyangkut mprruy.', background: '#1205a5', color: '#fff' })
-            .then(() => { window.location.href = "../Login/tampilanlogin.php"; });
+            tampilkanToast('warning', 'Akun lu belum nyangkut bray, login dulu!');
+            setTimeout(() => { window.location.href = "../Login/tampilanlogin.php"; }, 1500);
             return;
         }
         if (!currentSelectedProduct) {
-            Swal.fire({ icon: 'info', title: 'INFO', text: 'Pilih produk dulu bray!', background: '#1205a5', color: '#fff' });
+            tampilkanToast('info', 'Pilih nominal top up dulu mprruy!');
             return;
         }
 
         let validatedUserData = '';
         try {
-            // Memanggil fungsi validasi input yang sama dengan tombol beli bray
             validatedUserData = ambilDanValidasiDataUser();
         } catch (pesanError) {
-            Swal.fire({ icon: 'error', title: 'DATA KOSONG!', text: pesanError, background: '#1205a5', color: '#fff' });
-            return; // Potong di sini biar ga ke-fetch ke proses_keranjang.php
+            tampilkanToast('error', pesanError);
+            return; 
         }
 
         const formData = new FormData();
@@ -690,16 +757,16 @@ $from_cart = $_GET['from_cart'] ?? false;
         formData.append('nama_produk', currentSelectedProduct);
         formData.append('harga', basePrice);
         formData.append('qty', currentQuantity);
-        formData.append('user_data', validatedUserData); // Menembakkan data akun ter-validasi ke file backend keranjang
+        formData.append('user_data', validatedUserData); 
 
         fetch('proses_keranjang.php', { method: 'POST', body: formData })
         .then(res => res.text())
         .then(data => {
-            Swal.fire({ icon: 'success', title: 'BERHASIL', text: `${currentSelectedProduct} masuk keranjang!`, background: '#1205a5', color: '#fff' })
-            .then(() => { window.location.reload(); });
+            tampilkanToast('success', `${currentSelectedProduct} masuk keranjang!`);
+            setTimeout(() => { window.location.reload(); }, 1500);
         })
         .catch(err => {
-            Swal.fire({ icon: 'error', title: 'ERROR', text: 'Koneksi ruyam!', background: '#1205a5', color: '#fff' });
+            tampilkanToast('error', 'Koneksi ruyam ruy!');
         });
     }
 
@@ -709,28 +776,29 @@ $from_cart = $_GET['from_cart'] ?? false;
     function submitOrder() {
         const isLoggedIn = <?php echo isset($_SESSION['id_user']) ? 'true' : 'false'; ?>;
         if (!isLoggedIn) {
-            Swal.fire({ icon: 'info', title: 'LOGIN DULU BRAY', text: 'Biar transaksinya aman.', background: '#1205a5', color: '#fff' })
-            .then(() => { window.location.href = "../Login/tampilanlogin.php"; });
+            tampilkanToast('info', 'Login dulu bray biar aman.');
+            setTimeout(() => { window.location.href = "../Login/tampilanlogin.php"; }, 1500);
             return;
         }
 
         if (!currentSelectedProduct) {
-            Swal.fire({ icon: 'warning', title: 'PILIH PRODUK!', text: 'Pilih nominalnya dulu mprruy.', background: '#1205a5', color: '#fff' });
+            tampilkanToast('warning', 'Pilih nominalnya dulu mprruy.');
             return;
         }
 
         let userDataRaw = '';
         try {
-            // Memanggil fungsi validasi input bray
             userDataRaw = ambilDanValidasiDataUser();
         } catch (pesanError) {
-            Swal.fire({ icon: 'error', title: 'DATA KOSONG!', text: pesanError, background: '#1205a5', color: '#fff' });
+            tampilkanToast('error', pesanError);
             return;
         }
 
         const gameId = "<?php echo $id_g; ?>";
         const targetUrl = `Checkout/pembayaran.php?id_game=${gameId}&user=${encodeURIComponent(userDataRaw)}&produk=${encodeURIComponent(currentSelectedProduct)}&harga=${basePrice}&qty=${currentQuantity}`;
-        window.location.href = targetUrl;
+        
+        tampilkanToast('success', 'Mengarahkan ke pembayaran...');
+        setTimeout(() => { window.location.href = targetUrl; }, 1200);
     }
 </script>
 

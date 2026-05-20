@@ -2275,3 +2275,135 @@ div.tz-main-products-box {
     border: 1px solid rgba(255, 255, 255, 0.05);
     margin-top: 5px;
 }
+
+
+/*Notification Toast*/
+/* =========================================================================
+   STYLE TOAST NOTIFIKASI KHUSUS (DIJAMIN GAK AKAN NABRAK KERANJANG/SWAL ASLI)
+   ========================================================================= */
+.tz-pure-toast-container {
+    backdrop-filter: blur(15px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(15px) saturate(160%) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4) !important;
+    border-radius: 12px !important;
+    padding: 14px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 320px !important;
+}
+
+/* Styling teks judul di dalam toast */
+.tz-pure-toast-container .tz-toast-title {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px;
+    color: #ffffff !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px;
+}
+
+/* Styling deskripsi teks di bawah judul */
+.tz-pure-toast-container .tz-toast-content {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 11px !important;
+    color: #cbd5e1 !important;
+    margin: 4px 0 0 0 !important;
+    opacity: 0.85;
+    text-align: left !important;
+}
+
+/* Garis durasi (timer) neon gradasi */
+.tz-pure-toast-progress {
+    background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important;
+    height: 3px !important;
+    border-radius: 0 0 12px 12px !important;
+}
+/*Liquid glass cart display*/
+
+/* =========================================================================
+   LIQUID GLASS MODAL SYSTEM - DEEP BLUE EDITION + HOVER ANIMATION
+   ========================================================================= */
+.tz-liquid-modal {
+    backdrop-filter: blur(25px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+    /* Base kaca warna rada biru premium bray */
+    background: rgba(10, 25, 80, 0.55) !important; 
+    border: 1px solid rgba(56, 189, 248, 0.2) !important; /* Border biru cyan tipis */
+    border-top: 1px solid rgba(56, 189, 248, 0.45) !important; /* Efek kilauan cahaya dari atas */
+    box-shadow: 0 30px 60px -15px rgba(0, 8, 48, 0.8), 0 0 40px rgba(56, 189, 248, 0.1) !important;
+    border-radius: 24px !important;
+    padding: 32px !important;
+}
+
+/* Judul Modal */
+.tz-liquid-modal .swal2-title {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px;
+    color: #ffffff !important;
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+/* Deskripsi Konten */
+.tz-liquid-modal .swal2-html-container {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 13px !important;
+    color: #cbd5e1 !important;
+    opacity: 0.9;
+}
+
+/* ====== BUTTONS ANIMATION HOVER SYSTEM ====== */
+
+/* 1. Tombol Konfirmasi Hapus (Merah Neon) */
+.tz-modal-btn-confirm {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    letter-spacing: 0.5px;
+    padding: 12px 28px !important;
+    border-radius: 12px !important;
+    background: #ef4444 !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Hover Tombol Konfirmasi */
+.tz-modal-btn-confirm:hover {
+    background: #dc2626 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.55) !important;
+}
+
+/* 2. Tombol Batal/Cancel (Kaca Transparan Kebiruan) */
+.tz-modal-btn-cancel {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 12px 28px !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(56, 189, 248, 0.25) !important;
+    color: #cbd5e1 !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Hover Tombol Batal Rada Biru Glow */
+.tz-modal-btn-cancel:hover {
+    background: rgba(56, 189, 248, 0.15) !important;
+    border-color: rgba(56, 189, 248, 0.6) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25) !important;
+}
+
+/* Efek pas tombol diklik biar dapet feedback membal mprruy */
+.tz-modal-btn-confirm:active, .tz-modal-btn-cancel:active {
+    transform: translateY(1px) !important;
+}
