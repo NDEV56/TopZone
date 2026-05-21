@@ -2,27 +2,153 @@
 session_start();
 include '../Home/koneksi.php';
 
+// =========================
+// REGISTER
+// =========================
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nama  = mysqli_real_escape_string($conn, $_POST['nama']);
-    $user  = mysqli_real_escape_string($conn, $_POST['username']);
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
-    $pass  = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    $cek = mysqli_query($conn, "SELECT * FROM users WHERE username = '$user'");
-    if(mysqli_num_rows($cek) > 0) {
-        echo "<script>alert('Username udah dipake mprruy!'); window.location='tampilandaftar.php';</script>";
-    } else {
-        $query = "INSERT INTO users (nama_user, username, email, password, foto) 
-                  VALUES ('$nama', '$user', '$email', '$pass', 'Default.jpg')";
+    // =========================
+    // INPUT
+    // =========================
+    $nama  = trim($_POST['nama']);
+    $user  = trim($_POST['username']);
+    $email = trim($_POST['email']);
+    $pass  = $_POST['password'];
+    $konf  = $_POST['konfirmasi'];
 
-        if(mysqli_query($conn, $query)) {
-            echo "<script>alert('Daftar berhasil! Login ya mprruy.'); window.location='tampilanlogin.php';</script>";
+    // =========================
+    // ANTI XSS
+    // =========================
+    $nama  = htmlspecialchars($nama, ENT_QUOTES, 'UTF-8');
+    $user  = htmlspecialchars($user, ENT_QUOTES, 'UTF-8');
+    $email = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+
+    // =========================
+    // VALIDASI KOSONG
+    // =========================
+    if (
+        empty($nama) ||
+        empty($user) ||
+        empty($email) ||
+        empty($pass) ||
+        empty($konf)
+    ) {
+
+        $_SESSION['toast'] = [
+            'icon' => 'error',
+            'title' => 'Semua data wajib diisi!'
+        ];
+
+        header('Location: tampilandaftar.php');
+        exit;
+    }
+
+    // =========================
+    // VALIDASI USERNAME
+    // =========================
+    if (strlen($user) < 4) {
+
+        $_SESSION['toast'] = [
+            'icon' => 'warning',
+            'title' => 'Username minimal 4 karakter!'
+        ];
+
+        header('Location: tampilandaftar.php');
+        exit;
+    }
+
+    // =========================
+    // VALIDASI PASSWORD
+    // =========================
+    if (strlen($pass) < 8) {
+
+        $_SESSION['toast'] = [
+            'icon' => 'warning',
+            'title' => 'Password minimal 8 karakter!'
+        ];
+
+        header('Location: tampilandaftar.php');
+        exit;
+    }
+
+    // =========================
+    // PASSWORD TIDAK COCOK
+    // =========================
+    if ($pass !== $konf) {
+
+        $_SESSION['toast'] = [
+            'icon' => 'error',
+            'title' => 'Konfirmasi password tidak cocok!'
+        ];
+
+        header('Location: tampilandaftar.php');
+        exit;
+    }
+
+    // =========================
+    // HASH PASSWORD
+    // =========================
+    $hashed = password_hash($pass, PASSWORD_DEFAULT);
+
+    try {
+
+        // =========================
+        // PREPARED STATEMENT
+        // =========================
+        $stmt = mysqli_prepare(
+            $conn,
+            "INSERT INTO users
+            (nama_user, username, email, password, foto)
+            VALUES (?, ?, ?, ?, ?)"
+        );
+
+        $default_foto = 'Default.jpg';
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "sssss",
+            $nama,
+            $user,
+            $email,
+            $hashed,
+            $default_foto
+        );
+
+        mysqli_stmt_execute($stmt);
+
+        $_SESSION['toast'] = [
+            'icon' => 'success',
+            'title' => 'Daftar berhasil 🔥'
+        ];
+
+        header('Location: tampilanlogin.php');
+        exit;
+
+    } catch (mysqli_sql_exception $e) {
+
+        // DUPLICATE
+        if ($e->getCode() == 1062) {
+
+            $_SESSION['toast'] = [
+                'icon' => 'warning',
+                'title' => 'Nama / Username / Email sudah dipakai!'
+            ];
+
         } else {
-            echo "Gagal daftar: " . mysqli_error($conn);
+
+            error_log($e->getMessage());
+
+            $_SESSION['toast'] = [
+                'icon' => 'error',
+                'title' => 'Terjadi kesalahan sistem!'
+            ];
         }
+
+        header('Location: tampilandaftar.php');
+        exit;
     }
 }
-?> 
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -124,5 +250,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <script src="tampilandaftar.js"></script>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+
+    .swal2-popup.swal2-toast{
+        background:rgba(15,23,42,.78)!important;
+        backdrop-filter:blur(20px)!important;
+        -webkit-backdrop-filter:blur(20px)!important;
+
+        border:1px solid rgba(255,255,255,.08)!important;
+
+        border-radius:20px!important;
+
+        color:white!important;
+
+        box-shadow:
+        0 8px 30px rgba(0,0,0,.35)!important;
+    }
+
+    .swal2-title{
+        color:white!important;
+    }
+
+    .swal2-timer-progress-bar{
+        background:#3b82f6!important;
+    }
+
+    </style>
+
+    <?php if(isset($_SESSION['toast'])): ?>
+
+    <script>
+
+    document.addEventListener('DOMContentLoaded', function(){
+
+        Swal.fire({
+            toast:true,
+            position:'top-end',
+            icon:'<?= $_SESSION['toast']['icon']; ?>',
+            title:'<?= $_SESSION['toast']['title']; ?>',
+            showConfirmButton:false,
+            timer:2500,
+            timerProgressBar:true
+        });
+
+    });
+
+    </script>
+
+    <?php unset($_SESSION['toast']); ?>
+    <?php endif; ?>
 </body>
 </html>

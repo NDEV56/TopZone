@@ -32,7 +32,8 @@ body {
 }
 
 .page-wrapper {
-    flex: 1;
+    /* Memberikan ruang agar konten pertama tidak tertutup header */
+    padding-top: 20px; 
 }
 
 /* =========================================
@@ -44,23 +45,51 @@ body {
     padding: 20px;
 }
 
-/* =========================================
-   HEADER
-========================================= */
+/* Header dalam keadaan normal */
 .tp-header {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-top-color: rgba(255, 255, 255, 0.5);
-    box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255,255,255,0.3);
-    position: sticky;
+    padding: 0px 0; /* Dikasih napas dikit biar nggak terlalu nempel ke atas */
+    background: rgba(13, 36, 128, 0.2); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: fixed;
     top: 0;
-    z-index: 999;
+    left: 0;
+    width: 100%;
+    z-index: 9999 !important ;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    /* Ganti durasi ke 0.5s biar transisinya "terasa" dan tidak mendadak */
+    transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+/* Ukuran logo saat normal */
+.tp-logo-img {
+    width: 45px !important; 
+    height: 50px !important;
+    transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Header saat di-scroll */
+.tp-header.scrolled {
+    padding: 0.1px 0; 
+    background: rgba(13, 36, 128, 0.95); /* Sedikit lebih pekat saat scroll */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Logo ikut mengecil saat di-scroll */
+.tp-header.scrolled .tp-logo-img {
+    width: 38px !important;
+    height: 43px !important;
+}
+
+/* Tambahkan ini biar teks search bar juga ikut mengecil pelan-pelan */
+.tp-center input {
+    transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Sesuaikan padding body agar konten naik */
+body {
+    padding-top: 55px;
+}
 /* NAV */
 .tp-nav {
     position: relative;
@@ -69,7 +98,7 @@ body {
     justify-content: space-between;
 }
 
-/* LOGO */
+/* LOGO ANIMATION STYLES */
 .tp-left table {
     border-collapse: collapse;
 }
@@ -78,7 +107,24 @@ body {
     vertical-align: middle;
 }
 
-/* SEARCH CENTER FIX */
+/* Animasi awal komponen logo */
+.tp-logo-img {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.tp-logo-text {
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+/* Efek Hover Logo & Tulisan Topzone */
+.tp-logo-link:hover .tp-logo-img {
+    transform: scale(1.08) rotate(10deg); /* Membesar & miring dikit */
+}
+.tp-logo-link:hover .tp-logo-text {
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 8px rgba(25, 0, 247, 0.8)); /* Efek glow biru neon */
+}
+
+/* SEARCH CENTER FIX (STRUKTUR DAN LEBAR TETAP ASLI LU) */
 .tp-center {
     position: absolute;
     left: 50%;
@@ -87,16 +133,30 @@ body {
     max-width: 500px;
 }
 
+/* INPUT SEARCH ORIGINAL LU (Hanya ditambah efek warna background biru & transisi) */
 .tp-center input {
     width: 100%;
     padding: 10px 15px;
     border-radius: 8px;
     border: 1px solid #ddd;
+    background: rgba(0, 0, 0, 0.2); /* Warna background awal pas idle */
+    color: #fff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Efek animasi transisi mulus */
 }
 
+/* EFEK PAS LAGI INPUT / DIKLIK (FOKUS) */
 .tp-center input:focus {
     outline: none;
-    border-color: var(--primary);
+    border-color: #1900f7; /* Garis pinggir menyala biru neon sesuai warna logo */
+    
+    /* Ganti abu-abu jadi Biru Transparan Premium khas Liquid Glassmorphism */
+    background: rgba(25, 0, 247, 0.15) !important; 
+    
+    /* Efek pendaran glow biru di sekeliling kolom search */
+    box-shadow: 0 0 15px rgba(25, 0, 247, 0.45), 
+                inset 0 0 10px rgba(25, 0, 247, 0.2) !important;
+                
+    transform: scale(1.015); /* Animasi pop-up membesar tipis banget biar dinamis */
 }
 
 /* RIGHT MENU */
@@ -112,6 +172,13 @@ body {
     cursor: pointer;
 }
 
+/* Efek Hover Tombol Keranjang & Avatar Menjadi Membal */
+.tp-action-btn {
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.tp-action-btn:hover {
+    transform: translateY(-3px) scale(1.05); /* Membal naik keatas tipis */
+}
 /* =========================================
    LAYOUT (SIDEBAR + CONTENT)
 ========================================= */
@@ -138,7 +205,28 @@ body {
     position: sticky;
     top: 90px;
 }
+.tp-page-container {
+    display: flex; /* Ganti dari grid ke flex */
+    align-items: stretch; /* PENTING: Ini yang bikin sidebar "stretch" ampe bawah */
+    gap: 20px;
+    max-width: 1200px;
+    margin: 80px auto 40px auto;
+}
 
+.tp-sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 18px;
+    padding: 15px;
+    position: sticky;
+    top: 90px;
+    /* Hapus height: fit-content kalau mau dia stretch ampe bawah */
+    display: flex;
+    flex-direction: column;
+}
 /* ... baris kode lu yang di atas ... */
 
 .tp-sidebar ul {
@@ -150,46 +238,58 @@ body {
     gap: 8px; /* Jarak antar kotak putih */
 }
 
+/* =========================================
+   SIDEBAR LIST ITEM (BASE)
+========================================= */
 .tp-sidebar li {
-    /* KUNCI UTAMA DI SINI */
     display: block; 
     width: 100%; 
-    box-sizing: border-box; /* Padding gak nambah lebar luar */
+    box-sizing: border-box; 
     padding: 12px 15px;
     cursor: pointer;
     border-radius: 8px;
-    transition: all 0.2s ease-in-out;
+    
+    /* Transition digabung jadi satu biar smooth */
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), padding 0.3s ease;
+    
     color: #a8a8a8;
     background: transparent;
-    border: 1px solid transparent; /* Biar gak goyang pas aktif */
+    border: 1px solid transparent; 
 }
 
-/* ======================================================== */
-/* SAMBUNGANNYA MULAI DARI BARIS INI:                      */
-/* ======================================================== */
+/* =========================================
+   HOVER STATE (GESER)
+========================================= */
+.tp-sidebar li:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    padding-left: 20px !important; /* Efek dorongan masuk */
+}
 
-/* Kotak Kaca Menyala Pas Aktif (Kategori Terpilih) */
+/* =========================================
+   ACTIVE STATE (GLASS NEON EMAS)
+========================================= */
 .tp-sidebar li.active {
     background: rgba(255, 255, 255, 0.15) !important;
     backdrop-filter: blur(24px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
     
-    /* Aksen border emas mengikuti tema card TopZone */
+    /* Border emas premium */
     border: 1.5px solid rgba(201, 162, 39, 0.85) !important; 
     color: #ffffff !important;
     font-weight: 700;
     
-    /* Efek pendaran neon emas halus luar dalam */
+    /* Glow emas halus */
     box-shadow: 0 0 15px rgba(201, 162, 39, 0.3), 
                 inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Efek Animasi Geser Pas Di-hover */
-.tp-sidebar li:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #ffffff !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    padding-left: 20px !important; /* Dorong teks masuk sedikit ke kanan biar interaktif */
+/* =========================================
+   CLICK EFFECT (OPTIONAL - BIAR LEBIH GACOR)
+========================================= */
+.tp-sidebar li:active {
+    transform: scale(0.98);
 }
 /* MAIN */
 .tp-main {
@@ -1577,115 +1677,123 @@ body.detail-page { background-color: #f4f6f9; font-family: 'Inter', system-ui, s
 @media screen and (max-height: 700px) {
     .chat-container { height: 400px; }
 }
-/* --- TOPZONE TOAST NOTIF (SOLID & CLEAN) --- */
-/* --- TOPZONE LIQUID FROST NOTIF --- */
-/* --- TOPZONE INTERACTIVE LIQUID GLASS --- */
-:root {
-    --glass-bg: rgba(255, 255, 255, 0.1);
-    --glass-border: rgba(255, 255, 255, 0.4);
-    --text-white: #ffffff;
-    --frost-blue: #a5d8ff; /* Biru muda pucat */
+/* =========================================================
+   FIX TOTAL: HILANGKAN ABU-ABU & GLASSMORPHISM
+   ========================================================= */
+
+/* 1. Paksa Container transparan total agar tidak ada layer abu-abu */
+.swal2-container {
+    background: transparent !important; /* Sangat tipis atau buat transparent */
+    backdrop-filter: blur(0px) !important;      /* Efek blur pada background */
 }
 
-/* ==========================================================
-   TOPZONE LIQUID GLASS TOAST - BRUTE FORCE EDITION
-   ========================================================== */
-
-/* Pastikan container luar tidak menahan animasi */
-.swal2-container.swal2-top-end {
-    overflow-x: hidden !important;
-    padding-right: 10px !important;
+.swal2-popup {
+    /* Mencegah modal terpotong di layar kecil */
+    max-height: 90vh; 
+    overflow-y: auto;
 }
 
-/* Container Toast Utama */
-body .swal2-container.swal2-top-end .tz-toast-popup {
-    position: relative;
-    overflow: hidden !important;
-    display: flex !important; /* Paksa layout flex */
-    align-items: center !important;
-
-    /* LIQUID GLASS BACKGROUND */
-    background: linear-gradient(
-        135deg,
-        rgb(255, 255, 255) 0%,
-        rgba(0, 170, 255, 0.452) 30%,
-        rgba(43, 138, 255, 0.566) 70%,
-        rgba(255, 255, 255, 0.545) 100%
-    ) !important;
-
-    backdrop-filter: blur(28px) saturate(220%) brightness(1.15) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(220%) brightness(1.15) !important;
-    border: 1.8px solid rgba(255, 255, 255, 0.55) !important;
-    border-radius: 22px !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.55) !important;
-
-    min-width: 360px !important;
-    padding: 18px 24px !important;
-    margin-top: 20px !important;
-    margin-right: 20px !important;
-
-    /* ANIMASI GESER PAKSA */
-    animation: tzSlideInRight 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+/* --- 1. TOAST GLASSMORPHISM (Notif pojok kanan) --- */
+.tz-pure-toast-glass {
+    background: rgba(0, 0, 0, 0) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    border-radius: 12px !important;
+    color: #fff !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* PAKSA TEKS JADI PUTIH (BRUTE FORCE) */
-body .swal2-container.swal2-top-end .tz-toast-popup .swal2-title,
-body .swal2-container.swal2-top-end .tz-toast-popup .swal2-html-container,
-.tz-toast-title, 
-.tz-toast-content {
+.tz-pink-solid-modal {
+    /* 1. Warna Pink Transparan (Alpha 0.6 bikin dia bisa tembus pandang dikit) */
+    background: rgba(236, 72, 153, 0.6) !important; 
+    
+    /* 2. Ini kunci "Liquid" nya (Blur di belakang modal) */
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    
+    /* 3. Border tipis putih (bikin kesan kaca) */
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    
+    /* 4. Estetika */
+    border-radius: 35px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2) !important;
     color: #ffffff !important;
-    opacity: 1 !important;
-    text-align: left !important;
 }
 
-/* Judul Spesifik */
-.tz-toast-title {
-    font-weight: 900 !important;
-    text-transform: uppercase;
-    letter-spacing: 1.6px;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.65) !important;
+/*TOMBOL CLOSEEEEEEEEEEEEEEEEEEEE DI PROMOOOOOOOOO*/
+/* 1. Tombol Close (X) Mewah */
+.custom-close-btn {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 50% !important;
+    width: 35px !important;
+    height: 35px !important;
+    color: #fff !important;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
-/* Content Spesifik */
-.tz-toast-content {
-    font-weight: 600 !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+.custom-close-btn:hover {
+    transform: rotate(90deg) scale(1.2) !important;
+    background: rgba(255, 20, 147, 0.6) !important;
+    box-shadow: 0 0 15px rgba(255, 20, 147, 0.5) !important;
 }
 
-/* Reflection Layer */
-body .swal2-container.swal2-top-end .tz-toast-popup::before {
-    content: "";
-    position: absolute;
-    top: -60%; left: -30%; width: 80%; height: 220%;
-    background: linear-gradient(115deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0) 100%);
-    transform: rotate(18deg);
-    animation: tzShineSweep 4.5s linear infinite !important;
+/* 2. Liquid Glass Modal (Biar gak flat) */
+.tz-pink-solid-modal {
+    background: rgba(255, 116, 141, 0.4) !important; /* Transparansi 0.4 */
+    backdrop-filter: blur(25px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 40px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255,255,255,0.2) !important;
+}
+
+.input-heart-particle {
+    position: fixed; 
+    pointer-events: none; 
+    font-size: 18px; /* Dikecilin dikit biar gak terlalu gede */
+    z-index: 999999 !important; 
+    
+    /* ANIMASI SMOOTH: ease-out biar gak kaku */
+    animation: heartExplodeSmooth 1.2s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+@keyframes heartExplodeSmooth {
+    0% { 
+        opacity: 1; 
+        transform: translate(-50%, -50%) scale(0.8); 
+    }
+    100% { 
+        /* Nyebar ke segala arah berdasarkan nilai --mx dan --my */
+        opacity: 0; 
+        transform: translate(calc(-50% + var(--mx)), calc(-50% + var(--my))) scale(0.4) rotate(var(--rot)); 
+    }
+}
+/* --- 4. CONTAINER RESET (Latar belakang overlay) --- */
+.swal2-container {
+    backdrop-filter: none !important;
+    background: rgba(0, 0, 0, 0) !important;
+}
+/* Pastikan SweetAlert selalu paling depan */
+.swal2-container {
+    z-index: 10000 !important; 
+}
+/* 5. Progress Bar Toast */
+.tz-pure-toast-progress {
+    background: #00f2fe !important;
+    height: 3px !important;
+}
+
+/* 6. Fix agar Toast tidak menutupi klik elemen di belakangnya */
+.swal2-container.swal2-toast-shown {
     pointer-events: none;
 }
-
-/* Timer Bar */
-body .swal2-container.swal2-top-end .tz-toast-popup .swal2-timer-progress-bar {
-    background: #ffffff !important;
-    height: 4px !important;
+.swal2-popup.tz-pure-toast-container {
+    pointer-events: auto;
 }
-
-/* ANIMASI GESER DARI KANAN LUAR */
-@keyframes tzSlideInRight {
-    0% { transform: translateX(150%) scale(0.9); opacity: 0; }
-    100% { transform: translateX(0) scale(1); opacity: 1; }
-}
-
-@keyframes tzShineSweep {
-    0% { transform: translateX(-180%) rotate(18deg); }
-    100% { transform: translateX(260%) rotate(18deg); }
-}
-/* Paksa SweetAlert jadi kasta tertinggi */
-.swal2-container {
-    z-index: 999999 !important;
-}
-
-
-
 /*buat bagian notfound*/
 /* ======================================================= */
 /* CSS REVISI FINAL - CENTER PERFECT WITH FLEXBOX           */
@@ -2277,53 +2385,6 @@ div.tz-main-products-box {
 }
 
 
-/*Notification Toast*/
-/* =========================================================================
-   STYLE TOAST NOTIFIKASI KHUSUS (DIJAMIN GAK AKAN NABRAK KERANJANG/SWAL ASLI)
-   ========================================================================= */
-.tz-pure-toast-container {
-    backdrop-filter: blur(15px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(15px) saturate(160%) !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4) !important;
-    border-radius: 12px !important;
-    padding: 14px 20px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    width: 320px !important;
-}
-
-/* Styling teks judul di dalam toast */
-.tz-pure-toast-container .tz-toast-title {
-    font-family: 'Poppins', sans-serif !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.5px;
-    color: #ffffff !important;
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px;
-}
-
-/* Styling deskripsi teks di bawah judul */
-.tz-pure-toast-container .tz-toast-content {
-    font-family: 'Poppins', sans-serif !important;
-    font-size: 11px !important;
-    color: #cbd5e1 !important;
-    margin: 4px 0 0 0 !important;
-    opacity: 0.85;
-    text-align: left !important;
-}
-
-/* Garis durasi (timer) neon gradasi */
-.tz-pure-toast-progress {
-    background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important;
-    height: 3px !important;
-    border-radius: 0 0 12px 12px !important;
-}
 /*Liquid glass cart display*/
 
 /* =========================================================================
@@ -2406,4 +2467,476 @@ div.tz-main-products-box {
 /* Efek pas tombol diklik biar dapet feedback membal mprruy */
 .tz-modal-btn-confirm:active, .tz-modal-btn-cancel:active {
     transform: translateY(1px) !important;
+}
+
+/*FOOTERRRRRRRRRRRRRRRR */
+
+/* =========================================
+   FOOTER INTERACTIVE STYLES & ANIMATIONS
+========================================= */
+.footer-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links ul li {
+    margin-bottom: 12px;
+}
+
+/* Teks Dasar Menu Footer: Putih Bersih Terang */
+.footer-links ul li a, 
+.footer-links p a,
+.footer-links ul li.footer-link-item {
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.footer-links ul li a, .footer-links p a {
+    cursor: pointer;
+}
+
+/* Efek Animasi Hover Seluruh Link Footer */
+.footer-links ul li a:hover, 
+.footer-links p a:hover,
+.footer-links ul li.footer-link-item:hover {
+    color: #ffffff !important;
+    padding-left: 8px; /* Animasi bergeser ke kanan */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 18px #1900f7; /* Efek neon pendaran biru */
+}
+
+/* Animasi Ikon Menu Footer */
+.footer-links ul li a i, 
+.footer-links p a i,
+.footer-links ul li.footer-link-item i {
+    color: #ffffff;
+    transition: transform 0.25s ease, color 0.25s ease;
+}
+
+/* Saat di-hover ikon berubah jadi emas khas TopZone */
+.footer-links ul li a:hover i, 
+.footer-links p a:hover i,
+.footer-links ul li.footer-link-item:hover i {
+    color: rgba(201, 162, 39, 1); 
+    transform: scale(1.15);
+}
+
+.footer-logo-text {
+    color: #fff;
+    -webkit-text-stroke: 4px #1900f7;
+    paint-order: stroke fill;
+    font-size: 28px;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    cursor: pointer;
+}
+
+.footer-brand:hover .footer-logo-text {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 8px #1900f7);
+}
+
+.footer-brand img {
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.footer-brand:hover img {
+    transform: rotate(360deg);
+}
+
+/* =========================================
+   LIQUID GLASSMORPHISM MODAL (FIXED SCROLLBAR & SIZE BUTTON)
+========================================= */
+
+
+.liquid-glass-popup {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(25, 0, 247, 0.15)) !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 24px !important;
+    padding: 30px 20px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
+                inset 0 0 25px rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(25, 0, 247, 0.25) !important;
+}
+
+@keyframes liquidBounce {
+    0% { transform: scale(0.7) translateY(-70px); opacity: 0; }
+    60% { transform: scale(1.03) translateY(8px); }
+    80% { transform: scale(0.97) translateY(-3px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.animasi-liquid-masuk {
+    animation: liquidBounce 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards !important;
+}
+
+.swal2-actions {
+    margin-top: 25px !important;
+    width: 100% !important;
+    justify-content: center !important;
+}
+
+/* Tombol Khusus Tema Glassmorphism Supaya Pas */
+.glass-btn-confirm {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    letter-spacing: 0.5px;
+    padding: 12px 35px !important;
+    border-radius: 12px !important;
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.glass-btn-confirm:hover {
+    background: #dc2626 !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6) !important;
+}
+
+/* FIX: MEMPERCANTIK SCROLLBAR DALAM MODAL SUPAYA GAK WARNA PUTIH POLOS */
+.swal2-html-container::-webkit-scrollbar {
+    width: 6px !important; /* Ketebalan scrollbar tipis estetik */
+}
+
+.swal2-html-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03) !important; /* Background rel lacakan super transparan */
+    border-radius: 10px !important;
+}
+
+.swal2-html-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15) !important; /* Warna batang scrollbar redup transparan */
+    border-radius: 10px !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    transition: background 0.3s ease !important;
+}
+
+/* Efek Ketika Batang Scrollbar Di-hover / Digeser Mouse */
+.swal2-html-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(25, 0, 247, 0.6) !important; /* Berubah jadi Biru Neon menyala mengikuti logo */
+    box-shadow: 0 0 8px rgba(25, 0, 247, 0.8) !important;
+}
+
+/* =========================================
+   LIQUID GLASSMORPHISM FOR GLOBAL WEB SCROLLBAR
+========================================= */
+/* 1. Mengatur Ukuran Lebar Scrollbar Utama */
+::-webkit-scrollbar {
+    width: 10px !important; /* Ketebalan pas, gak kekecilan dan gak kegedean */
+    height: 10px !important;
+}
+
+/* 2. Mengatur Latar Belakang Jalur Rel Scrollbar (Liquid Glass Track) */
+::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, rgba(5, 14, 46, 0.4), rgba(18, 5, 165, 0.15)) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 3. Mengatur Batang Penarik Scrollbar (Liquid Glass Thumb) */
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12) !important; /* Efek mika kaca transparan redup */
+    border-radius: 50px !important; /* Membulat halus di ujungnya */
+    border: 2px solid transparent !important; /* Memberi ruang padding di dalam rel */
+    background-clip: padding-box !important;
+    box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.05) !important;
+    transition: all 0.3s ease-in-out !important;
+}
+
+/* 4. Efek Ketika Scrollbar Utama Di-hover Mouse (Menyala Biru Neon Cair) */
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(25, 0, 247, 0.6) !important; /* Berubah jadi biru neon mengikuti warna dasar TopZone */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 0 12px rgba(25, 0, 247, 0.85), 
+                inset 0 0 8px rgba(255, 255, 255, 0.3) !important; /* Efek pendaran kaca cair */
+}
+
+/* 5. Efek Ketika Scrollbar Sedang Diklik Aktif */
+::-webkit-scrollbar-thumb:active {
+    background: rgba(25, 0, 247, 0.8) !important;
+    filter: brightness(1.2);
+}
+
+/* 6. Mengatur Sudut Pertemuan Scrollbar Horizontal & Vertikal */
+::-webkit-scrollbar-corner {
+    background: rgba(5, 14, 46, 0.8) !important;
+}
+
+
+/*RATINGGGGGG*/
+
+/* =========================================
+   SISTEM FILTER TESTIMONI TOPZONE
+========================================= */
+.tz-review-filter-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tz-filter-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tz-filter-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.tz-filter-btn.active {
+    background: rgba(25, 0, 247, 0.25) !important;
+    border-color: #1900f7 !important;
+    color: #fff !important;
+    box-shadow: 0 0 10px rgba(25, 0, 247, 0.4);
+}
+
+/* Tombol Lihat Semua */
+.tz-btn-view-all-reviews {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.tz-btn-view-all-reviews:hover {
+    background: rgba(25, 0, 247, 0.25);
+    border-color: #1900f7;
+    box-shadow: 0 0 15px rgba(25, 0, 247, 0.4);
+    transform: scale(1.03);
+}
+
+/* Modifikasi Scroll Pop-up Swaler */
+.tz-popup-review-scroller::-webkit-scrollbar {
+    width: 6px !important;
+}
+.tz-popup-review-scroller::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-radius: 10px !important;
+}
+.tz-popup-review-scroller::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 10px !important;
+}
+.tz-popup-review-scroller::-webkit-scrollbar-thumb:hover {
+    background: rgba(25, 0, 247, 0.6) !important;
+}
+/* =========================================
+   STYLE AVATAR & ANIMASI LIQUID REVIEWS
+========================================= */
+.tz-review-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid rgba(251, 255, 0, 0.4);
+    box-shadow: 0 0 8px rgba(251, 255, 0, 0.2);
+}
+
+.tz-review-avatar-default {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+/* Efek Animasi Pop-In-Up Smooth */
+.tz-anim-fade-in {
+    animation: tzFadePopUp 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes tzFadePopUp {
+    0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(12px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Modifikasi Hover Card Testimoni */
+.real-review-card {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.real-review-card:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(251, 255, 0, 0.45) !important;
+    transform: translateY(-3px) scale(1.005);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* Custom styling khusus scrollbar ulasan di modal popup */
+#popupReviewScrollerWrapper::-webkit-scrollbar {
+    width: 4px;
+}
+#popupReviewScrollerWrapper::-webkit-scrollbar-thumb {
+    background: #c9a227;
+    border-radius: 10px;
+}
+/* Sembunyikan item index > 3 di awal load */
+.tz-review-hidden-init {
+    display: none !important;
+}
+
+/* Tombol Lihat Semua Ulasan */
+.tz-btn-view-all-reviews {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.tz-btn-view-all-reviews:hover {
+    background: #c9a227;
+    color: black;
+    box-shadow: 0 0 15px rgba(201, 162, 39, 0.4);
+}
+
+/* Radio Button Input Rating Bintang */
+.rating-stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating-stars input { 
+    display: none; 
+}
+
+.rating-stars label {
+    font-size: 30px;
+    color: rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.rating-stars input:checked ~ label,
+.rating-stars label:hover,
+.rating-stars label:hover ~ label {
+    color: #ffca08;
+}
+/* ==========================================
+   LIQUID GLASS POP-UP CSS BY TOPZONE
+   ========================================== */
+/* --- LIQUID GLASS BLUE SYSTEM --- */
+.tz-popup-overlay-fixed {
+    display: none; 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(5, 15, 30, 0.75); /* Biru gelap transparan */
+    backdrop-filter: blur(20px);
+    z-index: 999999; 
+    align-items: center; justify-content: center;
+    transition: all 0.4s ease;
+}
+
+.tz-popup-box-main {
+    background: linear-gradient(160deg, rgba(30, 58, 138, 0.4), rgba(17, 24, 39, 0.7));
+    border: 1px solid rgba(147, 197, 253, 0.3);
+    width: 90%; max-width: 600px; border-radius: 24px; padding: 30px;
+    max-height: 85vh; display: flex; flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 10px rgba(147, 197, 253, 0.1);
+    animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Filter Buttons */
+.tz-review-filter-container { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.tz-filter-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff; padding: 8px 18px; border-radius: 20px;
+    cursor: pointer; transition: 0.3s; font-size: 13px;
+}
+.tz-filter-btn.active { background: #3b82f6; border-color: #60a5fa; color: #fff; font-weight: bold; }
+
+/* Scrollbar Smooth */
+.tz-popup-scroll-wrapper { overflow-y: auto; flex-grow: 1; padding-right: 10px; }
+.tz-popup-scroll-wrapper::-webkit-scrollbar { width: 6px; }
+.tz-popup-scroll-wrapper::-webkit-scrollbar-thumb { background: rgba(147, 197, 253, 0.3); border-radius: 20px; }
+
+/* Review Item Animasi */
+.rev-item { 
+    transition: all 0.4s ease; 
+    animation: fadeInScale 0.4s ease-out;
+}
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+.topzone-hidden-review-item {
+    display: none !important;
+}
+
+.rev-item { transition: opacity 0.3s ease, transform 0.3s ease; }
+.rev-item.fade-in { opacity: 1; transform: translateY(0); }
+.rev-item.fade-out { opacity: 0; transform: translateY(10px); }
+
+/* 1. Overlay (Latar belakang blur saat promo buka) */
+#v-overlay {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999 !important; /* Dibuat lebih tinggi dari Header */
+    background: rgba(0, 0, 0, 0.2); /* Atur kegelapan sesuai keinginan */
+}
+
+/* 2. Container SweetAlert (Popup Promonya) */
+.swal2-container {
+    z-index: 100000 !important; /* Dibuat paling depan di atas semuanya */
+}
+
+/* 3. Header (Kita turunkan z-index-nya saat ada overlay) */
+/* Gunakan JS untuk menambah class ini ke body saat promo dibuka */
+body.promo-active .tp-header {
+    z-index: 1 !important; 
+    filter: blur(5px); /* Opsional: biar header blur saat promo muncul */
 }

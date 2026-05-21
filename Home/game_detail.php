@@ -36,15 +36,29 @@ $res_avg = $stmt_avg->get_result()->fetch_assoc();
 $rating_rata = ($res_avg['total_review'] > 0) ? round($res_avg['rata_rata'], 1) : 0;
 $total_review = $res_avg['total_review'];
 $terjual = $g['terjual'] ?? 0;
+$stmt_rev = $koneksi->prepare("
+    SELECT 
+        r.*,
+        COALESCE(u.username, r.nama_user) AS user_name_fix,
+        COALESCE(u.foto, 'Default.jpg') AS foto_user_fix
+    FROM reviews r
+    LEFT JOIN users u 
+        ON r.nama_user = u.nama_user
+    WHERE r.id_game = ?
+    ORDER BY r.id DESC
+");
 
-// ==========================================
-// 3. AMBIL DAFTAR ULASAN TERBARU (PREPARED STATEMENTS)
-// ==========================================
-$stmt_rev = $koneksi->prepare("SELECT * FROM reviews WHERE id_game = ? ORDER BY id DESC");
 $stmt_rev->bind_param("i", $id_g);
 $stmt_rev->execute();
 $q_rev = $stmt_rev->get_result();
 
+$array_ulasan_js = [];
+
+while($row = $q_rev->fetch_assoc()) {
+    $array_ulasan_js[] = $row;
+}
+
+$total_komentar = count($array_ulasan_js);
 // ==========================================
 // 4. LOGIKA IDENTITAS USER (SESSION/GUEST)
 // ==========================================
@@ -412,45 +426,232 @@ $from_cart = $_GET['from_cart'] ?? false;
                 </div>
             <?php endif; ?>
         </div>
-
-        <div style="margin-top: 60px; border-top: 2px solid gold; padding-top: 30px;">
-            <h3>2. Testimoni Pembeli</h3>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 15px; border: 1px solid rgba(251, 255, 0, 0.25); margin-bottom: 30px;">
+        <div style="margin-top: 60px; border-top: 2px solid rgba(255, 215, 0, 0.3); padding-top: 30px; font-family: 'Poppins', sans-serif;">
+            <h3 style="color: #fff; text-shadow: 0 0 15px rgba(201, 162, 39, 0.3); margin-bottom: 25px;">2. Testimoni Pembeli</h3>
+            
+            <div style="background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); padding: 25px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 35px;">
                 <form action="simpan_ulasan.php" method="POST">
                     <input type="hidden" name="id_game" value="<?php echo $id_g; ?>">
                     <input type="hidden" name="slug" value="<?php echo htmlspecialchars($g['slug']); ?>">
                     <input type="hidden" name="user_name" value="<?php echo htmlspecialchars($nama_tampil); ?>">
                     
-                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Beri Rating:</label>
-                    <div class="rating-stars">
+                    <label style="font-weight: bold; display: block; margin-bottom: 8px; color: #fff;">Beri Rating:</label>
+                    <div class="rating-stars" style="margin-bottom: 15px;">
                         <input type="radio" name="rating" value="5" id="star5" required><label for="star5">★</label>
                         <input type="radio" name="rating" value="4" id="star4"><label for="star4">★</label>
                         <input type="radio" name="rating" value="3" id="star3"><label for="star3">★</label>
                         <input type="radio" name="rating" value="2" id="star2"><label for="star2">★</label>
                         <input type="radio" name="rating" value="1" id="star1"><label for="star1">★</label>
                     </div>
-                    <textarea name="komentar" placeholder="Gimana layanannya mprruy? Tulis di sini..." required style="width: 100%; height: 100px; border-radius: 12px; padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color:#fff; resize: none; box-sizing: border-box; margin-top: 10px;"></textarea>
-                    <button type="submit" style="background:#c9a227; color:black; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
+                    <textarea name="komentar" placeholder="Gimana layanannya mprruy? Tulis di sini..." required style="width: 100%; height: 100px; border-radius: 12px; padding: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color:#fff; resize: none;"></textarea>
+                    <button type="submit" style="background: linear-gradient(135deg, #e5b82e, #c9a227); color:black; border:none; padding:12px 28px; border-radius:12px; cursor:pointer; margin-top:15px; font-weight:bold;">Kirim Testimoni</button>
                 </form>
             </div>
 
-            <div style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
-                <?php if($q_rev->num_rows > 0): ?>
-                    <?php while($rev = $q_rev->fetch_assoc()): ?>
-                        <div class="rev-item">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong>👤 <?php echo htmlspecialchars($rev['user_name']); ?></strong>
-                                <span style="font-size: 11px; color: #ccc;"><?php echo date('d M Y', strtotime($rev['created_at'] ?? 'now')); ?></span>
+            <div class="tz-review-filter-container" style="display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap;">
+                <button class="tz-filter-btn active" onclick="filterReviewHalaman('semua', event)">Semua Rating</button>
+                <?php for($i=5; $i>=1; $i--): ?>
+                    <button class="tz-filter-btn" onclick="filterReviewHalaman(<?php echo $i; ?>, event)">★ <?php echo $i; ?></button>
+                <?php endfor; ?>
+            </div>
+
+            <div id="mainReviewContainer" style="display:flex; flex-direction:column; gap:16px;">
+
+            <?php
+            $total_komentar = count($array_ulasan_js);
+
+            if($total_komentar > 0):
+                foreach($array_ulasan_js as $index => $rev):
+
+                    // Hide review lebih dari 3
+                    $is_hidden = ($index >= 3) ? 'display:none;' : '';
+
+                    // Foto user
+                    $foto_user = !empty($rev['foto_user_fix'])
+                        ? 'uploads/' . $rev['foto_user_fix']
+                        : 'uploads/Default.jpg';
+
+                    // Nama user
+                    $nama_user_review = $rev['user_name_fix']
+                        ?? $rev['nama_user']
+                        ?? 'Anonymous';
+
+                    // Tanggal
+                    $tanggal_review = !empty($rev['created_at'])
+                        ? date('d M Y H:i', strtotime($rev['created_at']))
+                        : 'Baru saja';
+
+                    // Rating
+                    $rating = (int)$rev['rating'];
+            ?>
+
+            <div class="rev-item real-review-card tz-anim-fade-in"
+                data-rating="<?= $rating; ?>"
+                style="<?= $is_hidden; ?>">
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:flex-start;
+                    gap:15px;
+                ">
+
+                    <!-- LEFT -->
+                    <div style="
+                        display:flex;
+                        align-items:center;
+                        gap:14px;
+                    ">
+
+                        <!-- FOTO -->
+                        <img
+                            src="<?= htmlspecialchars($foto_user); ?>"
+                            onerror="this.onerror=null;this.src='uploads/Default.jpg';"
+                            style="
+                                width:48px;
+                                height:48px;
+                                border-radius:50%;
+                                object-fit:cover;
+
+                                border:2px solid rgba(255,255,255,0.15);
+
+                                box-shadow:
+                                    0 4px 12px rgba(0,0,0,0.25);
+                            "
+                        >
+
+                        <!-- INFO -->
+                        <div>
+
+                            <div style="
+                                font-weight:700;
+                                color:#fff;
+                                font-size:15px;
+                            ">
+                                <?= htmlspecialchars($nama_user_review); ?>
                             </div>
-                            <div style="color: #ffca08; font-size: 14px; margin: 5px 0;">
-                                <?php for($k=1; $k<=5; $k++) echo ($k <= $rev['rating']) ? "★" : "☆"; ?>
+
+                            <div style="
+                                font-size:12px;
+                                color:rgba(255,255,255,0.45);
+                                margin-top:3px;
+                            ">
+                                <?= $tanggal_review; ?>
                             </div>
-                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #eee;">"<?php echo nl2br(htmlspecialchars($rev['komentar'])); ?>"</p>
+
                         </div>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <p style="text-align: center; color: #bbb; padding: 20px;">Belum ada ulasan. Jadilah yang pertama! 🔥</p>
-                <?php endif; ?>
+                    </div>
+
+                    <!-- RATING -->
+                    <div style="
+                        color:#ffca08;
+                        font-size:16px;
+                        letter-spacing:2px;
+                        white-space:nowrap;
+                    ">
+                        <?= str_repeat('★', $rating); ?>
+                        <?= str_repeat('☆', 5 - $rating); ?>
+                    </div>
+
+                </div>
+
+                <!-- KOMENTAR -->
+                <div style="
+                    margin-top:16px;
+                    padding-left:62px;
+
+                    color:rgba(255,255,255,0.88);
+
+                    line-height:1.7;
+                    font-size:14px;
+                    word-break:break-word;
+                ">
+                    <?= nl2br(htmlspecialchars($rev['komentar'])); ?>
+                </div>
+
+            </div>
+
+            <?php
+                endforeach;
+            else:
+            ?>
+
+            <div style="
+                text-align:center;
+                padding:35px 20px;
+
+                background:rgba(255,255,255,0.04);
+
+                border-radius:16px;
+
+                border:1px solid rgba(255,255,255,0.06);
+
+                color:rgba(255,255,255,0.45);
+            ">
+                Belum ada ulasan mprruy 🔥
+            </div>
+
+            <?php endif; ?>
+
+            <p id="noReviewText"
+            style="
+                    display:none;
+                    text-align:center;
+                    color:rgba(255,255,255,0.45);
+                    padding:25px;
+            ">
+                Kosong mprruy, belum ada rating segini!
+            </p>
+
+            </div>
+
+            <!-- BUTTON LIHAT SEMUA -->
+            <div id="tzBtnViewAllContainer"
+                style="
+                    text-align:center;
+                    margin-top:25px;
+
+                    display: <?= ($total_komentar > 3) ? 'block' : 'none'; ?>;
+            ">
+
+                <button
+                    type="button"
+                    class="tz-btn-view-all-reviews"
+                    onclick="bukaModalSemuaReview()"
+                    style="
+                        background:rgba(255,255,255,0.08);
+
+                        backdrop-filter:blur(16px);
+                        -webkit-backdrop-filter:blur(16px);
+
+                        border:1px solid rgba(255,255,255,0.12);
+
+                        color:white;
+
+                        padding:14px 24px;
+
+                        border-radius:14px;
+
+                        cursor:pointer;
+
+                        font-weight:600;
+
+                        transition:0.25s;
+                    "
+
+                    onmouseover="
+                        this.style.transform='translateY(-2px)';
+                        this.style.borderColor='rgba(255,215,0,0.3)';
+                    "
+
+                    onmouseout="
+                        this.style.transform='translateY(0px)';
+                        this.style.borderColor='rgba(255,255,255,0.12)';
+                    "
+                >
+                    Lihat Semua Ulasan (<?= $total_komentar; ?>)
+                </button>
+
             </div>
         </div>
     </div>
@@ -547,13 +748,32 @@ $from_cart = $_GET['from_cart'] ?? false;
         </div>
     </div>
 </div>
+<div id="tzMprruyPopupReview" class="tz-popup-overlay-fixed" onclick="tutupModalSemuaReview(event)">
+    <div class="tz-popup-box-main" onclick="event.stopPropagation()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin:0;">Semua Ulasan</h3>
+            <button onclick="tutupModalSemuaReview()" style="background:rgba(255,255,255,0.1); border:none; color:white; width:35px; height:35px; border-radius:50%; cursor:pointer;">&times;</button>
+        </div>
 
+        <div class="tz-review-filter-container" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button class="tz-filter-btn active" onclick="filterReviewDiDalamModal('semua', event)">Semua</button>
+            <button class="tz-filter-btn" onclick="filterReviewDiDalamModal(5, event)">★ 5</button>
+            <button class="tz-filter-btn" onclick="filterReviewDiDalamModal(4, event)">★ 4</button>
+            <button class="tz-filter-btn" onclick="filterReviewDiDalamModal(3, event)">★ 3</button>
+            <button class="tz-filter-btn" onclick="filterReviewDiDalamModal(2, event)">★ 2</button>
+            <button class="tz-filter-btn" onclick="filterReviewDiDalamModal(1, event)">★ 1</button>
+        </div>
+
+        <div id="tzPopupReviewInjectionArea" class="tz-popup-scroll-wrapper"></div>
+    </div>
+</div>
 <script>
     let currentSelectedProduct = null;
     let basePrice = 0;
     let currentQuantity = <?php echo $qty_cart; ?>;
     let robloxTabMode = 'login'; 
 
+    window.DATA_TESTIMONI_GAME = <?php echo json_encode($array_ulasan_js ?? []); ?>;
     // Fungsi Toast dengan Efek Liquid Glass Premium & Minimalis
     function tampilkanToast(ikon, pesan) {
         Swal.fire({

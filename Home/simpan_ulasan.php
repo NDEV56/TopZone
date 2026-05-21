@@ -1,19 +1,24 @@
 <?php
-include 'koneksi.php';
+// simpan_ulasan.php
+include 'koneksi.php'; // Pastikan file koneksi.php benar
 
-$id_game = $_POST['id_game'];
-$nama_user = $_POST['nama_user']; // Ini dapet dari variabel $nama_tampil tadi
-$rating = $_POST['rating'];
-$komentar = $_POST['komentar'];
-$slug = $_POST['slug'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id_game = $_POST['id_game'];
+    $slug = $_POST['slug'];
+    $rating = $_POST['rating'];
+    $komentar = $_POST['komentar'];
+    // Ambil dari input hidden form yang benar
+    $nama_user = $_POST['user_name']; 
 
-// Masukin ke kolom user_name sesuai screenshot DB lu
-$query = "INSERT INTO reviews (id_game, user_name, rating, komentar) 
-          VALUES ('$id_game', '$nama_user', '$rating', '$komentar')";
+    // Gunakan Prepared Statement untuk keamanan
+    $stmt = $koneksi->prepare("INSERT INTO reviews (id_game, nama_user, rating, komentar, created_at) VALUES (?, ?, ?, ?, NOW())");
+    $stmt->bind_param("isis", $id_game, $nama_user, $rating, $komentar);
 
-if(mysqli_query($conn, $query)) {
-    header("Location: game_detail.php?game=$slug");
-} else {
-    echo "Gagal: " . mysqli_error($conn);
+    if ($stmt->execute()) {
+        header("Location: game_detail.php?game=" . urlencode($slug));
+        exit();
+    } else {
+        echo "Gagal menyimpan ulasan: " . $koneksi->error;
+    }
 }
 ?>

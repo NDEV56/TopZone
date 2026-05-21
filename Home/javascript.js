@@ -13,28 +13,19 @@ const swalConfig = {
     }
 };
 
-/* ===== SweetAlert2 Toast Config (Nama Class Sudah Dibedain) ===== */
 const Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
     showConfirmButton: false,
-    timer: 2500,                   // Otomatis hilang dalam 2.5 detik
+    timer: 2500,
     timerProgressBar: true,
-    background: 'transparent',     // Biar warna & blur diatur penuh lewat class custom di CSS
+    background: 'transparent', // Biarkan CSS yang ambil alih
     color: '#ffffff',
-    showClass: {
-        popup: 'animate__animated animate__fadeInRight animate__faster' 
-    },
-    hideClass: {
-        popup: 'animate__animated animate__fadeOutRight animate__faster'
-    },
     customClass: {
-        popup: 'tz-pure-toast-container',  // Class baru biar gak nabrak .swal2-toast bawaan
-        timerProgressBar: 'tz-pure-toast-progress' // Class progress bar baru
-    },
-    html: '' // Kosongkan string style di sini biar gak numpuk
+        popup: 'tz-pure-toast-glass',
+        timerProgressBar: 'tz-pure-toast-progress'
+    }
 });
-
 /* ===== A. GLOBAL VARIABLES ===== */
 let kategoriAktif = "";
 let sliderIndex = 0;
@@ -192,14 +183,16 @@ function loadData() {
 function searchRealtime() { loadData(); }
 
 function filterKategori(kat, el) {
+    const allLi = document.querySelectorAll(".tp-sidebar li");
+    
     if (kategoriAktif === kat) {
+        // Reset ke "Semua"
         kategoriAktif = ""; 
-        if (el) el.classList.remove("active");
-        const firstSidebarLi = document.querySelector('.tp-sidebar li:first-child');
-        if (firstSidebarLi) firstSidebarLi.classList.add('active');
+        allLi.forEach(li => li.classList.remove("active"));
+        document.querySelector('.tp-sidebar li:first-child').classList.add('active');
     } else {
         kategoriAktif = kat;
-        document.querySelectorAll(".tp-sidebar li").forEach(li => li.classList.remove("active"));
+        allLi.forEach(li => li.classList.remove("active"));
         if (el) el.classList.add("active");
     }
     loadData();
@@ -340,10 +333,12 @@ function hapusItemDB(id) {
         showCancelButton: true,
         confirmButtonText: 'Ya, Hapus!',
         cancelButtonText: 'Batal',
-        confirmButtonColor: '#ef4444', // Merah neon untuk eksekusi
-        cancelButtonColor: 'transparent', // Biar diatur penuh lewat hover CSS kita bray
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: 'transparent',
         background: 'transparent', 
         color: '#fff',
+        // Mengatur backdrop agar tipis/transparan (bukan abu-abu pekat)
+        backdrop: 'rgba(0,0,0,0.0)', 
         customClass: {
             popup: 'tz-liquid-modal', 
             confirmButton: 'tz-modal-btn-confirm',
@@ -353,8 +348,6 @@ function hapusItemDB(id) {
             const container = document.querySelector('.swal2-container');
             if (container) {
                 container.style.zIndex = '9999999';
-                container.style.backdropFilter = 'blur(6px)';
-                container.style.webkitBackdropFilter = 'blur(6px)';
             }
         }
     }).then((res) => {
@@ -655,4 +648,174 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     goToSlide(0);
+});
+
+
+//FOOTER
+// Fungsi Pop-up FAQ Lengkap Berbasis Liquid Glassmorphism
+function bukaFAQ() {
+    Swal.fire({
+        title: '<span style="color:#ffffff; font-family:\'Poppins\',sans-serif; text-shadow: 0 0 10px rgba(255,255,255,0.2);"><i class="fa-solid fa-circle-question" style="color:rgba(201, 162, 39, 1)"></i> FAQ & PUSAT BANTUAN TOPZONE</span>',
+        html: `
+            <div style="text-align: left; color: #e2e8f0; font-size: 13px; max-height: 320px; overflow-y: auto; padding-right: 8px; line-height: 1.6; font-family:\'Segoe UI\',sans-serif;">
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border-left: 4px solid rgba(25, 0, 247, 1); margin-bottom: 12px;">
+                    <strong style="color: #fff; font-size: 14px;">1. Bagaimana Cara Bertransaksi di TOPZONE?</strong><br>
+                    Silakan pilih kategori game yang diinginkan pada halaman utama, tentukan nominal/paket item, masukkan User ID & Zone ID akun game Anda dengan benar, pilih metode pembayaran via Xendit gateway, lalu selesaikan pembayaran. Sistem akan memproses pesanan Anda secara otomatis.
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border-left: 4px solid rgba(25, 0, 247, 1); margin-bottom: 12px;">
+                    <strong style="color: #fff; font-size: 14px;">2. Berapa Lama Waktu Pengiriman Item Game?</strong><br>
+                    Dalam kondisi server normal, sistem otomatisasi kami akan menyuntikkan item game langsung ke akun Anda dalam waktu 10 detik hingga maksimal 5 menit setelah sitem menerima konfirmasi pembayaran sukses dari gateway.
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border-left: 4px solid rgba(25, 0, 247, 1); margin-bottom: 12px;">
+                    <strong style="color: #fff; font-size: 14px;">3. Sudah Bayar tapi Status Masih Pending / Belum Masuk?</strong><br>
+                    Jangan panik. Terkadang terdapat delay antrean di sisi provider game atau delay mutasi bank. Jika dalam waktu 15 menit item belum masuk, silakan klik menu <strong>"Chat Admin"</strong> di footer atau hubungi support kami dengan melampirkan Invoice ID transaksi Anda.
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border-left: 4px solid rgba(25, 0, 247, 1); margin-bottom: 12px;">
+                    <strong style="color: #fff; font-size: 14px;">4. Apakah Layanan TOPZONE Buka 24 Jam?</strong><br>
+                    Ya, sistem pemrosesan pesanan dan metode pembayaran instan kami beroperasi secara otomatis 24 jam non-stop setiap hari. Namun, untuk layanan bantuan/layanan pelanggan via Chat Admin beroperasi mulai pukul 08:00 WIB hingga 22:00 WIB.
+                </div>
+            </div>
+        `,
+        showClass: { popup: 'animasi-liquid-masuk' },
+        hideClass: { popup: 'swal2-fade swal2-hide' },
+        buttonsStyling: false,
+        customClass: {
+            popup: 'liquid-glass-popup',
+            confirmButton: 'glass-btn-confirm'
+        },
+        confirmButtonText: 'Tutup'
+    });
+}
+
+// Fungsi Pop-up Kebijakan Lengkap Berbasis Liquid Glassmorphism
+function bukaKebijakan() {
+    Swal.fire({
+        title: '<span style="color:#ffffff; font-family:\'Poppins\',sans-serif; text-shadow: 0 0 10px rgba(255,255,255,0.2);"><i class="fa-solid fa-shield-halved" style="color:rgba(201, 162, 39, 1)"></i> KEBIJAKAN & PRIVASI LAYANAN</span>',
+        html: `
+            <div style="text-align: left; color: #e2e8f0; font-size: 13px; max-height: 320px; overflow-y: auto; padding-right: 8px; line-height: 1.6; font-family:\'Segoe UI\',sans-serif;">
+                <p style="color: #fff; margin-bottom: 15px; font-weight: 500;">Dengan mengakses, menjelajahi, dan melakukan transaksi di platform TOPZONE, Anda secara sadar tunduk dan menyetujui seluruh syarat ketentuan hukum yang berlaku di bawah ini:</p>
+                
+                <h5 style="color: rgba(201, 162, 39, 1); margin: 15px 0 5px 0; font-size:14px;">A. Validasi Data Akun (Tanggung Jawab Pengguna)</h5>
+                <p style="margin-bottom: 10px; padding-left: 5px;">Pengguna bertanggung jawab penuh atas kebenaran penginputan User ID, Server ID, atau data akun game lainnya. TOPZONE tidak berkewajiban melakukan validasi ulang, dan kesalahan pengiriman akibat kelalaian penginputan oleh pembeli sepenuhnya <strong>TIDAK DAPAT DI-REFUND ATAU DIBATALKAN</strong>.</p>
+                
+                <h5 style="color: rgba(201, 162, 39, 1); margin: 15px 0 5px 0; font-size:14px;">B. Kebijakan Pembatalan & Pengembalian Dana (Refund)</h5>
+                <p style="margin-bottom: 10px; padding-left: 5px;">Seluruh transaksi pembayaran yang telah sukses divalidasi oleh sistem payment gateway bersifat mutlak dan final. Pengembalian dana hanya dapat diproses apabila sistem TOPZONE gagal mengirimkan produk akibat stok kosong atau kesalahan teknis dari server internal kami.</p>
+                
+                <h5 style="color: rgba(201, 162, 39, 1); margin: 15px 0 5px 0; font-size:14px;">C. Perlindungan Data Pribasi</h5>
+                <p style="margin-bottom: 10px; padding-left: 5px;">Kami sangat menjaga privasi Anda. Seluruh informasi data akun game, email, nomor WhatsApp, serta catatan transaksi dienkripsi dengan aman dan hanya digunakan untuk kepentingan pemrosesan pesanan. Kami menjamin data Anda tidak akan dijual atau disalahgunakan kepada pihak ketiga.</p>
+
+                <h5 style="color: rgba(201, 162, 39, 1); margin: 15px 0 5px 0; font-size:14px;">D. Batasan Keamanan Sistem</h5>
+                <p style="margin-bottom: 5px; padding-left: 5px;">TOPZONE berhak membekukan akun atau memblokir akses pengguna jika mendeteksi adanya indikasi manipulasi data transaksi, penyalahgunaan bug sistem, atau tindakan ilegal lainnya yang merugikan ekosistem platform kami.</p>
+            </div>
+        `,
+        showClass: { popup: 'animasi-liquid-masuk' },
+        hideClass: { popup: 'swal2-fade swal2-hide' },
+        buttonsStyling: false,
+        customClass: {
+            popup: 'liquid-glass-popup',
+            confirmButton: 'glass-btn-confirm'
+        },
+        confirmButtonText: 'Saya Mengerti & Setujui'
+    });
+}
+
+//RATINGGGGGGGGGGG
+function filterReviewHalaman(rating, event) {
+    document.querySelectorAll('.tz-filter-btn').forEach(btn => btn.classList.remove('active'));
+    if(event) event.currentTarget.classList.add('active');
+
+    const items = document.querySelectorAll('#mainReviewContainer .rev-item');
+    const btnAll = document.getElementById('tzBtnViewAllContainer');
+    const noReviewText = document.getElementById('noReviewText');
+    
+    let targetCocok = 0;
+    let countDitampilkan = 0;
+
+    items.forEach((item) => {
+        const isMatch = (rating === 'semua' || item.getAttribute('data-rating') == rating);
+        if (isMatch) {
+            targetCocok++;
+            item.style.display = (countDitampilkan < 3) ? 'block' : 'none';
+            if (countDitampilkan < 3) countDitampilkan++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    if (noReviewText) noReviewText.style.display = (targetCocok === 0) ? 'block' : 'none';
+    if (btnAll) {
+        btnAll.style.display = (targetCocok > 3) ? 'block' : 'none';
+        btnAll.querySelector('button').innerText = `Lihat Semua Ulasan (${targetCocok})`;
+    }
+}
+function createNoReviewMsg() {
+    let p = document.createElement('p');
+    p.id = 'noReviewText';
+    p.style.cssText = "text-align: center; color: rgba(255,255,255,0.4); padding: 25px; background: rgba(255,255,255,0.01); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);";
+    document.getElementById('mainReviewContainer').appendChild(p);
+    return p;
+}
+// Fungsi Buka Pop-up dengan sistem filter yang sama
+function bukaModalSemuaReview() {
+    const targetArea = document.getElementById('tzPopupReviewInjectionArea');
+    const source = document.querySelectorAll('#mainReviewContainer .rev-item');
+    
+    // Inject konten ke modal
+    targetArea.innerHTML = '';
+    source.forEach(item => {
+        const clone = item.cloneNode(true);
+        clone.style.display = 'block'; // Pastikan semua muncul di modal
+        targetArea.appendChild(clone);
+    });
+
+    document.getElementById('tzMprruyPopupReview').style.display = 'flex';
+}
+function filterReviewDiDalamModal(rating, event) {
+    const buttons = document.querySelectorAll('.tz-popup-box-main .tz-filter-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    const container = document.getElementById('tzPopupReviewInjectionArea');
+    let noReviewText = document.getElementById('noReviewTextModal');
+    if (!noReviewText) {
+        noReviewText = document.createElement('p');
+        noReviewText.id = 'noReviewTextModal';
+        noReviewText.style.cssText = "text-align: center; color: rgba(255,255,255,0.4); padding: 25px;";
+        container.appendChild(noReviewText);
+    }
+
+    const items = document.querySelectorAll('#tzPopupReviewInjectionArea .rev-item');
+    let targetKetemu = 0;
+
+    items.forEach(item => {
+        const itemRating = item.getAttribute('data-rating');
+        if (rating === 'semua' || itemRating == rating) {
+            item.style.display = 'block';
+            item.classList.add('fade-in');
+            targetKetemu++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    noReviewText.style.display = (targetKetemu === 0) ? 'block' : 'none';
+    noReviewText.innerText = "Kosong mprruy, rating segini belum ada!";
+}
+function tutupModalSemuaReview() {
+    document.getElementById('tzMprruyPopupReview').style.display = 'none';
+}
+
+function tutupPopUpSemuaReviewTopzone() {
+    document.getElementById('tzMprruyPopupReview').style.display = 'none';
+}
+
+// System pengaman: Klik area luar gelap otomatis nutup pop-up
+window.addEventListener('click', function(e) {
+    const overlayPopup = document.getElementById('tzMprruyPopupReview');
+    if (e.target == overlayPopup) {
+        overlayPopup.style.display = 'none';
+    }
 });
