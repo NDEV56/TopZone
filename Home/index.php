@@ -134,12 +134,14 @@ if ($is_real_user) {
 <header class="tp-header">
     <div class="container tp-nav">
         <div class="tp-left">
-            <table>
-                <tr>
-                    <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="65"></td>
-                    <td><h2 style="color:#fff; -webkit-text-stroke: 4px #1900f7; paint-order: stroke fill;font-size:28px;">TOPZONE</h2></td>
-                 </tr>
-            </table>
+            <a href="index.php" style="text-decoration: none; display: inline-block;" class="tp-logo-link">
+                <table>
+                    <tr>
+                        <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="65" class="tp-logo-img"></td>
+                        <td><h2 style="color:#fff; -webkit-text-stroke: 4px #1900f7; paint-order: stroke fill; font-size:28px;" class="tp-logo-text">TOPZONE</h2></td>
+                     </tr>
+                </table>
+            </a>
         </div>
         <div class="tp-center">
             <div class="search-box">
@@ -147,7 +149,7 @@ if ($is_real_user) {
             </div>
         </div>
         <div class="tp-right">
-            <div class="cart-icon" onclick="toggleCartSidebar()" style="position: relative; cursor: pointer; font-size: 26px; margin-right: 15px;">
+            <div class="cart-icon tp-action-btn" onclick="toggleCartSidebar()" style="position: relative; cursor: pointer; font-size: 26px; margin-right: 15px;">
                 <span>🛒</span>
                 <?php if ($jumlah_keranjang > 0): ?>
                     <span id="cartCountBadge" style="position: absolute; top: -5px; right: -8px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold;">
@@ -156,7 +158,7 @@ if ($is_real_user) {
                 <?php endif; ?>
             </div>
 
-            <div class="tp-user">
+            <div class="tp-userx tp-action-btn">
                 <div onclick="toggleProfileSidebar()">
                     <?php if($is_logged_in): ?>
                         <img id="nav_avatar" src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
@@ -447,7 +449,13 @@ if ($is_real_user) {
 
     <?php else: ?>
         <!-- FORM UPDATE PROFIL -->
+        <!-- FORM UPDATE PROFIL -->
         <form action="update_profile.php" method="POST" enctype="multipart/form-data">
+
+            <input type="hidden" 
+                name="csrf_token" 
+                value="<?php echo $_SESSION['csrf_token']; ?>">
+
             <div style="text-align:center; margin-bottom:20px; color:white;">
                 <div style="position: relative; display: inline-block;">
                     <img src="uploads/<?php echo (!empty($_SESSION['foto'])) ? $_SESSION['foto'] : 'Default.jpg'; ?>?t=<?php echo time(); ?>" 
@@ -582,7 +590,7 @@ if ($is_real_user) {
                         </div>
 
                         <!-- Detail List Order -->
-<div id="det_<?= $st['id'] ?>" style="display:none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed <?= $st['border'] ?>;">
+                        <div id="det_<?= $st['id'] ?>" style="display:none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed <?= $st['border'] ?>;">
                             <?php if($st['count'] > 0): 
                                 mysqli_data_seek($st['q'], 0); 
                                 while($d = mysqli_fetch_assoc($st['q'])): ?>
@@ -647,27 +655,34 @@ if ($is_real_user) {
                <table>
                 <tr>
                     <td><img src="logotopzone.png" alt="Topzone Logo" width="60" height="65"></td>
-                    <td><h2 style="color:#fff; -webkit-text-stroke: 4px #1900f7; paint-order: stroke fill;font-size:28px;">TOPZONE</h2></td>
+                    <td><h2 class="footer-logo-text">TOPZONE</h2></td>
                  </tr>
                 </table>
-            </div>
+               </div>
             
-            <div>
+            <div class="footer-links">
                 <h4>Menu</h4>
-                <ul><li>Home</li><li>Semua Game</li>
-            <li class="promo-text">
-                <span id="btnPromo" class="promo-btn" style="z-index: 999; position: relative;">P</span>romo
-            </li>
-            </ul>
+                <ul>
+                    <li><a href="index.php"><i class="fa-solid fa-house"></i> Home</a></li>
+                    <li><a href="index.php#mainTitle"><i class="fa-solid fa-gamepad"></i> Semua Game</a></li>
+                    <li class="footer-link-item" id="btnPromo" style="z-index: 999; position: relative; cursor: pointer;">
+                        <i class="fa-solid fa-tags"></i> <span class="promo-btn">Promo</span>
+                    </li>
+                </ul>
             </div>
-            <div>
+            <div class="footer-links">
                 <h4>Bantuan</h4>
-                <ul><li>Kontak</li><li>FAQ</li><li>Kebijakan</li></ul>
+                <ul>
+                    <li><a href="javascript:void(0)" onclick="bukaFAQ()"><i class="fa-solid fa-circle-question"></i> FAQ</a></li>
+                    <li><a href="javascript:void(0)" onclick="bukaKebijakan()"><i class="fa-solid fa-shield-halved"></i> Kebijakan</a></li>
+                </ul>
             </div>
-            <div>
+            <div class="footer-links">
                 <h4>Kontak</h4>
-                <p>Email: support@topzone.com</p>
-                <p>WA: 08xxxxxxxxxx</p>
+                <ul>
+                    <li><a href="mailto:support@topzone.com"><i class="fa-solid fa-envelope"></i> Email: support@topzone.com</a></li>
+                    <li><a href="javascript:void(0)" onclick="bukaModalChat()"><i class="fa-solid fa-comments"></i> Chat Admin</a></li>
+                </ul>
             </div>
         </div>
     </div>
@@ -1247,6 +1262,15 @@ let stream = null;
 let isPromoOpen = false; 
 let sakuraInterval = null; // Menyimpan timer efek daun gugur
 
+
+window.addEventListener('scroll', () => {
+    const header = document.querySelector('.tp-header');
+    if (window.scrollY > 20) {
+        header.classList.add('scrolled');
+    } else {
+        header.classList.remove('scrolled');
+    }
+});
 // --- FUNGSI UTAMA GENERAL & SIDEBAR ---
 function toggleDetail(id) {
     var x = document.getElementById(id);
@@ -1556,40 +1580,93 @@ function prosesVerifikasiSandi(sandi) {
     }
 }
 
-// Tampilkan Jendela Utama Iframe
 function showMainPromoPopup() {
-    // Tampilkan detak jantung di depan murni
     $('.v-side-heart').css('display', 'flex').addClass('v-active');
-    
-    // Mulai hujan kelopak daun sakura di depan murni
     startSakuraRain();
 
     Swal.fire({
         title: '<span style="font-family: serif; letter-spacing: 2px;">🌸 WHEN DID YOU KNOW? 🌸</span>',
         html: `
-            <div style="position:relative;">
-                <div style="position:relative; overflow:hidden; border-radius:35px; border: 3px solid rgba(255,255,255,0.5);">
-                    <iframe src="../Home/806/index.html" style="width:100%; height:460px; border:none; border-radius:30px;"></iframe>
+            <div id="loveClickArea" style="position:relative; cursor: pointer;">
+                <div style="overflow:hidden; border-radius:35px; border: 3px solid rgba(255,255,255,0.3);">
+                    <iframe src="../Home/806/index.html?v=99" style="width:100%; height:460px; border:none; border-radius:30px;"></iframe>
                 </div>
             </div>
         `,
         showConfirmButton: false, 
         showCloseButton: true,
         width: '800px',
-        background: 'rgba(255, 116, 141, 0.9)',
-        backdropFilter: 'blur(35px) saturate(200%)',
         color: '#fff',
         padding: '30px',
         allowOutsideClick: true,
         customClass: {
-            popup: 'pink-main-popup'
+            popup: 'tz-pink-solid-modal',
+            closeButton: 'custom-close-btn' // Class buat tombol X
+        },
+        didOpen: () => {
+            // Kita buat fungsi biar gampang dipanggil
+            const handleGlobalClick = (e) => {
+                // Cek apakah klik terjadi di area modal
+                if (e.target.closest('.tz-pink-solid-modal')) {
+                    // Panggil fungsi BOM LOVE di sini
+                    triggerRameExplosion(e.clientX, e.clientY);
+                }
+            };
+
+            // Pasang listener di dokumen
+            document.addEventListener('click', handleGlobalClick);
+            
+            // Simpan referensi buat dihapus pas modal tutup (PENTING!)
+            Swal.getPopup()._handleGlobalClick = handleGlobalClick;
         },
         willClose: () => {
+            // Hapus listener pas modal tutup biar gak error
+            document.removeEventListener('click', Swal.getPopup()._handleGlobalClick);
+            
             isPromoOpen = false;
             $('#v-overlay, .v-side-heart').removeClass('v-active').fadeOut(500);
             stopSakuraRain();
         }
     });
+}
+// PASTIKAN FUNGSI INI ADA DI FILE JS UTAMA LU
+window.triggerRameExplosion = function(x, y) {
+    const totalHearts = 6; 
+    for (let i = 0; i < totalHearts; i++) {
+        const heart = document.createElement('div');
+        const heartsOptions = ['❤️', '💖', '💗', '💓', '💕'];
+        heart.innerHTML = heartsOptions[Math.floor(Math.random() * heartsOptions.length)];
+        heart.className = 'input-heart-particle';
+        heart.style.left = x + 'px';
+        heart.style.top = y + 'px';
+        heart.style.setProperty('--mx', (Math.random() * 300 - 150) + 'px'); 
+        heart.style.setProperty('--my', (Math.random() * 300 - 150) + 'px'); 
+        heart.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1200);
+    }
+};
+function triggerRameExplosion(x, y) {
+    const totalHearts = 6; // Dikecilin biar smooth & gak rame banget
+    
+    for (let i = 0; i < totalHearts; i++) {
+        const heart = document.createElement('div');
+        const heartsOptions = ['❤️', '💖', '💗', '💓', '💕'];
+        heart.innerHTML = heartsOptions[Math.floor(Math.random() * heartsOptions.length)];
+        heart.className = 'input-heart-particle';
+        
+        heart.style.left = x + 'px';
+        heart.style.top = y + 'px';
+        
+        // NYEBAR KE SEGALA ARAH (Math.random() * 300 - 150)
+        heart.style.setProperty('--mx', (Math.random() * 300 - 150) + 'px'); 
+        heart.style.setProperty('--my', (Math.random() * 300 - 150) + 'px'); 
+        
+        heart.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+        
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1200); // Lebih lama biar smooth hilangnya
+    }
 }
 
 
@@ -1903,5 +1980,116 @@ window.addEventListener('click', function(e) {
     }
     });
 </script>
+
+<style>
+
+body .swal2-container.swal2-top-end{
+    top:20px!important;
+    right:20px!important;
+}
+
+body .swal2-popup.swal2-toast{
+
+    background:
+    linear-gradient(
+        135deg,
+        rgba(255,255,255,.18),
+        rgba(255,255,255,.05)
+    ) !important;
+
+    backdrop-filter: blur(25px)!important;
+    -webkit-backdrop-filter: blur(25px)!important;
+
+    border:1px solid rgba(255,255,255,.12)!important;
+
+    border-radius:22px!important;
+
+    box-shadow:
+    0 8px 32px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.15)!important;
+
+    color:white!important;
+
+    padding:14px 18px!important;
+
+    overflow:hidden;
+
+    min-width:320px;
+}
+
+body .swal2-popup.swal2-toast::before{
+
+    content:'';
+
+    position:absolute;
+
+    inset:0;
+
+    background:
+    linear-gradient(
+        120deg,
+        rgba(255,255,255,.15),
+        transparent 40%
+    );
+
+    pointer-events:none;
+}
+
+body .swal2-title{
+    color:white!important;
+    font-size:14px!important;
+    font-weight:600!important;
+}
+
+body .swal2-icon{
+    border:none!important;
+    zoom:.85;
+}
+
+body .swal2-success{
+    color:#22c55e!important;
+}
+
+body .swal2-error{
+    color:#ef4444!important;
+}
+
+body .swal2-warning{
+    color:#f59e0b!important;
+}
+
+body .swal2-timer-progress-bar{
+    background:
+    linear-gradient(
+        90deg,
+        #38bdf8,
+        #3b82f6
+    )!important;
+
+    height:3px!important;
+}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<?php if(isset($_SESSION['toast'])): ?>
+
+<script>
+
+Swal.fire({
+    toast:true,
+    position:'top-end',
+    icon:'<?= $_SESSION['toast']['icon']; ?>',
+    title:'<?= $_SESSION['toast']['title']; ?>',
+    showConfirmButton:false,
+    timer:2500,
+    timerProgressBar:true
+});
+
+</script>
+
+<?php unset($_SESSION['toast']); ?>
+<?php endif; ?>
+
 </body>
 </html>

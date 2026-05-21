@@ -36,18 +36,19 @@
             font-size: 2.5rem;
             width: 80%;
             color: white;
-            text-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            text-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
             line-height: 1.4;
             opacity: 0;
             position: absolute;
             pointer-events: none;
-            transform: scale(0.9);
-            transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
+            /* Durasi 0.8s + cubic-bezier "Back-Out" biar ada efek membal dikit */
+            transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateY(40px); /* Mulai lebih jauh biar animasinya kelihatan */
         }
 
         #lyrics.show {
             opacity: 1;
-            transform: scale(1.1);
+            transform: translateY(0); /* Nyampe di posisi normal dengan gerakan membal */
         }
 
         #playBtn {
@@ -105,6 +106,18 @@
     const lyricsDiv = document.getElementById("lyrics");
     const playBtn = document.getElementById("playBtn");
 
+    document.addEventListener('click', function(e) {
+        // Hitung posisi relatif ke layar utama
+        // Kita butuh posisi iframe terhadap layar, tapi simpelnya:
+        const rect = window.frameElement.getBoundingClientRect();
+        const absoluteX = e.clientX + rect.left;
+        const absoluteY = e.clientY + rect.top;
+
+        // Panggil langsung fungsi di parent
+        if (window.parent && window.parent.triggerRameExplosion) {
+            window.parent.triggerRameExplosion(absoluteX, absoluteY);
+        }
+    });
     const lyricsData = [
         { text: "TAKE ME HOME, I'M FALLIN'", time: 3.5 },
         { text: "LOVE ME LONG, I'M ROLLIN'", time: 6.7 },
@@ -118,20 +131,26 @@
 
     audio.addEventListener("timeupdate", () => {
         const currentTime = audio.currentTime;
-        let activeLyric = "";
         
+        // Cari lirik yang aktif berdasarkan waktu
+        let activeLyricObj = null;
         for (let i = 0; i < lyricsData.length; i++) {
             if (currentTime >= lyricsData[i].time) {
-                activeLyric = lyricsData[i].text;
+                activeLyricObj = lyricsData[i];
             }
         }
 
-        if (activeLyric !== "" && lyricsDiv.innerText !== activeLyric) {
+        // Hanya ganti teks jika lirik yang ditemukan berbeda dengan yang sedang tampil
+        if (activeLyricObj && lyricsDiv.innerText !== activeLyricObj.text) {
+            // 1. Hilangkan teks lama
             lyricsDiv.classList.remove("show");
+
+            // 2. Tunggu transisi hilang (0.6s sesuai CSS), baru ganti teks
             setTimeout(() => {
-                lyricsDiv.innerText = activeLyric;
+                lyricsDiv.innerText = activeLyricObj.text;
+                // 3. Munculkan teks baru
                 lyricsDiv.classList.add("show");
-            }, 100); 
+            }, 600); 
         }
     });
 

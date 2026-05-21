@@ -254,6 +254,7 @@ if (isset($_GET['hapus'])) {
             display: flex; 
             align-items: center; 
             gap: 12px; 
+            max-width: 70%; /* Mencegah overflow teks menabrak tombol +ITEM */
         }
 
         .game-info img { 
@@ -263,6 +264,7 @@ if (isset($_GET['hapus'])) {
             object-fit: cover; 
             border: 1px solid var(--glass-border); 
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
         }
 
         .game-info h3 { 
@@ -270,6 +272,7 @@ if (isset($_GET['hapus'])) {
             font-size: 16px; 
             color: #fff; 
             font-weight: 600; 
+            white-space: nowrap;
         }
 
         .slug-tag { 
@@ -330,6 +333,7 @@ if (isset($_GET['hapus'])) {
             font-weight: 700; 
             transition: all 0.25s ease; 
             box-shadow: 0 4px 12px rgba(0, 92, 255, 0.25);
+            flex-shrink: 0;
         }
 
         .btn-add-item:hover { 
@@ -406,7 +410,7 @@ if (isset($_GET['hapus'])) {
         }
         ::-webkit-scrollbar-thumb { 
             background: rgba(0, 92, 255, 0.2); 
-            border-radius: 10px; vectors
+            border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover { 
             background: rgba(0, 170, 255, 0.4); 
@@ -441,17 +445,25 @@ if (isset($_GET['hapus'])) {
             while($g = mysqli_fetch_assoc($q_game)):
                 $id_game = $g['id'];
                 $slug_game = $g['slug']; 
+                $nama_game_asli = $g['nama_game'];
+
+                // --- LOGIKA LIMIT 20 KARAKTER DI SINI ---
+                if (strlen($nama_game_asli) > 20) {
+                    $nama_game_display = substr($nama_game_asli, 0, 20) . '...';
+                } else {
+                    $nama_game_display = $nama_game_asli;
+                }
             ?>
-                <div class="game-card" data-name="<?= strtolower($g['nama_game']) ?>">
+                <div class="game-card" data-name="<?= strtolower($nama_game_asli) ?>">
                     <div class="game-header">
                         <div class="game-info">
-                            <img src="<?= $g['gambar'] ?>" alt="<?= $g['nama_game'] ?>">
+                            <img src="<?= $g['gambar'] ?>" alt="<?= htmlspecialchars($nama_game_asli) ?>">
                             <div>
-                                <h3><?= $g['nama_game'] ?></h3>
-                                <span class="slug-tag">/<?= $slug_game ?></span>
+                                <h3 title="<?= htmlspecialchars($nama_game_asli) ?>"><?= htmlspecialchars($nama_game_display) ?></h3>
+                                <span class="slug-tag">/<?= htmlspecialchars($slug_game) ?></span>
                             </div>
                         </div>
-                        <a href="admin_tambah_paket.php?game=<?= $slug_game ?>" class="btn-add-item">+ ITEM</a>
+                        <a href="admin_tambah_paket.php?game=<?= urlencode($slug_game) ?>" class="btn-add-item">+ ITEM</a>
                     </div>
 
                     <table class="paket-table">
@@ -464,35 +476,31 @@ if (isset($_GET['hapus'])) {
                         </thead>
                         <tbody>
                             <?php
-                            // 1. Tambahkan 'tipe ASC' di ORDER BY supaya paket yang setipe ngumpul jadi satu
                             $q_paket = mysqli_query($koneksi, "SELECT * FROM produk_game WHERE id_game = '$id_game' ORDER BY tipe ASC, harga ASC");
                             
                             if(mysqli_num_rows($q_paket) > 0) {
-                                $current_tipe = ""; // Variabel pembantu buat cek perubahan tipe
+                                $current_tipe = ""; 
 
                                 while($p = mysqli_fetch_assoc($q_paket)) {
                                     $id_p = $p['id_produk']; 
                                     $nama_p = htmlspecialchars($p['nama_produk']);
                                     $harga_p = number_format($p['harga'], 0, ',', '.');
-                                    $tipe_p = $p['tipe']; // Ambil kolom tipe
+                                    $tipe_p = $p['tipe']; 
 
-                                    // 2. LOGIKA PEMISAH (Hanya muncul jika tipe berubah)
                                     if ($tipe_p !== $current_tipe) {
                                         $current_tipe = $tipe_p;
                                         
-                                        // Tentukan label Header berdasarkan tipe
                                         $header_label = "";
                                         $header_color = "";
 
                                         if ($tipe_p == 'roblox_login') {
                                             $header_label = "--- KATEGORI: VIA LOGIN (ROBLOX) ---";
-                                            $header_color = "#ff4d4d"; // Merah
+                                            $header_color = "#ff4d4d"; 
                                         } elseif ($tipe_p == 'roblox_5hari') {
                                             $header_label = "--- KATEGORI: 5 HARI / GIFT (ROBLOX) ---";
-                                            $header_color = "#2ecc71"; // Hijau
+                                            $header_color = "#2ecc71"; 
                                         }
 
-                                        // Tampilkan baris header pemisah jika ini produk roblox
                                         if ($header_label !== "") {
                                             echo "<tr>
                                                     <td colspan='3' style='background: rgba(255,255,255,0.05); color: $header_color; font-weight: bold; text-align: center; font-size: 12px; letter-spacing: 1px; padding: 10px 0;'>
@@ -551,7 +559,6 @@ if (isset($_GET['hapus'])) {
                 }
             });
 
-            // Tampilkan pesan kosong jika tidak ada game yang cocok
             if (visibleCardsCount === 0) {
                 emptyMsg.style.display = 'block';
             } else {
